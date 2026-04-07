@@ -1,14 +1,13 @@
 import {HttpClient} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 
+import {CookieService} from 'ngx-cookie-service';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {LoginMethod} from "@app/components/login/login.component";
 
 import {ResourceService} from '../hal';
-
-//import * as moment from 'moment';
 
 /** Authentication service*/
 @Injectable()
@@ -22,13 +21,9 @@ export class AuthService {
   /** constructor*/
   constructor(
     private readonly http: HttpClient,
-    private readonly resourceService: ResourceService
+    private readonly resourceService: ResourceService,
+    private readonly cookieService: CookieService
   ) {
-  }
-
-  /** get current user jwt token from session storage*/
-  getToken() {
-    return sessionStorage.getItem('authenticationToken');
   }
 
   /** login operation */
@@ -41,59 +36,29 @@ export class AuthService {
     return this.http.post(
       this.resourceService.getResourceUrl(this.AUTH_API),
       data,
-      {observe: 'response'}
+      {observe: 'response', withCredentials: true}
     ).pipe(
       map(this.authenticateSuccess.bind(this))
     );
   }
 
   private authenticateSuccess(resp) {
-    if (resp.ok) {
-      const jwt = resp.body.id_token;
-      this.storeAuthenticationToken(jwt);
-      //const expiresAt = moment().add( resp.headers.get('Token-Validity'),'milisecond');
-      //sessionStorage.setItem('expires_at', JSON.stringify(expiresAt.valueOf()));
-      return jwt;
-    }
+    return resp.ok;
   }
 
   /** login operation with jwt token */
   loginWithToken(jwt) {
     if (jwt) {
-      this.storeAuthenticationToken(jwt);
       return Promise.resolve(jwt);
     } else {
-      return Promise.reject('auth-jwt-service Promise reject'); // Put appropriate error message here
+      return Promise.reject(new Error('auth-jwt-service Promise reject'));
     }
-  }
-
-  /** store jwt token in session storage*/
-  storeAuthenticationToken(jwt) {
-    sessionStorage.setItem('authenticationToken', jwt);
-
-  }
-
-  /** check whether current user is logged in*/
-  public isLoggedIn() {
-    //return moment().isBefore(this.getExpiration());
-    return this.getToken();
-  }
-
-  /** check whether current user is logged out*/
-  isLoggedOut() {
-    return !this.isLoggedIn();
   }
 
   /** logout operation */
   logout(): Observable<any> {
     return new Observable((observer) => {
-      // Clear authentication token
-      sessionStorage.removeItem('authenticationToken');
-
-      // Clear any other session data if needed
-      // sessionStorage.clear(); // Uncomment if you want to clear all session data
-
-      // Complete the observable
+      this.cookieService.delete('jwt_token', '/');
       observer.complete();
     });
   }

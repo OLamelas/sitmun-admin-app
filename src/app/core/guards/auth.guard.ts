@@ -1,15 +1,14 @@
 import {inject} from '@angular/core';
 import {CanActivateFn, Router} from '@angular/router';
 
-import {AuthService} from '@app/core/auth/auth.service';
+import {Principal} from '@app/core/auth/principal.service';
 
 /** Functional guard to protect authenticated routes */
-export const authGuard: CanActivateFn = () => {
-  const auth = inject(AuthService);
+export const authGuard: CanActivateFn = async () => {
+  const principal = inject(Principal);
   const router = inject(Router);
 
-  const token = auth.getToken();
-  if (token) {
+  if (await principal.identity()) {
     return true;
   }
 
