@@ -102,6 +102,12 @@
             <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="4"></textarea>
             <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
           </mat-form-field>
+          <div style="margin: 12px 0; padding: 8px; background-color: #e3f2fd; border-radius: 4px; font-size: 0.9em; color: #1976d2;">
+            <div>{{ 'entity.task.query.backendVariables.hint' | translate }}</div>
+            <div style="margin-top: 4px;"><strong>{{ 'entity.task.query.backendVariables.example' | translate }}</strong></div>
+            <div style="margin-top: 8px;"><strong>{{ 'entity.task.parameters.systemVariablesLabel' | translate }}</strong></div>
+            <div style="margin-top: 4px;">{{ getSystemVariablesHelp() }}</div>
+          </div>
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"
@@ -112,6 +118,12 @@
             <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="4"></textarea>
             <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
           </mat-form-field>
+          <div style="margin: 12px 0; padding: 8px; background-color: #e3f2fd; border-radius: 4px; font-size: 0.9em; color: #1976d2;">
+            <div>{{ 'entity.task.query.backendVariables.hint' | translate }}</div>
+            <div style="margin-top: 4px;"><strong>{{ 'entity.task.query.backendVariables.example' | translate }}</strong></div>
+            <div style="margin-top: 8px;"><strong>{{ 'entity.task.parameters.systemVariablesLabel' | translate }}</strong></div>
+            <div style="margin-top: 4px;">{{ getSystemVariablesHelp() }}</div>
+          </div>
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"
@@ -241,11 +253,6 @@
           <mat-checkbox formControlName="required">
           </mat-checkbox>
         </ng-container>
-        <br/>
-        <mat-label>{{ 'entity.task.parameters.provided' | translate }}</mat-label>
-        <mat-checkbox formControlName="provided">
-        </mat-checkbox>
-        <mat-hint>{{ 'entity.task.parameters.provided.hint' | translate }}</mat-hint>
       </mat-card-content>
     </mat-card>
   </form>

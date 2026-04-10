@@ -1,4 +1,5 @@
 import {Component, TemplateRef, ViewChild} from "@angular/core";
+import {HttpClient} from "@angular/common/http";
 import {FormControl, FormGroup, Validators} from "@angular/forms";
 import {MatDialog} from "@angular/material/dialog";
 import {MatSelectChange} from "@angular/material/select";
@@ -47,6 +48,7 @@ import {ErrorHandlerService} from "@app/services/error-handler.service";
 import {LoadingOverlayService} from "@app/services/loading-overlay.service";
 import {LoggerService} from "@app/services/logger.service";
 import {UtilsService} from "@app/services/utils.service";
+import {environment} from "@environments/environment";
 import {magic} from "@environments/constants";
 
 /**
@@ -122,6 +124,7 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
    * The TaskParameterType enum exposed to the template
    */
   protected readonly TaskParameterType = TaskParameterType;
+  protected systemVariables: Map<string, string> = new Map();
 
   /**
    * Gets the name of a cartography by its ID
@@ -185,6 +188,16 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.cartographyQuery;
   }
 
+  protected getSystemVariablesHelp(): string {
+    if (this.systemVariables.size === 0) {
+      return 'Loading...';
+    }
+
+    return Array.from(this.systemVariables.keys())
+      .map(key => `#{${key}}`)
+      .join(', ');
+  }
+
   /**
    * Constructor for the TaskQueryFormComponent.
    * Initializes the component with necessary services and sets up the form.
@@ -232,7 +245,8 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     protected territoryService: TerritoryService,
     protected taskAvailabilityService: TaskAvailabilityService,
     protected connectionService: ConnectionService,
-    protected cartographyService: CartographyService
+    protected cartographyService: CartographyService,
+    protected http: HttpClient
   ) {
     super(dialog, translateService, translationService, codeListService, loggerService, errorHandler, activatedRoute, router, loadingService, messagesInterceptorState);
     this.rolesTable = this.defineRolesTable();
@@ -249,6 +263,15 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
    */
   override async preFetchData() {
     const type = magic.taskQueryTypeId;
+
+    try {
+      const variables = await firstValueFrom(
+        this.http.get<Record<string, string>>(`${environment.apiBaseURL}/api/config/system/variables`)
+      );
+      this.systemVariables = new Map(Object.entries(variables));
+    } catch (error) {
+      console.warn('Failed to load system variables:', error);
+    }
 
     // Register data tables for roles, availabilities, and parameters
     this.dataTables.register(this.rolesTable)
@@ -594,7 +617,6 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
         this.utils.getNonEditableColumnDef('common.form.value', 'value'),
         this.utils.getNonEditableColumnWithCodeListDef('common.form.type', 'type', () => this.codeList('queryTask.parameterType')),
         this.utils.addConditionToColumnDef(this.utils.getBooleanColumnDef('common.form.required', 'required', true), (params) => params.data.type === TaskParameterType.QUERY),
-        this.utils.getBooleanColumnDef('entity.task.parameters.provided', 'provided', true),
         this.utils.getStatusColumnDef()])
       .withRelationsOrder('name')
       .withRelationsFetcher(() => {
@@ -637,13 +659,9 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
             validators: [Validators.required],
             nonNullable: true
           }),
-          provided: new FormControl(false, {
-            validators: [],
-            nonNullable: true
-          }),
         })).withPreOpenFunction((form: FormGroup) => {
           const defaultType = this.defaultValueOrNull('queryTask.parameterType');
-          form.reset({type: defaultType?.value || null, provided: false});
+          form.reset({type: defaultType?.value || null});
         }).build())
       .withTargetToRelation((items: TaskQueryParameter[]) => items.map(item => TaskQueryParameter.fromObject(item)))
       .withRelationsDuplicate(item => TaskQueryParameter.fromObject(item))

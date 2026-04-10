@@ -36,6 +36,7 @@ export { UserConfigurationService } from './user/services/user-configuration.ser
 
 // Task
 export { TaskService } from './task/services/task.service';
+export { TaskRelationService } from './task/services/task-relation.service';
 export { TaskTypeService } from './task/services/task-type.service';
 export { TaskGroupService } from './task/services/task-group.service';
 export { TaskAvailabilityService } from './task/services/task-availability.service';
