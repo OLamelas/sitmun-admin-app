@@ -158,6 +158,19 @@
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"
+        *ngIf="isUrlQueryScope()">
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>{{ 'entity.task.query.url' | translate }}</mat-label>
+            <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="4"></textarea>
+            <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
+          </mat-form-field>
+          <div style="margin: 12px 0; padding: 8px; background-color: #fff3e0; border-radius: 4px; font-size: 0.9em; color: #e65100;">
+            <div>{{ 'entity.task.query.urlHint' | translate }}</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="sitmun-mat-card-margin" appearance="outlined"
         *ngIf="isCartographyQueryScope()">
         <mat-card-content>
           <mat-form-field appearance="outline" class="half">

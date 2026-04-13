@@ -690,6 +690,8 @@
   "entity.task.query.sql": "Consulta SQL a realitzar",
   "entity.task.query.webapi": "Consulta via Web API",
   "entity.task.query.apiKey": "X-API-Key",
+  "entity.task.query.url": "URL",
+  "entity.task.query.urlHint": "Utilitzeu {variableName} només per a paràmetres del client. Redirecció directa (sense proxy). Les variables de backend #{} NO estàn suportades aquí.",
   "entity.task.report.id": "ID",
   "entity.task.report.informationType": "Tipus d'informació",
   "entity.task.report.locator": "Localitzador",

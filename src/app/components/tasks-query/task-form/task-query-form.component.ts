@@ -194,6 +194,10 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.cartographyQuery;
   }
 
+  isUrlQueryScope(): boolean {
+    return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.urlQuery;
+  }
+
   protected getSystemVariablesHelp(): string {
     if (this.systemVariables.size === 0) {
       return 'Loading...';
@@ -489,6 +493,20 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('user')?.enable();
       this.entityForm.get('password')?.enable();
       this.entityForm.get('apiKey')?.enable();
+    } else if (value === scope?.urlQuery) {
+      this.entityForm.get('command').enable();
+      this.entityForm.get('connectionId').setValue(null);
+      this.entityForm.get('connectionId').disable();
+      this.entityForm.get('cartographyId').setValue(null);
+      this.entityForm.get('cartographyId').disable();
+      this.entityForm.get('authenticationMode')?.setValue(null);
+      this.entityForm.get('authenticationMode')?.disable();
+      this.entityForm.get('user')?.setValue(null);
+      this.entityForm.get('user')?.disable();
+      this.entityForm.get('password')?.setValue(null);
+      this.entityForm.get('password')?.disable();
+      this.entityForm.get('apiKey')?.setValue(null);
+      this.entityForm.get('apiKey')?.disable();
     } else {
       this.entityForm.get('command').setValue(null);
       this.entityForm.get('command').disable();
