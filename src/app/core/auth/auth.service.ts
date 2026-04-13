@@ -1,7 +1,7 @@
 import {HttpClient} from '@angular/common/http';
 import {Injectable} from '@angular/core';
+import {Router} from '@angular/router';
 
-import {CookieService} from 'ngx-cookie-service';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
@@ -16,13 +16,15 @@ export class AuthService {
   /** API resource path */
   public AUTH_API = 'authenticate';
 
+  public LOGOUT_API = `${this.AUTH_API}/logout`;
+
   public AUTH_METHODS_API = 'auth/enabled-methods';
 
   /** constructor*/
   constructor(
     private readonly http: HttpClient,
     private readonly resourceService: ResourceService,
-    private readonly cookieService: CookieService
+    private readonly router: Router
   ) {
   }
 
@@ -46,19 +48,16 @@ export class AuthService {
     return resp.ok;
   }
 
-  /** login operation with jwt token */
-  loginWithToken(jwt) {
-    if (jwt) {
-      return Promise.resolve(jwt);
-    } else {
-      return Promise.reject(new Error('auth-jwt-service Promise reject'));
-    }
-  }
-
   /** logout operation */
   logout(): Observable<any> {
+    this.http
+      .post<void>(this.resourceService.getResourceUrl(this.LOGOUT_API),
+        null,
+        {observe: 'response', withCredentials: true})
+      .subscribe(() => {
+        this.router.navigate(['login']);
+      });
     return new Observable((observer) => {
-      this.cookieService.delete('jwt_token', '/');
       observer.complete();
     });
   }

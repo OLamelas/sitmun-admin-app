@@ -114,6 +114,7 @@ export class SystemInfoMenuComponent implements OnInit {
       if (user) {
         this.currentUser.set(user);
       } else {
+        this.loggerService.warn('User identity returned null');
         this.currentUser.set(null);
       }
       this.cdr.markForCheck();

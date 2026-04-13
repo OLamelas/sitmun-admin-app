@@ -1,23 +1,27 @@
 import {HttpClientModule} from '@angular/common/http';
-import {TestBed, ComponentFixture, fakeAsync, tick} from '@angular/core/testing';
+import {TestBed, ComponentFixture} from '@angular/core/testing';
 import {Router} from '@angular/router';
 
-import {TranslateLoader, TranslateModule, TranslateService} from '@ngx-translate/core';
-import {CookieService} from 'ngx-cookie-service';
+import {TranslateLoader, TranslateModule} from '@ngx-translate/core';
 import {of} from 'rxjs';
 
 import {AuthService, ResourceService, ExternalService, ExternalConfigurationService} from '@app/core';
+import {Principal} from '@app/core/auth/principal.service';
 import {NotificationService} from '@app/services/notification.service';
 
 import {CallbackComponent} from './callback.component';
+
+class PrincipalMock {
+  identity = jest.fn();
+  authenticate = jest.fn();
+}
 
 describe('CallbackComponent', () => {
   let component: CallbackComponent;
   let fixture: ComponentFixture<CallbackComponent>;
   let router: Router;
-  let cookieService: CookieService;
   let notificationService: NotificationService;
-  let authService: AuthService;
+  let principal: Principal;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -34,48 +38,54 @@ describe('CallbackComponent', () => {
         })
       ],
       providers: [
-        Router,
-        CookieService,
-        TranslateService,
-        NotificationService,
         AuthService,
         ResourceService,
         ExternalService,
-        { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }
+        { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService },
+        {
+          provide: Principal,
+          useClass: PrincipalMock
+        },
+        {
+          provide: Router,
+          useValue: { navigate: jest.fn(), navigateByUrl: jest.fn() }
+        },
+        {
+          provide: NotificationService,
+          useValue: { showError: jest.fn() }
+        }
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(CallbackComponent);
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
-    cookieService = TestBed.inject(CookieService);
     notificationService = TestBed.inject(NotificationService);
-    authService = TestBed.inject(AuthService);
-    fixture.detectChanges();
+    principal = TestBed.inject(Principal);
   });
 
-  it('should create', () => {
+  it('should create', async () => {
+    (principal.identity as jest.Mock) = jest.fn().mockResolvedValue({ login: 'user' });
+    await fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
-  it('should access dashboard if token exists', fakeAsync(() => {
-    jest.spyOn(cookieService, 'get').mockReturnValue('token123');
-    const loginSpy = jest.spyOn(authService, 'loginWithToken').mockResolvedValue(undefined);
+  it('should navigate to dashboard if user is authenticated', async () => {
+    (principal.identity as jest.Mock) = jest.fn().mockResolvedValue({ login: 'user' });
     const navSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true as any);
-    component.ngOnInit();
-    tick();
+    await fixture.detectChanges();
+    await component.ngOnInit();
     expect(component.messageKey).toBe('callback.redirect');
-    expect(loginSpy).toHaveBeenCalledWith('token123');
     expect(navSpy).toHaveBeenCalledWith(['dashboard']);
-  }));
+  });
 
-  it('should navigate to root and show error if token does not exist', fakeAsync(() => {
-    jest.spyOn(cookieService, 'get').mockReturnValue('');
+  it('should navigate to root and show error if user is not authenticated', async () => {
+    (principal.identity as jest.Mock) = jest.fn().mockResolvedValue(null);
     const navByUrlSpy = jest.spyOn(router, 'navigateByUrl').mockResolvedValue(true as any);
     const showErrorSpy = jest.spyOn(notificationService, 'showError');
-    component.ngOnInit();
-    tick();
+    await fixture.detectChanges();
+    await component.ngOnInit();
     expect(navByUrlSpy).toHaveBeenCalledWith('/');
     expect(showErrorSpy).toHaveBeenCalled();
-  }));
+  });
 });
