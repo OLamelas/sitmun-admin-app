@@ -36,6 +36,7 @@ import {
   TranslationService
 } from "@app/domain";
 import { TaskPropertiesContract } from "@app/domain/task/models/task-properties";
+import { TaskPropertiesBuilder } from "@app/domain/task/models/task-properties.builder";
 import {TaskParameterType, TaskQueryParameter} from "@app/domain/task/models/task-query-parameter.model";
 import {
   canKeepOrUpdate,
@@ -165,6 +166,11 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
   protected cartographies: Cartography[] = [];
 
   /**
+   * Whether the API key field is shown
+   */
+  protected showApiKey = false;
+
+  /**
    * Checks if the current task scope is SQL query
    * @returns boolean indicating if scope is SQL query
    */
@@ -277,7 +283,7 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     this.dataTables.register(this.rolesTable)
       .register(this.availabilitiesTable)
       .register(this.parametersTable);
-    await this.initCodeLists(['tasksEntity.type', 'queryTask.scope', 'queryTask.parameterType']);
+    await this.initCodeLists(['tasksEntity.type', 'queryTask.scope', 'queryTask.parameterType', 'service.authenticationMode']);
     this.initTranslations('Task', ['name'])
 
     const [taskTypes, taskGroups, connections, cartographies] = await Promise.all([
@@ -377,8 +383,25 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       taskGroupId: new FormControl(this.entityToEdit.groupId, {
         validators: [Validators.required],
         nonNullable: true
-      })
+      }),
+      authenticationMode: new FormControl(
+        (this.entityToEdit.properties as any)?.authenticationMode || null,
+        { validators: [], nonNullable: false }
+      ),
+      user: new FormControl(
+        (this.entityToEdit.properties as any)?.user || null,
+        { validators: [], nonNullable: false }
+      ),
+      password: new FormControl(
+        (this.entityToEdit.properties as any)?.password || null,
+        { validators: [], nonNullable: false }
+      ),
+      apiKey: new FormControl(
+        ((this.entityToEdit.properties as any)?.headers as Record<string, string>)?.['X-API-Key'] || null,
+        { validators: [], nonNullable: false }
+      )
     });
+    this.showApiKey = !!((this.entityToEdit.properties as any)?.headers?.['X-API-Key']);
     this.configureForm(TaskPropertiesContract.getScope(this.entityToEdit.properties))
   }
 
@@ -390,15 +413,20 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
    */
   createObject(id: number = null): Task {
     let safeToEdit = TaskProjection.fromObject(this.entityToEdit);
-    const formValues = this.entityForm.getRawValue();
+    const { authenticationMode, user, password, apiKey, scope, command, ...mainFormValues } = this.entityForm.getRawValue();
+    const headers = apiKey ? { 'X-API-Key': apiKey } : null;
     safeToEdit = Object.assign(safeToEdit,
-      formValues,
+      mainFormValues,
       {
         id: id,
-        properties: TaskPropertiesContract.withCommand(
-          TaskPropertiesContract.withScope(this.entityToEdit.properties, formValues.scope),
-          formValues.command
-        )
+        properties: TaskPropertiesBuilder.from(this.entityToEdit.properties)
+          .withScope(scope)
+          .withCommand(command)
+          .withAuthenticationMode(authenticationMode || null)
+          .withUser(user || null)
+          .withPassword(password || null)
+          .withHeaders(headers)
+          .build()
       }
     );
     return Task.fromObject(safeToEdit);
@@ -429,18 +457,38 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('connectionId').enable();
       this.entityForm.get('cartographyId').setValue(null);
       this.entityForm.get('cartographyId').disable();
+      this.entityForm.get('authenticationMode')?.setValue(null);
+      this.entityForm.get('authenticationMode')?.disable();
+      this.entityForm.get('user')?.setValue(null);
+      this.entityForm.get('user')?.disable();
+      this.entityForm.get('password')?.setValue(null);
+      this.entityForm.get('password')?.disable();
+      this.entityForm.get('apiKey')?.setValue(null);
+      this.entityForm.get('apiKey')?.disable();
     } else if (value === scope?.cartographyQuery) {
       this.entityForm.get('command').setValue(null);
       this.entityForm.get('command').disable();
       this.entityForm.get('connectionId').setValue(null);
       this.entityForm.get('connectionId').disable();
       this.entityForm.get('cartographyId').enable();
+      this.entityForm.get('authenticationMode')?.setValue(null);
+      this.entityForm.get('authenticationMode')?.disable();
+      this.entityForm.get('user')?.setValue(null);
+      this.entityForm.get('user')?.disable();
+      this.entityForm.get('password')?.setValue(null);
+      this.entityForm.get('password')?.disable();
+      this.entityForm.get('apiKey')?.setValue(null);
+      this.entityForm.get('apiKey')?.disable();
     } else if (value === scope?.webApiQuery) {
       this.entityForm.get('command').enable();
       this.entityForm.get('connectionId').setValue(null);
       this.entityForm.get('connectionId').disable();
       this.entityForm.get('cartographyId').setValue(null);
       this.entityForm.get('cartographyId').disable();
+      this.entityForm.get('authenticationMode')?.enable();
+      this.entityForm.get('user')?.enable();
+      this.entityForm.get('password')?.enable();
+      this.entityForm.get('apiKey')?.enable();
     } else {
       this.entityForm.get('command').setValue(null);
       this.entityForm.get('command').disable();
@@ -448,6 +496,14 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('connectionId').disable();
       this.entityForm.get('cartographyId').setValue(null);
       this.entityForm.get('cartographyId').disable();
+      this.entityForm.get('authenticationMode')?.setValue(null);
+      this.entityForm.get('authenticationMode')?.disable();
+      this.entityForm.get('user')?.setValue(null);
+      this.entityForm.get('user')?.disable();
+      this.entityForm.get('password')?.setValue(null);
+      this.entityForm.get('password')?.disable();
+      this.entityForm.get('apiKey')?.setValue(null);
+      this.entityForm.get('apiKey')?.disable();
     }
   }
 
@@ -670,5 +726,13 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
 
   getTaskGroupName(taskGroupId: number): string {
       return this.taskGroupList.find(group => group.id === taskGroupId)?.name || '';
+  }
+
+  toggleApiKey(checked: boolean) {
+    this.showApiKey = checked;
+    if (!checked) {
+      this.entityForm.get('apiKey')?.setValue(null);
+      this.entityForm.markAsDirty();
+    }
   }
 }

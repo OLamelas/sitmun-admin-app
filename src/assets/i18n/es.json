@@ -689,6 +689,7 @@
   "entity.task.query.backendVariables.example": "Ejemplo: http://example.com?param=#{VARIABLE_NAME}",
   "entity.task.query.sql": "Consulta SQL a realizar",
   "entity.task.query.webapi": "Consulta vía Web API",
+  "entity.task.query.apiKey": "X-API-Key",
   "entity.task.report.id": "ID",
   "entity.task.report.informationType": "Tipo de información",
   "entity.task.report.locator": "Localizador",

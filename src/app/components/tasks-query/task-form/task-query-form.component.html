@@ -124,6 +124,37 @@
             <div style="margin-top: 8px;"><strong>{{ 'entity.task.parameters.systemVariablesLabel' | translate }}</strong></div>
             <div style="margin-top: 4px;">{{ getSystemVariablesHelp() }}</div>
           </div>
+          <div class="break"></div>
+          <mat-form-field appearance="outline" class="quarter">
+            <mat-label>{{ 'entity.service.authenticationMode' | translate }}</mat-label>
+            <mat-select formControlName="authenticationMode" [placeholder]="'common.form.none' | translate">
+              <mat-option [value]="mode.value" *ngFor="let mode of this.codeList('service.authenticationMode')">
+                {{ mode.description }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <div class="break"></div>
+          <ng-container *ngIf="entityForm.get('authenticationMode')?.value && entityForm.get('authenticationMode')?.value !== 'None'">
+            <mat-form-field appearance="outline" class="half add-gap">
+              <mat-label>{{ 'entity.service.user' | translate }}</mat-label>
+              <input matInput type="text" formControlName="user" [maxlength]="50">
+              <mat-hint align="end">{{ entityForm.get('user') | characterCount }}</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="half">
+              <mat-label>{{ 'entity.service.password' | translate }}</mat-label>
+              <input matInput type="text" formControlName="password" [maxlength]="50">
+              <mat-hint align="end">{{ entityForm.get('password') | characterCount }}</mat-hint>
+            </mat-form-field>
+            <div class="break"></div>
+          </ng-container>
+          <mat-checkbox [checked]="showApiKey" (change)="toggleApiKey($event.checked)">
+            {{ 'entity.task.moreInfo.addApiKey' | translate }}
+          </mat-checkbox>
+          <div class="break"></div>
+          <mat-form-field appearance="outline" class="half" *ngIf="showApiKey">
+            <mat-label>{{ 'entity.task.query.apiKey' | translate }}</mat-label>
+            <input matInput type="text" formControlName="apiKey">
+          </mat-form-field>
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"
