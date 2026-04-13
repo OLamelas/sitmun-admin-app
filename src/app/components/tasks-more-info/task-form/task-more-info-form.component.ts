@@ -407,16 +407,6 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
     this.entityForm.markAsDirty();
   }
 
-  protected get selectedQueryTaskUrl(): string | null {
-    const id = this.entityForm?.get('queryTaskId')?.value;
-    if (typeof id !== 'number') return null;
-    const task = this.queryTasks.find(t => t.id === id);
-    if (!task) return null;
-    const scope = String(task.properties?.scope || '');
-    if (scope !== this.codeValues?.queryTaskScope?.urlQuery) return null;
-    return String(task.properties?.command || '') || null;
-  }
-
   private queryTaskValidator(control: FormControl): { [key: string]: any } | null {
     const value = control.value;
     if (!value) {
