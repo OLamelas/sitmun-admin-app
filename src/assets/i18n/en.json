@@ -603,6 +603,7 @@
   "entity.task.moreInfo.tag": "Tag",
   "entity.task.moreInfo.taskName": "Task name",
   "entity.task.moreInfo.queryTask": "Query task",
+  "entity.task.moreInfo.queryTask.invalidSelection": "Please select a query task from the list",
   "entity.task.moreInfo.tasksMoreInfo": "Tasks-More Information",
   "entity.task.moreInfo.territories": "Territories",
   "entity.task.moreInfo.type": "Type",

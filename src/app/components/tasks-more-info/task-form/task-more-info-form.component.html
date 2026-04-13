@@ -89,16 +89,33 @@
 
           <mat-form-field appearance="outline" class="full">
             <mat-label>{{ 'entity.task.moreInfo.queryTask' | translate }}</mat-label>
-            <mat-select formControlName="queryTaskId" class="form-control" required>
-              <mat-select-trigger>
-                <ng-container *ngIf="entityForm.get('queryTaskId')?.value as queryTaskId">
-                  {{ getQueryTaskName(queryTaskId) }}
-                </ng-container>
-              </mat-select-trigger>
-              <mat-option [value]="queryTask.id" *ngFor="let queryTask of queryTasks">
+            <input
+              matInput
+              type="text"
+              [formControl]="queryTaskSearchControl"
+              [matAutocomplete]="queryTaskAuto"
+              required
+              [errorStateMatcher]="queryTaskErrorMatcher">
+            <mat-error *ngIf="queryTaskSearchControl.hasError('required')">
+              {{ 'common.error.required' | translate }}
+            </mat-error>
+            <mat-error *ngIf="queryTaskSearchControl.hasError('invalidQueryTask')">
+              {{ 'entity.task.moreInfo.queryTask.invalidSelection' | translate }}
+            </mat-error>
+            <button
+              *ngIf="queryTaskSearchControl.value"
+              matSuffix
+              mat-icon-button
+              aria-label="Clear"
+              (click)="clearQueryTask()"
+              type="button">
+              <mat-icon>close</mat-icon>
+            </button>
+            <mat-autocomplete #queryTaskAuto="matAutocomplete" (optionSelected)="onQueryTaskSelected($event)" [displayWith]="displayQueryTask">
+              <mat-option *ngFor="let queryTask of filteredQueryTasks | async" [value]="queryTask">
                 {{ queryTask.name }}
               </mat-option>
-            </mat-select>
+            </mat-autocomplete>
           </mat-form-field>
         </mat-card-content>
       </mat-card>

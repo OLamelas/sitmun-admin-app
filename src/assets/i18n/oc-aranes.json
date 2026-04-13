@@ -603,6 +603,7 @@
   "entity.task.moreInfo.tag": "Etiqueta",
   "entity.task.moreInfo.taskName": "Nòm trabalh",
   "entity.task.moreInfo.queryTask": "Trabalh de consulta",
+  "entity.task.moreInfo.queryTask.invalidSelection": "Seleccionatz un trabalh de consulta dera lista",
   "entity.task.moreInfo.tasksMoreInfo": "Trabalhs-Mès informacion",
   "entity.task.moreInfo.territories": "Territòris",
   "entity.task.moreInfo.type": "Tipe",

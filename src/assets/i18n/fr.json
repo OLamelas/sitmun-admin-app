@@ -603,6 +603,7 @@
   "entity.task.moreInfo.tag": "Étiquette",
   "entity.task.moreInfo.taskName": "Noom de tâche",
   "entity.task.moreInfo.queryTask": "Tâche de requête",
+  "entity.task.moreInfo.queryTask.invalidSelection": "Veuillez sélectionner une tâche de requête dans la liste",
   "entity.task.moreInfo.tasksMoreInfo": "Tâche Plus d'information",
   "entity.task.moreInfo.territories": "Territoires",
   "entity.task.moreInfo.type": "Type",

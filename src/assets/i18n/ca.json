@@ -603,6 +603,7 @@
   "entity.task.moreInfo.tag": "Etiqueta",
   "entity.task.moreInfo.taskName": "Nom tasca",
   "entity.task.moreInfo.queryTask": "Tasca de consulta",
+  "entity.task.moreInfo.queryTask.invalidSelection": "Si us plau, seleccioneu una tasca de consulta de la llista",
   "entity.task.moreInfo.tasksMoreInfo": "Tasques-Més informació",
   "entity.task.moreInfo.territories": "Territoris",
   "entity.task.moreInfo.type": "Tipus",

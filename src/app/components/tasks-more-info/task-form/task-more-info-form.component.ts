@@ -86,6 +86,13 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
   protected filteredCartographies = of<Cartography[]>([]);
   protected cartographyErrorMatcher = new CartographyErrorStateMatcher();
 
+  protected queryTaskSearchControl = new FormControl<string | TaskProjection>('', {
+    validators: [Validators.required, this.queryTaskValidator.bind(this)],
+    nonNullable: true
+  });
+  protected filteredQueryTasks = of<TaskProjection[]>([]);
+  protected queryTaskErrorMatcher = new QueryTaskErrorStateMatcher();
+
   // Map form control names to their i18n label keys for validation banner
   protected validationFieldLabels: Record<string, string> = {
     'name': 'entity.task.moreInfo.taskName',
@@ -221,6 +228,16 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
         return this.filterCartographies(searchValue);
       })
     );
+
+    const selectedQueryTask = this.queryTasks.find(task => task.id === this.selectedQueryTaskId);
+    this.queryTaskSearchControl.setValue(selectedQueryTask || '');
+    this.filteredQueryTasks = this.queryTaskSearchControl.valueChanges.pipe(
+      startWith(this.queryTaskSearchControl.value),
+      map(value => {
+        const searchValue = typeof value === 'string' ? value : value?.name || '';
+        return this.filterQueryTasksByText(searchValue);
+      })
+    );
   }
 
   createObject(id: number = null): Task {
@@ -295,9 +312,7 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
     return this.taskGroupList.find(group => group.id === taskGroupId)?.name || '';
   }
 
-  protected getQueryTaskName(queryTaskId: number): string {
-    return this.queryTasks.find(task => task.id === queryTaskId)?.name || '';
-  }
+
 
   protected shouldShowCommandAlertHint(): boolean {
     const command = this.entityForm?.get('command')?.value ?? '';
@@ -368,6 +383,65 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
     this.entityForm.get('cartographyId')?.setValue(null);
     // Mark form as dirty when clearing
     this.entityForm.markAsDirty();
+  }
+
+  onQueryTaskSelected(event: MatAutocompleteSelectedEvent) {
+    const task = event.option.value as TaskProjection;
+    if (task?.id) {
+      this.entityForm.get('queryTaskId')?.setValue(task.id);
+      this.entityForm.markAsDirty();
+      this.queryTaskSearchControl.updateValueAndValidity();
+    }
+  }
+
+  displayQueryTask(task: TaskProjection | string): string {
+    if (typeof task === 'string') {
+      return task;
+    }
+    return task?.name || '';
+  }
+
+  clearQueryTask() {
+    this.queryTaskSearchControl.setValue('');
+    this.entityForm.get('queryTaskId')?.setValue(null);
+    this.entityForm.markAsDirty();
+  }
+
+  private queryTaskValidator(control: FormControl): { [key: string]: any } | null {
+    const value = control.value;
+    if (!value) {
+      return null;
+    }
+    if (typeof value === 'object' && value?.id) {
+      setTimeout(() => {
+        if (this.entityForm) {
+          this.entityForm.get('queryTaskId')?.setValue(value.id, {emitEvent: false});
+          this.entityForm.markAsDirty();
+        }
+      });
+      return null;
+    }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const matchingTask = this.queryTasks.find(
+        t => t.name?.toLowerCase() === value.trim().toLowerCase()
+      );
+      if (matchingTask) {
+        setTimeout(() => {
+          if (this.entityForm) {
+            this.entityForm.get('queryTaskId')?.setValue(matchingTask.id, {emitEvent: false});
+            this.entityForm.markAsDirty();
+          }
+        });
+        return null;
+      }
+      return { invalidQueryTask: true };
+    }
+    return null;
+  }
+
+  private filterQueryTasksByText(value?: string): TaskProjection[] {
+    const filterValue = (value || '').toLowerCase();
+    return this.queryTasks.filter(task => (task.name || '').toLowerCase().includes(filterValue));
   }
 
   private cartographyValidator(control: FormControl): { [key: string]: any } | null {
@@ -629,6 +703,16 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
  * Shows errors when the control is invalid and (dirty or touched).
  */
 class CartographyErrorStateMatcher implements ErrorStateMatcher {
+  isErrorState(control: FormControl | null, _form: FormGroupDirective | NgForm | null): boolean {
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+}
+
+/**
+ * Custom error state matcher for query task autocomplete.
+ * Shows errors when the control is invalid and (dirty or touched).
+ */
+class QueryTaskErrorStateMatcher implements ErrorStateMatcher {
   isErrorState(control: FormControl | null, _form: FormGroupDirective | NgForm | null): boolean {
     return !!(control && control.invalid && (control.dirty || control.touched));
   }
