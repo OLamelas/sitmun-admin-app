@@ -117,7 +117,7 @@ describe('TaskMoreInfoFormComponent', () => {
       { id: 1, typeId: 5, cartographyId: 11, properties: { scope: 'cartography-query' } },
       { id: 2, typeId: 5, cartographyId: null, properties: { scope: 'sql-query' } },
       { id: 3, typeId: 5, cartographyId: null, properties: { scope: 'web-api-query' } },
-      { id: 4, typeId: 5, cartographyId: null, properties: { scope: 'url-query' } },
+      { id: 4, typeId: 5, cartographyId: null, properties: { scope: 'URL' } },
       { id: 5, typeId: 1, cartographyId: null, properties: { scope: 'basic' } }
     ] as any[];
 
