@@ -128,13 +128,13 @@
           <mat-form-field appearance="outline" class="quarter">
             <mat-label>{{ 'entity.service.authenticationMode' | translate }}</mat-label>
             <mat-select formControlName="authenticationMode" [placeholder]="'common.form.none' | translate">
-              <mat-option [value]="mode.value" *ngFor="let mode of this.codeList('service.authenticationMode')">
-                {{ mode.description }}
+              <mat-option [value]="mode.value" *ngFor="let mode of this.codeList('queryTask.authenticationMode')">
+                {{ mode.value === 'None' ? ('common.form.none' | translate) : mode.description }}
               </mat-option>
             </mat-select>
           </mat-form-field>
           <div class="break"></div>
-          <ng-container *ngIf="entityForm.get('authenticationMode')?.value && entityForm.get('authenticationMode')?.value !== 'None'">
+          <ng-container *ngIf="entityForm.get('authenticationMode')?.value === 'HTTP Basic authentication'">
             <mat-form-field appearance="outline" class="half add-gap">
               <mat-label>{{ 'entity.service.user' | translate }}</mat-label>
               <input matInput type="text" formControlName="user" [maxlength]="50">
@@ -147,11 +147,7 @@
             </mat-form-field>
             <div class="break"></div>
           </ng-container>
-          <mat-checkbox [checked]="showApiKey" (change)="toggleApiKey($event.checked)">
-            {{ 'entity.task.moreInfo.addApiKey' | translate }}
-          </mat-checkbox>
-          <div class="break"></div>
-          <mat-form-field appearance="outline" class="half" *ngIf="showApiKey">
+          <mat-form-field appearance="outline" class="half" *ngIf="entityForm.get('authenticationMode')?.value === 'X-API-Key'">
             <mat-label>{{ 'entity.task.query.apiKey' | translate }}</mat-label>
             <input matInput type="text" formControlName="apiKey">
           </mat-form-field>

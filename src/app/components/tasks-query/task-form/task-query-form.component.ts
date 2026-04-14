@@ -166,11 +166,6 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
   protected cartographies: Cartography[] = [];
 
   /**
-   * Whether the API key field is shown
-   */
-  protected showApiKey = false;
-
-  /**
    * Checks if the current task scope is SQL query
    * @returns boolean indicating if scope is SQL query
    */
@@ -291,7 +286,7 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     this.dataTables.register(this.rolesTable)
       .register(this.availabilitiesTable)
       .register(this.parametersTable);
-    await this.initCodeLists(['tasksEntity.type', 'queryTask.scope', 'queryTask.parameterType', 'service.authenticationMode', 'queryTask.mimeType']);
+    await this.initCodeLists(['tasksEntity.type', 'queryTask.scope', 'queryTask.parameterType', 'queryTask.authenticationMode', 'queryTask.mimeType']);
     this.initTranslations('Task', ['name'])
 
     const [taskTypes, taskGroups, connections, cartographies] = await Promise.all([
@@ -417,7 +412,22 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
         { validators: [], nonNullable: false }
       )
     });
-    this.showApiKey = !!((this.entityToEdit.properties as any)?.headers?.['X-API-Key']);
+    // Backward compat: if apiKey header exists but authMode is not set to X-API-Key, migrate it
+    const hasApiKey = !!((this.entityToEdit.properties as any)?.headers?.['X-API-Key']);
+    const authMode = (this.entityToEdit.properties as any)?.authenticationMode;
+    if (hasApiKey && authMode !== 'X-API-Key') {
+      this.entityForm.get('authenticationMode')?.setValue('X-API-Key');
+    }
+    // Single subscription: clear dependent fields when auth mode changes
+    this.entityForm.get('authenticationMode')?.valueChanges.subscribe(mode => {
+      if (mode !== 'X-API-Key') {
+        this.entityForm.get('apiKey')?.setValue(null);
+      }
+      if (mode !== 'HTTP Basic authentication') {
+        this.entityForm.get('user')?.setValue(null);
+        this.entityForm.get('password')?.setValue(null);
+      }
+    });
     this.configureForm(TaskPropertiesContract.getScope(this.entityToEdit.properties))
   }
 
@@ -430,7 +440,8 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
   createObject(id: number = null): Task {
     let safeToEdit = TaskProjection.fromObject(this.entityToEdit);
     const { authenticationMode, user, password, apiKey, scope, command, mimeType, filename, ...mainFormValues } = this.entityForm.getRawValue();
-    const headers = apiKey ? { 'X-API-Key': apiKey } : null;
+    const effectiveApiKey = authenticationMode === 'X-API-Key' ? apiKey : null;
+    const headers = effectiveApiKey ? { 'X-API-Key': effectiveApiKey } : null;
     safeToEdit = Object.assign(safeToEdit,
       mainFormValues,
       {
@@ -794,13 +805,5 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
 
   getTaskGroupName(taskGroupId: number): string {
       return this.taskGroupList.find(group => group.id === taskGroupId)?.name || '';
-  }
-
-  toggleApiKey(checked: boolean) {
-    this.showApiKey = checked;
-    if (!checked) {
-      this.entityForm.get('apiKey')?.setValue(null);
-      this.entityForm.markAsDirty();
-    }
   }
 }
