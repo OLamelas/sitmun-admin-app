@@ -14,6 +14,8 @@ export class TaskPropertiesContract {
   private static readonly COMMAND = 'command';
   private static readonly PARAMETERS = 'parameters';
   private static readonly FIELDS = 'fields';
+  private static readonly MIME_TYPE = 'mimeType';
+  private static readonly FILENAME = 'filename';
 
   /**
    * Normalizes unknown input into a safe properties record.
@@ -37,6 +39,22 @@ export class TaskPropertiesContract {
    */
   public static getScope(properties: TaskProperties | null | undefined): string | null {
     const value = TaskPropertiesContract.fromRaw(properties)[TaskPropertiesContract.SCOPE];
+    return typeof value === 'string' ? value : null;
+  }
+
+  /**
+   * Gets task MIME type.
+   */
+  public static getMimeType(properties: TaskProperties | null | undefined): string | null {
+    const value = TaskPropertiesContract.fromRaw(properties)[TaskPropertiesContract.MIME_TYPE];
+    return typeof value === 'string' ? value : null;
+  }
+
+  /**
+   * Gets task resource filename.
+   */
+  public static getFilename(properties: TaskProperties | null | undefined): string | null {
+    const value = TaskPropertiesContract.fromRaw(properties)[TaskPropertiesContract.FILENAME];
     return typeof value === 'string' ? value : null;
   }
 

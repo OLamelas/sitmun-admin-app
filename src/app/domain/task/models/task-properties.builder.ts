@@ -28,6 +28,8 @@ export class TaskPropertiesBuilder {
   private _user: string | null = null;
   private _password: string | null = null;
   private _headers: Record<string, string> | null = null;
+  private _mimeType: string | null = null;
+  private _filename: string | null = null;
 
   /**
    * Creates a new TaskPropertiesBuilder
@@ -57,7 +59,9 @@ export class TaskPropertiesBuilder {
       .withAuthenticationMode(asString(p.authenticationMode))
       .withUser(asString(p.user))
       .withPassword(asString(p.password))
-      .withHeaders(asHeaders(p.headers));
+      .withHeaders(asHeaders(p.headers))
+      .withMimeType(TaskPropertiesContract.getMimeType(properties))
+      .withFilename(TaskPropertiesContract.getFilename(properties));
   }
 
   /**
@@ -160,6 +164,16 @@ export class TaskPropertiesBuilder {
     return this;
   }
 
+  public withMimeType(mimeType: string | null): TaskPropertiesBuilder {
+    this._mimeType = mimeType;
+    return this;
+  }
+
+  public withFilename(filename: string | null): TaskPropertiesBuilder {
+    this._filename = filename;
+    return this;
+  }
+
   /**
    * Adds a parameter to the parameters array
    * @param parameter The parameter to add
@@ -196,6 +210,14 @@ export class TaskPropertiesBuilder {
       user: this._user,
       password: this._password,
     };
+
+    if (this._mimeType) {
+      properties.mimeType = this._mimeType;
+    }
+
+    if (this._filename) {
+      properties.filename = this._filename;
+    }
 
     if (this._headers && Object.keys(this._headers).length > 0) {
       properties.headers = {...this._headers};

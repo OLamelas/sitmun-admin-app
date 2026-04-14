@@ -198,6 +198,10 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.urlQuery;
   }
 
+  isResourceQueryScope(): boolean {
+    return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.resource;
+  }
+
   protected getSystemVariablesHelp(): string {
     if (this.systemVariables.size === 0) {
       return 'Loading...';
@@ -287,7 +291,7 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     this.dataTables.register(this.rolesTable)
       .register(this.availabilitiesTable)
       .register(this.parametersTable);
-    await this.initCodeLists(['tasksEntity.type', 'queryTask.scope', 'queryTask.parameterType', 'service.authenticationMode']);
+    await this.initCodeLists(['tasksEntity.type', 'queryTask.scope', 'queryTask.parameterType', 'service.authenticationMode', 'queryTask.mimeType']);
     this.initTranslations('Task', ['name'])
 
     const [taskTypes, taskGroups, connections, cartographies] = await Promise.all([
@@ -403,6 +407,14 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       apiKey: new FormControl(
         ((this.entityToEdit.properties as any)?.headers as Record<string, string>)?.['X-API-Key'] || null,
         { validators: [], nonNullable: false }
+      ),
+      mimeType: new FormControl(
+        TaskPropertiesContract.getMimeType(this.entityToEdit.properties),
+        { validators: [], nonNullable: false }
+      ),
+      filename: new FormControl(
+        TaskPropertiesContract.getFilename(this.entityToEdit.properties),
+        { validators: [], nonNullable: false }
       )
     });
     this.showApiKey = !!((this.entityToEdit.properties as any)?.headers?.['X-API-Key']);
@@ -417,7 +429,7 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
    */
   createObject(id: number = null): Task {
     let safeToEdit = TaskProjection.fromObject(this.entityToEdit);
-    const { authenticationMode, user, password, apiKey, scope, command, ...mainFormValues } = this.entityForm.getRawValue();
+    const { authenticationMode, user, password, apiKey, scope, command, mimeType, filename, ...mainFormValues } = this.entityForm.getRawValue();
     const headers = apiKey ? { 'X-API-Key': apiKey } : null;
     safeToEdit = Object.assign(safeToEdit,
       mainFormValues,
@@ -426,6 +438,8 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
         properties: TaskPropertiesBuilder.from(this.entityToEdit.properties)
           .withScope(scope)
           .withCommand(command)
+          .withMimeType(mimeType || null)
+          .withFilename(filename || null)
           .withAuthenticationMode(authenticationMode || null)
           .withUser(user || null)
           .withPassword(password || null)
@@ -469,6 +483,10 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('password')?.disable();
       this.entityForm.get('apiKey')?.setValue(null);
       this.entityForm.get('apiKey')?.disable();
+      this.entityForm.get('mimeType')?.setValue(null);
+      this.entityForm.get('mimeType')?.disable();
+      this.entityForm.get('filename')?.setValue(null);
+      this.entityForm.get('filename')?.disable();
     } else if (value === scope?.cartographyQuery) {
       this.entityForm.get('command').setValue(null);
       this.entityForm.get('command').disable();
@@ -483,6 +501,10 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('password')?.disable();
       this.entityForm.get('apiKey')?.setValue(null);
       this.entityForm.get('apiKey')?.disable();
+      this.entityForm.get('mimeType')?.setValue(null);
+      this.entityForm.get('mimeType')?.disable();
+      this.entityForm.get('filename')?.setValue(null);
+      this.entityForm.get('filename')?.disable();
     } else if (value === scope?.webApiQuery) {
       this.entityForm.get('command').enable();
       this.entityForm.get('connectionId').setValue(null);
@@ -493,6 +515,10 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('user')?.enable();
       this.entityForm.get('password')?.enable();
       this.entityForm.get('apiKey')?.enable();
+      this.entityForm.get('mimeType')?.setValue(null);
+      this.entityForm.get('mimeType')?.disable();
+      this.entityForm.get('filename')?.setValue(null);
+      this.entityForm.get('filename')?.disable();
     } else if (value === scope?.urlQuery) {
       this.entityForm.get('command').enable();
       this.entityForm.get('connectionId').setValue(null);
@@ -507,6 +533,26 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('password')?.disable();
       this.entityForm.get('apiKey')?.setValue(null);
       this.entityForm.get('apiKey')?.disable();
+      this.entityForm.get('mimeType')?.setValue(null);
+      this.entityForm.get('mimeType')?.disable();
+      this.entityForm.get('filename')?.setValue(null);
+      this.entityForm.get('filename')?.disable();
+    } else if (value === scope?.resource) {
+      this.entityForm.get('command').enable();
+      this.entityForm.get('connectionId').setValue(null);
+      this.entityForm.get('connectionId').disable();
+      this.entityForm.get('cartographyId').setValue(null);
+      this.entityForm.get('cartographyId').disable();
+      this.entityForm.get('authenticationMode')?.setValue(null);
+      this.entityForm.get('authenticationMode')?.disable();
+      this.entityForm.get('user')?.setValue(null);
+      this.entityForm.get('user')?.disable();
+      this.entityForm.get('password')?.setValue(null);
+      this.entityForm.get('password')?.disable();
+      this.entityForm.get('apiKey')?.setValue(null);
+      this.entityForm.get('apiKey')?.disable();
+      this.entityForm.get('mimeType')?.enable();
+      this.entityForm.get('filename')?.enable();
     } else {
       this.entityForm.get('command').setValue(null);
       this.entityForm.get('command').disable();
@@ -522,6 +568,10 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('password')?.disable();
       this.entityForm.get('apiKey')?.setValue(null);
       this.entityForm.get('apiKey')?.disable();
+      this.entityForm.get('mimeType')?.setValue(null);
+      this.entityForm.get('mimeType')?.disable();
+      this.entityForm.get('filename')?.setValue(null);
+      this.entityForm.get('filename')?.disable();
     }
   }
 
