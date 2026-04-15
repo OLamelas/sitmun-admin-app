@@ -65,13 +65,13 @@ describe('CallbackComponent', () => {
   });
 
   it('should create', async () => {
-    (principal.identity as jest.Mock) = jest.fn().mockResolvedValue({ login: 'user' });
+    (principal.identity as jest.Mock) = jest.fn().mockResolvedValue({ username: 'user' });
     await fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
   it('should navigate to dashboard if user is authenticated', async () => {
-    (principal.identity as jest.Mock) = jest.fn().mockResolvedValue({ login: 'user' });
+    (principal.identity as jest.Mock) = jest.fn().mockResolvedValue({ username: 'user' });
     const navSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true as any);
     await fixture.detectChanges();
     await component.ngOnInit();

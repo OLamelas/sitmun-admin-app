@@ -40,12 +40,8 @@ export class AuthService {
       data,
       {observe: 'response', withCredentials: true}
     ).pipe(
-      map(this.authenticateSuccess.bind(this))
+      map(resp => resp.ok)
     );
-  }
-
-  private authenticateSuccess(resp) {
-    return resp.ok;
   }
 
   /** logout operation */
