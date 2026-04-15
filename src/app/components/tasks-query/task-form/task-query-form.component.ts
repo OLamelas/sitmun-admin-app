@@ -286,7 +286,7 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     this.dataTables.register(this.rolesTable)
       .register(this.availabilitiesTable)
       .register(this.parametersTable);
-    await this.initCodeLists(['tasksEntity.type', 'queryTask.scope', 'queryTask.parameterType', 'queryTask.authenticationMode', 'queryTask.mimeType']);
+    await this.initCodeLists(['tasksEntity.type', 'queryTask.scope', 'queryTask.parameterType', 'service.authenticationMode', 'queryTask.mimeType']);
     this.initTranslations('Task', ['name'])
 
     const [taskTypes, taskGroups, connections, cartographies] = await Promise.all([

@@ -128,7 +128,7 @@
           <mat-form-field appearance="outline" class="quarter">
             <mat-label>{{ 'entity.service.authenticationMode' | translate }}</mat-label>
             <mat-select formControlName="authenticationMode" [placeholder]="'common.form.none' | translate">
-              <mat-option [value]="mode.value" *ngFor="let mode of this.codeList('queryTask.authenticationMode')">
+              <mat-option [value]="mode.value" *ngFor="let mode of this.codeList('service.authenticationMode')">
                 {{ mode.value === 'None' ? ('common.form.none' | translate) : mode.description }}
               </mat-option>
             </mat-select>
