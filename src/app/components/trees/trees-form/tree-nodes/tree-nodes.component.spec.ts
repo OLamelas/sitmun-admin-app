@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { EMPTY, of } from 'rxjs';
+import { EMPTY, firstValueFrom, of } from 'rxjs';
 
 import { ExternalConfigurationService } from '@app/core/config/external-configuration.service';
 import { ExternalService, ResourceService } from '@app/core/hal';
@@ -29,6 +29,7 @@ import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
 import { UtilsService } from '@app/services/utils.service';
+import { config } from '@config';
 import { constants } from '@environments/constants';
 
 import { TreeNodesComponent } from './tree-nodes.component';
@@ -751,6 +752,45 @@ describe('TreeNodesComponent', () => {
       await component.openFieldsConfigDialog();
 
       expect(component.fieldsConfigForm.get('input.width')?.get('value')?.value).toBe('');
+    });
+  });
+
+  describe('Tree node task type filtering (query + edit)', () => {
+    it('getAllTasks merges query and edit lists from two getAll calls and dedupes by id', async () => {
+      const taskService: TaskService = TestBed.inject(TaskService);
+      jest.spyOn(taskService, 'getAll').mockImplementation((opts: { params?: { key: string; value: number }[] }) => {
+        const typeId = opts?.params?.find((p) => p.key === 'type.id')?.value;
+        if (typeId === config.tasksTypes.query) {
+          return of([{ id: 1, name: 'Query task', typeId: config.tasksTypes.query }]);
+        }
+        if (typeId === config.tasksTypes.edit) {
+          return of([
+            { id: 2, name: 'Edit task', typeId: config.tasksTypes.edit },
+            { id: 1, name: 'Duplicate id', typeId: config.tasksTypes.edit }
+          ]);
+        }
+        return of([]);
+      });
+
+      const merged = await firstValueFrom(component.getAllTasks());
+
+      expect(taskService.getAll).toHaveBeenCalledTimes(2);
+      expect(merged.map((t: { id: number }) => t.id)).toEqual([1, 2]);
+    });
+
+    it('isAllowedTreeNodeTaskType allows query, edit, listed allTasks ids, and nested type.id', () => {
+      component.allTasks = [{ id: 10, name: 'Listed', typeId: config.tasksTypes.query }];
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 10, typeId: config.tasksTypes.basic })).toBe(true);
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 99, typeId: config.tasksTypes.query })).toBe(true);
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 100, typeId: config.tasksTypes.edit })).toBe(true);
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 101, typeId: config.tasksTypes.basic })).toBe(false);
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 102, type: { id: config.tasksTypes.query } })).toBe(true);
+    });
+
+    it('resolveTaskTypeId reads typeId and nested type.id', () => {
+      expect((component as any).resolveTaskTypeId({ typeId: 5 })).toBe(5);
+      expect((component as any).resolveTaskTypeId({ type: { id: 0 } })).toBe(0);
+      expect((component as any).resolveTaskTypeId({})).toBeNull();
     });
   });
 

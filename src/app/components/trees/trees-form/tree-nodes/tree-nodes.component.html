@@ -304,13 +304,13 @@
                           <mat-spinner *ngIf="tasksLoading" matSuffix diameter="20" class="task-config-spinner"></mat-spinner>
                           <mat-autocomplete #taskAutocomplete="matAutocomplete"
                             [displayWith]="displayTask" (optionSelected)="onTaskSelected($event)">
-                            <mat-option *ngFor="let task of filteredTasks" [value]="task">
+                            <mat-option *ngFor="let task of filteredTasks; trackBy: trackTaskOptionById" [value]="task">
                               <div class="task-option">
                                 <div class="task-name-row">
                                   <strong class="task-name">{{ task.name }}</strong>
-                                  <span *ngIf="task.typeName" class="task-detail">
-                                    - {{ task.typeName }}
-                                  </span>
+                                  <ng-container *ngIf="getTaskKindDisplayForListItem(task) as kindLabel">
+                                    <span class="task-detail"> - {{ kindLabel }}</span>
+                                  </ng-container>
                                 </div>
                                 <div *ngIf="task.groupName" class="task-group">
                                   <span class="group-label">{{ 'entity.tree.groupTask' | translate }}: </span>
@@ -319,6 +319,7 @@
                               </div>
                             </mat-option>
                           </mat-autocomplete>
+                          <mat-hint *ngIf="hasTaskSelected && selectedTaskHintLine" class="task-selected-hint">{{ selectedTaskHintLine }}</mat-hint>
                         </mat-form-field>
                       </div>
                       <div class="task-config-row" *ngIf="showFilterableInTaskPanel">

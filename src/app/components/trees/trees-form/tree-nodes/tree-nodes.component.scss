@@ -372,6 +372,12 @@
   color: rgba(0, 0, 0, 0.54);
 }
 
+// Selected task metadata in the standard subscript hint area (single line, wraps if long)
+.task-config-task-field .task-selected-hint {
+  width: 100%;
+  line-height: 1.35;
+}
+
 // Field Configuration Dialog – tabbed layout
 .field-config-tabs {
   min-width: 0;
