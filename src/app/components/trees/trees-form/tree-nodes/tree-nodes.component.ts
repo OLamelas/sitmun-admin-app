@@ -1644,6 +1644,7 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
     this.fieldsConfigForm.get('output')?.patchValue(formValues.output);
     this.fieldsConfigForm.get('input')?.patchValue(formValues.input);
     this.fieldsConfigForm.get('namespaces')?.patchValue(formValues.namespaces);
+    this.applyTaskInputDefaultsFromMetadata(origMapping);
     const firstNonLabelKey = this.nodeOutputsControls
       .filter(c => c.views.includes(this.currentViewMode) && !c.key.includes('Label'))
       .map(c => c.key)[0] ?? null;
@@ -1672,6 +1673,7 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
   }
 
   async addTaskInput() {
+    this.clearTaskInputFormControls();
     this.getAllElementsEventTasks.next(this.treeNodeForm.value);
     let task = null;
     if (this.currentNodeTask && this.currentNodeTask.id !== this.treeNodeForm.value.taskId) {
@@ -1709,6 +1711,47 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
       label,
       value: raw.value ?? null
     };
+  }
+
+  /**
+   * Formats a task parameter default for display, autocomplete options, and form prefill.
+   */
+  formatTaskParameterDefaultForInput(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * When opening field configuration, prefill input mapping from task metadata only if
+   * the node has no saved entry for that parameter key (unset vs explicit null in saved input).
+   */
+  private applyTaskInputDefaultsFromMetadata(origMapping: { input?: Record<string, { value?: unknown }> } | null): void {
+    const inputGroup = this.fieldsConfigForm.get('input') as UntypedFormGroup | null;
+    if (!inputGroup) {
+      return;
+    }
+    const savedInput = origMapping?.input;
+    this.nodeInputsControls.forEach((param) => {
+      const key = param.name;
+      if (savedInput && Object.prototype.hasOwnProperty.call(savedInput, key)) {
+        return;
+      }
+      const formatted = this.formatTaskParameterDefaultForInput(param.value);
+      if (formatted === '') {
+        return;
+      }
+      const group = inputGroup.get(key) as UntypedFormGroup | null;
+      group?.patchValue({ value: formatted }, { emitEvent: false });
+    });
   }
 
   addNamespacesControl(origMapping) {
@@ -2532,6 +2575,11 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
 
   trackByControlKey(_index: number, control: any): string {
     return control.key;
+  }
+
+  /** Stable identity for input-mapping autocomplete app/parent options (string `value` is unique per option). */
+  trackByMappingOptionValue(_index: number, opt: { value: string }): string {
+    return opt.value;
   }
 
   /**

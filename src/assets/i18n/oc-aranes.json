@@ -830,6 +830,7 @@
   "entity.tree.outputMapping": "Mapatge de gessuda",
   "entity.tree.outputMappingHelp": "Relacion entre es atributs dera responsa obtenguda en executar era tarea e es atributs requerits pera app. Es darrèrs depenen deth mòde de visualizacion.\nEs valors son xpath/jsonpath entath atribut corresponent dera responsa.",
   "entity.tree.parentTaskVars": "Variables de tarea paire",
+  "entity.tree.taskParamDefault": "Valor per defecte del paramètre de tasca",
   "entity.tree.plural": "Arbres",
   "entity.tree.preview": "Vista prèvia",
   "entity.tree.radio": "Radio",

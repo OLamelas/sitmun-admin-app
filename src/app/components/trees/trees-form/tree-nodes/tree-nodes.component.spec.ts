@@ -5,16 +5,15 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { EMPTY, of } from 'rxjs';
 
 import { ExternalConfigurationService } from '@app/core/config/external-configuration.service';
-import { constants } from '@environments/constants';
 import { ExternalService, ResourceService } from '@app/core/hal';
 import {
   CapabilitiesService,
@@ -30,6 +29,7 @@ import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
 import { UtilsService } from '@app/services/utils.service';
+import { constants } from '@environments/constants';
 
 import { TreeNodesComponent } from './tree-nodes.component';
 
@@ -659,6 +659,79 @@ describe('TreeNodesComponent', () => {
       (component as any).normalizeSiblingOrderForSave(siblings);
 
       expect(siblings.map((n) => n.order)).toEqual([0, 1, 2]);
+    });
+  });
+
+  describe('Input mapping field configuration', () => {
+    it('formatTaskParameterDefaultForInput returns empty for null and undefined', () => {
+      expect(component.formatTaskParameterDefaultForInput(null)).toBe('');
+      expect(component.formatTaskParameterDefaultForInput(undefined)).toBe('');
+    });
+
+    it('formatTaskParameterDefaultForInput stringifies primitives and JSON', () => {
+      expect(component.formatTaskParameterDefaultForInput('x')).toBe('x');
+      expect(component.formatTaskParameterDefaultForInput(42)).toBe('42');
+      expect(component.formatTaskParameterDefaultForInput(false)).toBe('false');
+      expect(component.formatTaskParameterDefaultForInput({ a: 1 })).toBe('{"a":1}');
+    });
+
+    it('openFieldsConfigDialog prefills input from task parameter default when mapping key is absent', async () => {
+      component.currentTreeType = 'testTree';
+      component.currentViewMode = 'dl';
+      component.treeNodeForm.patchValue({
+        taskId: 99,
+        mapping: { output: {}, input: {} }
+      });
+      const taskService = TestBed.inject(TaskService);
+      jest.spyOn(taskService, 'get').mockReturnValue(
+        of({
+          id: 99,
+          properties: {
+            parameters: [{ name: 'width', label: 'Width', value: '256' }]
+          }
+        } as any)
+      );
+      const matDialog = TestBed.inject(MatDialog);
+      jest.spyOn(matDialog, 'open').mockReturnValue({
+        afterClosed: () => EMPTY,
+        componentInstance: {}
+      } as any);
+
+      await component.openFieldsConfigDialog();
+
+      expect(component.fieldsConfigForm.get('input.width')?.get('value')?.value).toBe('256');
+    });
+
+    it('openFieldsConfigDialog does not prefill when saved mapping has explicit key with null value', async () => {
+      component.currentTreeType = 'testTree';
+      component.currentViewMode = 'dl';
+      component.treeNodeForm.patchValue({
+        taskId: 99,
+        mapping: {
+          output: {},
+          input: {
+            width: { value: null, calculated: false }
+          }
+        }
+      });
+      const taskService = TestBed.inject(TaskService);
+      jest.spyOn(taskService, 'get').mockReturnValue(
+        of({
+          id: 99,
+          properties: {
+            parameters: [{ name: 'width', label: 'Width', value: '256' }]
+          }
+        } as any)
+      );
+      const matDialog = TestBed.inject(MatDialog);
+      jest.spyOn(matDialog, 'open').mockReturnValue({
+        afterClosed: () => EMPTY,
+        componentInstance: {}
+      } as any);
+
+      await component.openFieldsConfigDialog();
+
+      expect(component.fieldsConfigForm.get('input.width')?.get('value')?.value).toBe('');
     });
   });
 

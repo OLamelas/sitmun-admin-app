@@ -833,6 +833,7 @@
   "entity.tree.outputMapping": "Output mapping",
   "entity.tree.outputMappingHelp": "Relationship between the attributes of the response obtained when executing the task and the attributes required by the app. The latter depend on the display mode.\nThe values are xpath/jsonpath expressions pointing to the corresponding response attribute.",
   "entity.tree.parentTaskVars": "Parent task variables",
+  "entity.tree.taskParamDefault": "Task parameter default",
   "entity.tree.plural": "Trees",
   "entity.tree.preview": "Preview",
   "entity.tree.radio": "Radio",

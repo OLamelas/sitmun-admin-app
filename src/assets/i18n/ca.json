@@ -830,6 +830,7 @@
   "entity.tree.outputMapping": "Mapatge de sortida",
   "entity.tree.outputMappingHelp": "Relació entre els atributs de la resposta obtinguda en executar la tasca i els atributs requerits per l’app. Aquests darrers depenen del mode de visualització.\nEls valors són xpath/jsonpath cap a l’atribut corresponent de la resposta.",
   "entity.tree.parentTaskVars": "Variables de tasca pare",
+  "entity.tree.taskParamDefault": "Valor per defecte del paràmetre",
   "entity.tree.plural": "Arbres",
   "entity.tree.preview": "Vista prèvia",
   "entity.tree.radio": "Radio",
