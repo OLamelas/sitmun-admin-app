@@ -604,7 +604,15 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
   /** True when a task is selected in the task panel (enables Field Configuration button). */
   get hasTaskSelected(): boolean {
     const value = this.treeNodeForm?.get('task')?.value;
-    return value != null && (typeof value === 'object' ? (value as any).id != null : true);
+    if (value != null && (typeof value === 'object' ? (value as any).id != null : true)) {
+      return true;
+    }
+    const taskId = this.treeNodeForm?.get('taskId')?.value;
+    const loaded = this.currentNodeTask as { id?: number } | null;
+    if (taskId != null && loaded != null && loaded.id === taskId) {
+      return true;
+    }
+    return false;
   }
 
   /** Task whose parameters are shown (prefer full task in currentNodeTask when same id). */
@@ -629,6 +637,17 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
     this.fullTaskLoadsInFlight.add(taskId);
     firstValueFrom(this.taskService.get(taskId).pipe(timeout(5000))).then((fullTask) => {
       this.currentNodeTask = fullTask;
+      const currentTask = this.treeNodeForm?.get('task')?.value;
+      if (currentTask == null && fullTask) {
+        this.treeNodeForm.patchValue(
+          {
+            task: fullTask,
+            taskName: fullTask.name,
+            taskId: fullTask.id
+          },
+          { emitEvent: false }
+        );
+      }
       this.cdr.markForCheck();
       this.fullTaskLoadsInFlight.delete(taskId);
     }).catch(() => {
@@ -1855,7 +1874,7 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
   }
 
   updateNode() {
-    const formValue = this.treeNodeForm.value;
+    const formValue = this.treeNodeForm.getRawValue();
     const nodeUpdate = {
       ...formValue,
       nodeType: formValue.nodeType
@@ -1882,12 +1901,12 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
           || this.currentTreeType === this.codeValues.treeType.edition) {
           const taskId = this.treeNodeForm.get('taskId').value;
           this.currentNodeTask = taskId ? await firstValueFrom(this.taskService.get(taskId)) : null;
-          this.getAllElementsEventTasks.next(this.treeNodeForm.value);
+          this.getAllElementsEventTasks.next(this.treeNodeForm.getRawValue());
         }
         if ([constants.treeDomainKey.cartography, constants.treeDomainKey.task].includes(effectiveType)) {
           const cartographyId = this.treeNodeForm.get('cartographyId').value;
           this.currentNodeCartography = cartographyId ? await firstValueFrom(this.cartographyService.get(cartographyId)) : cartographyId;
-          this.getAllElementsEventCartographies.next(this.treeNodeForm.value);
+          this.getAllElementsEventCartographies.next(this.treeNodeForm.getRawValue());
         }
       } else {
         await this.updateCartographyTreeLeft(null);
@@ -2884,8 +2903,18 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
    * Returns the task name to display in the input field.
    */
   displayTask = (task: any): string | null => {
-    if (!task) return null;
-    return task.name || null;
+    const taskNameFallback = this.treeNodeForm?.get('taskName')?.value ?? null;
+    if (!task) {
+      return taskNameFallback;
+    }
+    if (typeof task === 'object' && task !== null) {
+      const n = task.name;
+      if (n != null && String(n).trim().length > 0) {
+        return n;
+      }
+      return taskNameFallback;
+    }
+    return null;
   };
 
   /**

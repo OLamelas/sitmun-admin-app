@@ -435,6 +435,25 @@ describe('TreeNodesComponent', () => {
       expect(component.taskInputParameterLabels).toEqual(['First param', 'param2']);
     });
 
+    it('enables task selection when guidance comes from currentNodeTask but task control is not hydrated', () => {
+      component.treeNodeForm.patchValue({
+        nodeType: 'task',
+        task: null,
+        taskId: 42,
+        taskName: 'Layer query',
+      });
+      component['currentNodeTask'] = {
+        id: 42,
+        name: 'Layer query',
+        properties: {
+          parameters: [{ name: 'layer', label: 'layer' }],
+        },
+      } as any;
+
+      expect(component.taskInputParameterLabels).toContain('layer');
+      expect(component.hasTaskSelected).toBe(true);
+    });
+
     it('taskOutputParametersForCurrentMode returns empty when no view mode', () => {
       component.currentViewMode = '';
       expect(component.taskOutputParametersForCurrentMode).toEqual([]);
