@@ -4,7 +4,6 @@ import {TranslateService} from '@ngx-translate/core';
 import {Observable, Subscription} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {AuthService} from '@app/core/auth/auth.service';
 import {LoginService} from '@app/core/auth/login.service';
 import {Principal} from '@app/core/auth/principal.service';
 import {ErrorTrackingService} from '@app/services/error-tracking.service';
@@ -40,7 +39,6 @@ export class AppComponent implements OnInit, OnDestroy {
     /** Translate service */public trans: TranslateService,
     /** Identity service */public principal: Principal,
     /** Login service */public loginService: LoginService,
-    /** Auth service */public authService: AuthService,
     private readonly loggerService: LoggerService,
     private readonly appStateService: AppStateService,
     private readonly errorTrackingService: ErrorTrackingService
@@ -73,13 +71,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Listen for browser language changes
     window.addEventListener('languagechange', () => {
-      if (!this.authService.getToken()) {
+      if (!this.principal.isAuthenticated()) {
         this.setInitialLanguage();
       }
     });
 
     // Load user account if authenticated
-    if (this.authService.getToken()) {
+    if (this.principal.isAuthenticated()) {
       this.principal.identity().then((account) => {
         this.currentAccount = account;
       });
@@ -117,7 +115,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (storedLang && config.languagesToUse?.find(lang => lang.shortname === storedLang)) {
       this.translate.use(storedLang);
       this.translate.setDefaultLang(storedLang);
-    } else if (!this.authService.getToken()) {
+    } else if (!this.principal.isAuthenticated()) {
       // Use browser language for non-authenticated users
       const navigatorLang = window.navigator.language.toLowerCase();
       const baseLang = navigatorLang.replace(/-[A-Z]+$/, '');
@@ -147,4 +145,3 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.principal.isAuthenticated();
   }
 }
-
