@@ -2,8 +2,8 @@ import { TestBed } from '@angular/core/testing';
 
 import { of, throwError } from 'rxjs';
 
-import { ResourceService } from '@app/core/hal/resource/resource.service';
 import { ResourceHelper } from '@app/core/hal/resource/resource-helper';
+import { ResourceService } from '@app/core/hal/resource/resource.service';
 import { LoggerService } from '@app/services/logger.service';
 
 import { TreeNodeService } from './tree-node.service';

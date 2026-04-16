@@ -75,6 +75,7 @@ cd sitmun-admin-app
 
 # Install dependencies
 npm ci
+# (uses project .npmrc: legacy-peer-deps=true so npm 10 matches CI)
 
 # Start development server
 npm start
