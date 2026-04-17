@@ -147,10 +147,29 @@
             </mat-form-field>
             <div class="break"></div>
           </ng-container>
-          <mat-form-field appearance="outline" class="half" *ngIf="entityForm.get('authenticationMode')?.value === 'X-API-Key'">
-            <mat-label>{{ 'entity.task.query.apiKey' | translate }}</mat-label>
-            <input matInput type="text" formControlName="apiKey">
-          </mat-form-field>
+          <ng-container *ngIf="entityForm.get('authenticationMode')?.value === 'API key'">
+            <mat-form-field appearance="outline" class="quarter add-gap">
+              <mat-label>{{ 'entity.task.query.apiKeyHeaderName' | translate }}</mat-label>
+              <mat-select formControlName="apiKeyType">
+                <mat-option value="X-API-Key">{{ 'entity.task.query.apiKeyTypeHeader' | translate }}</mat-option>
+                <mat-option value="Cookie">Cookie</mat-option>
+                <mat-option value="QueryParam">{{ 'entity.task.query.apiKeyQueryParam' | translate }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="quarter add-gap">
+              <mat-label>{{ 'entity.task.query.apiKeyKeyName' | translate }}</mat-label>
+              <mat-select formControlName="apiKeyKeyName">
+                <mat-option [value]="keyOption.value" *ngFor="let keyOption of currentApiKeyCodeList">
+                  {{ keyOption.description }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="quarter">
+              <mat-label>{{ 'entity.task.query.apiKeyHeaderValue' | translate }}</mat-label>
+              <input matInput type="text" formControlName="apiKeyHeaderValue">
+            </mat-form-field>
+            <div class="break"></div>
+          </ng-container>
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"
