@@ -16,6 +16,8 @@ export class TaskPropertiesContract {
   private static readonly FIELDS = 'fields';
   private static readonly MIME_TYPE = 'mimeType';
   private static readonly FILENAME = 'filename';
+  private static readonly TEMPLATE_HTML = 'templateHtml';
+  private static readonly TEMPLATE_EDITOR_STATE = 'templateEditorState';
 
   /**
    * Normalizes unknown input into a safe properties record.
@@ -56,6 +58,15 @@ export class TaskPropertiesContract {
   public static getFilename(properties: TaskProperties | null | undefined): string | null {
     const value = TaskPropertiesContract.fromRaw(properties)[TaskPropertiesContract.FILENAME];
     return typeof value === 'string' ? value : null;
+  }
+
+  public static getTemplateHtml(properties: TaskProperties | null | undefined): string | null {
+    const value = TaskPropertiesContract.fromRaw(properties)[TaskPropertiesContract.TEMPLATE_HTML];
+    return typeof value === 'string' ? value : null;
+  }
+
+  public static getTemplateEditorState(properties: TaskProperties | null | undefined): unknown {
+    return TaskPropertiesContract.fromRaw(properties)[TaskPropertiesContract.TEMPLATE_EDITOR_STATE] ?? null;
   }
 
   /**
@@ -139,6 +150,26 @@ export class TaskPropertiesContract {
     return {
       ...TaskPropertiesContract.fromRaw(properties),
       [TaskPropertiesContract.FIELDS]: [...fields]
+    };
+  }
+
+  public static withTemplateHtml(
+    properties: TaskProperties | null | undefined,
+    templateHtml: string | null
+  ): TaskProperties {
+    return {
+      ...TaskPropertiesContract.fromRaw(properties),
+      [TaskPropertiesContract.TEMPLATE_HTML]: templateHtml
+    };
+  }
+
+  public static withTemplateEditorState(
+    properties: TaskProperties | null | undefined,
+    templateEditorState: unknown
+  ): TaskProperties {
+    return {
+      ...TaskPropertiesContract.fromRaw(properties),
+      [TaskPropertiesContract.TEMPLATE_EDITOR_STATE]: templateEditorState
     };
   }
 }

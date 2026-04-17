@@ -301,6 +301,22 @@ export class Configuration {
   };
 
   /**
+   * Template tasks configuration
+   */
+  static readonly TASK_TEMPLATE: FormConfiguration = {
+    id: 'tasksTemplate',
+    labelSingular: 'entity.task.template.label',
+    labelPlural: 'entity.task.template.label',
+    icon: 'description',
+    font: 'material-icons-round',
+    route: 'tasks/template',
+    formRoute: ':id/taskForm',
+    duplicateRoute: ':id/taskForm/:idDuplicate',
+    component: 'TasksTemplateComponent',
+    formComponent: 'TaskFormComponent'
+  };
+
+  /**
    * Edit tasks configuration
    */
   static readonly TASK_EDIT: FormConfiguration = {
@@ -400,6 +416,7 @@ export class Configuration {
       Configuration.TASK,
       Configuration.TASK_BASIC,
       Configuration.TASK_QUERY,
+      Configuration.TASK_TEMPLATE,
       Configuration.TASK_EDIT,
       Configuration.APPLICATION,
       Configuration.LANGUAGE,
@@ -456,6 +473,7 @@ export class Configuration {
           children: [
             Configuration.toMenuItem(Configuration.TASK_BASIC),
             Configuration.toMenuItem(Configuration.TASK_QUERY),
+            Configuration.toMenuItem(Configuration.TASK_TEMPLATE),
             Configuration.toMenuItem(Configuration.TASK_EDIT),
             Configuration.toMenuItem(Configuration.TASK_MORE_INFO)
           ]

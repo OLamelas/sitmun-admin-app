@@ -39,6 +39,8 @@ import {TaskEditFormComponent} from '@app/components/tasks-edit/task-form/task-e
 import {TasksEditComponent} from '@app/components/tasks-edit/tasks-edit.component';
 import {TaskMoreInfoFormComponent} from '@app/components/tasks-more-info/task-form/task-more-info-form.component';
 import {TasksMoreInfoComponent} from '@app/components/tasks-more-info/tasks-more-info.component';
+import { TaskTemplateFormComponent } from '@app/components/tasks-template/task-form/task-template-form.component';
+import { TasksTemplateComponent } from '@app/components/tasks-template/tasks-template.component';
 import {TaskQueryFormComponent} from '@app/components/tasks-query/task-form/task-query-form.component';
 import {TasksQueryComponent} from '@app/components/tasks-query/tasks-query.component';
 import {TerritoryFormComponent} from '@app/components/territory/territory-form/territory-form.component';
@@ -82,6 +84,7 @@ export const APP_ROUTES: Routes = [
       {path: `tasks/:id/${magic.taskEditTypeId}`, component: TaskEditFormComponent},
       {path: `tasks/:id/${magic.taskBasicTypeId}`, component: TaskBasicFormComponent},
       {path: `tasks/:id/${magic.taskQueryTypeId}`, component: TaskQueryFormComponent},
+      {path: `tasks/:id/${magic.taskTemplateTypeId}`, component: TaskTemplateFormComponent},
       {path: 'tasksEdit', component: TasksEditComponent},
       {path: 'taskEdit/:id/:type', component: TaskEditFormComponent},
       {path: 'taskEdit/:id/:type/:idDuplicate', component: TaskEditFormComponent},
@@ -97,6 +100,9 @@ export const APP_ROUTES: Routes = [
       {path: 'tasksQuery', component: TasksQueryComponent, canDeactivate: [CanDeactivateGuard]},
       {path: 'taskQuery/:id/:type', component: TaskQueryFormComponent},
       {path: 'taskQuery/:id/:type/:idDuplicate', component: TaskQueryFormComponent},
+      {path: 'tasksTemplate', component: TasksTemplateComponent, canDeactivate: [CanDeactivateGuard]},
+      {path: 'taskTemplate/:id/:type', component: TaskTemplateFormComponent},
+      {path: 'taskTemplate/:id/:type/:idDuplicate', component: TaskTemplateFormComponent},
       {path: 'tasksMoreInfo', component: TasksMoreInfoComponent, canDeactivate: [CanDeactivateGuard]},
       {path: 'tasksMoreInfo/:id/:type', component: TaskMoreInfoFormComponent},
       {path: 'tasksMoreInfo/:id/:type/:idDuplicate', component: TaskMoreInfoFormComponent},
