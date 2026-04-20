@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 
-import {CookieService} from "ngx-cookie-service";
 import {firstValueFrom, Observable} from 'rxjs';
 
 import {LoginMethod} from "@app/components/login/login.component";
@@ -19,13 +18,12 @@ export class LoginService {
   /** constructor */
   constructor(
     private readonly authServerProvider: AuthService,
-    private readonly cookieService: CookieService,
     private readonly principal: Principal
   ) {}
 
   /**Login operation*/
   async login(credentials, callback?) {
-     
+
     const cb = callback || (() => {});
 
     try {
@@ -41,10 +39,6 @@ export class LoginService {
       throw err;
     }
   }
-  /**login with jwt token */
-  loginWithToken(jwt) {
-    return this.authServerProvider.loginWithToken(jwt);
-  }
 
   /** logout operation */
   logout() {
@@ -54,7 +48,6 @@ export class LoginService {
     // Then call the auth service to clear tokens
     this.authServerProvider.logout().subscribe(() => {
       // Additional cleanup if needed
-      this.cookieService.delete('oidc_token');
     });
   }
 

@@ -7,7 +7,7 @@ import {MatTabChangeEvent} from '@angular/material/tabs';
 
 import {TranslateService} from '@ngx-translate/core';
 import {XMLParser} from 'fast-xml-parser';
-import {firstValueFrom, Observable, of, Subject} from 'rxjs';
+import {firstValueFrom, forkJoin, Observable, of, Subject} from 'rxjs';
 import {map, timeout} from 'rxjs/operators';
 
 import {HalOptions, HalParam} from '@app/core';
@@ -604,7 +604,15 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
   /** True when a task is selected in the task panel (enables Field Configuration button). */
   get hasTaskSelected(): boolean {
     const value = this.treeNodeForm?.get('task')?.value;
-    return value != null && (typeof value === 'object' ? (value as any).id != null : true);
+    if (value != null && (typeof value === 'object' ? (value as any).id != null : true)) {
+      return true;
+    }
+    const taskId = this.treeNodeForm?.get('taskId')?.value;
+    const loaded = this.currentNodeTask as { id?: number } | null;
+    if (taskId != null && loaded != null && loaded.id === taskId) {
+      return true;
+    }
+    return false;
   }
 
   /** Task whose parameters are shown (prefer full task in currentNodeTask when same id). */
@@ -629,6 +637,17 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
     this.fullTaskLoadsInFlight.add(taskId);
     firstValueFrom(this.taskService.get(taskId).pipe(timeout(5000))).then((fullTask) => {
       this.currentNodeTask = fullTask;
+      const currentTask = this.treeNodeForm?.get('task')?.value;
+      if (currentTask == null && fullTask) {
+        this.treeNodeForm.patchValue(
+          {
+            task: fullTask,
+            taskName: fullTask.name,
+            taskId: fullTask.id
+          },
+          { emitEvent: false }
+        );
+      }
       this.cdr.markForCheck();
       this.fullTaskLoadsInFlight.delete(taskId);
     }).catch(() => {
@@ -1053,17 +1072,25 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
           this.currentNodeTask = loadedTask;
           this.loadFullTaskForParameterGuidance(node.taskId);
         } else {
-          // Task not in getAll response (e.g. pagination). Fetch by ID.
+          // Task not in getAll response (e.g. wrong type or pagination). Fetch by ID.
           try {
             loadedTask = await firstValueFrom(this.taskService.get(node.taskId));
             if (loadedTask) {
-              this.treeNodeForm.patchValue({
-                task: loadedTask,
-                taskName: loadedTask.name,
-                taskId: loadedTask.id
-              });
-              this.currentNodeTask = loadedTask;
-              this.loadFullTaskForParameterGuidance(node.taskId);
+              if (!this.isAllowedTreeNodeTaskType(loadedTask)) {
+                this.loggerService.warn(
+                  'TreeNodesComponent.nodeReceived - Task type not allowed for tree node; clearing selection',
+                  { taskId: node.taskId, typeId: this.resolveTaskTypeId(loadedTask) }
+                );
+                this.clearTaskSelection();
+              } else {
+                this.treeNodeForm.patchValue({
+                  task: loadedTask,
+                  taskName: loadedTask.name,
+                  taskId: loadedTask.id
+                });
+                this.currentNodeTask = loadedTask;
+                this.loadFullTaskForParameterGuidance(node.taskId);
+              }
             }
           } catch {
             this.loggerService.error('TreeNodesComponent.nodeReceived - Failed to load task by ID', { taskId: node.taskId });
@@ -1379,8 +1406,174 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
   };
 
   getAllTasks = (): Observable<any> => {
-    return this.taskService.getAll();
+    const queryOpts: HalOptions = {
+      params: [{ key: 'type.id', value: config.tasksTypes.query } as HalParam]
+    };
+    const editOpts: HalOptions = {
+      params: [{ key: 'type.id', value: config.tasksTypes.edit } as HalParam]
+    };
+    return forkJoin({
+      queryTasks: this.taskService.getAll(queryOpts, undefined, 'tasks'),
+      editTasks: this.taskService.getAll(editOpts, undefined, 'tasks')
+    }).pipe(
+      map(({ queryTasks, editTasks }) =>
+        this.mergeQueryAndEditTasks(queryTasks || [], editTasks || [])
+      )
+    );
   };
+
+  /**
+   * Merges query- and edit-type task lists from two API calls (single type.id filter per request).
+   * Sorts each segment by name, then concatenates query tasks before edit tasks (deduped by id).
+   */
+  private mergeQueryAndEditTasks(queryTasks: any[], editTasks: any[]): any[] {
+    const byName = (a: any, b: any): number =>
+      String(a?.name ?? '').localeCompare(String(b?.name ?? ''), undefined, { sensitivity: 'base' });
+    const q = [...(queryTasks || [])].sort(byName);
+    const e = [...(editTasks || [])].sort(byName);
+    const seen = new Set<number>();
+    const out: any[] = [];
+    for (const t of [...q, ...e]) {
+      if (t?.id == null || seen.has(t.id)) {
+        continue;
+      }
+      seen.add(t.id);
+      out.push(t);
+    }
+    return out;
+  }
+
+  /** Stable keys for task autocomplete options (preserves list order in the overlay). */
+  trackTaskOptionById(_index: number, task: { id?: number }): number {
+    return task?.id ?? _index;
+  }
+
+  /** Resolves task type id from projection or full task shapes. */
+  private resolveTaskTypeId(task: unknown): number | null {
+    if (task == null || typeof task !== 'object') {
+      return null;
+    }
+    const o = task as Record<string, unknown>;
+    if (typeof o.typeId === 'number') {
+      return o.typeId;
+    }
+    const type = o.type;
+    if (type != null && typeof type === 'object' && 'id' in type) {
+      const id = (type as { id?: unknown }).id;
+      if (typeof id === 'number') {
+        return id;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Tree nodes may only reference Query- or Edit-type tasks.
+   * Tasks already present in {@link allTasks} are treated as allowed.
+   */
+  private isAllowedTreeNodeTaskType(task: unknown): boolean {
+    if (task == null || typeof task !== 'object') {
+      return false;
+    }
+    const id = (task as { id?: number }).id;
+    if (id != null && this.allTasks.some((t) => t.id === id)) {
+      return true;
+    }
+    const tid = this.resolveTaskTypeId(task);
+    return tid === config.tasksTypes.query || tid === config.tasksTypes.edit;
+  }
+
+  private translateQueryScopeCode(scope: string | null): string | null {
+    if (!scope) {
+      return null;
+    }
+    const qs = constants.codeValue.queryTaskScope;
+    if (scope === qs.sqlQuery) {
+      return this.translateService.instant('entity.tree.taskQueryScopeSql');
+    }
+    if (scope === qs.webApiQuery) {
+      return this.translateService.instant('entity.tree.taskQueryScopeWebApi');
+    }
+    if (scope === qs.cartographyQuery) {
+      return this.translateService.instant('entity.tree.taskQueryScopeCartography');
+    }
+    return null;
+  }
+
+  private translateEditScopeCode(scope: string | null): string | null {
+    if (!scope) {
+      return null;
+    }
+    const es = constants.codeValue.editionTaskScope;
+    if (scope === es.dbEdition) {
+      return this.translateService.instant('entity.tree.taskEditScopeDatabase');
+    }
+    if (scope === es.cartographyEdition) {
+      return this.translateService.instant('entity.tree.taskEditScopeCartography');
+    }
+    return null;
+  }
+
+  /**
+   * Label shown next to the task name in the autocomplete (e.g. "Query (SQL)", "Edit (Cartography)").
+   */
+  getTaskKindDisplayForListItem(task: any): string {
+    if (task == null || typeof task !== 'object') {
+      return '';
+    }
+    const typeId = this.resolveTaskTypeId(task);
+    const props = TaskPropertiesContract.fromRaw(task.properties);
+    const scope = TaskPropertiesContract.getScope(props);
+    if (typeId === config.tasksTypes.query) {
+      const base = this.translateService.instant('entity.tree.taskKindQuery');
+      const sc = this.translateQueryScopeCode(scope);
+      return sc ? `${base} (${sc})` : base;
+    }
+    if (typeId === config.tasksTypes.edit) {
+      const base = this.translateService.instant('entity.tree.taskKindEdit');
+      const sc = this.translateEditScopeCode(scope);
+      return sc ? `${base} (${sc})` : base;
+    }
+    return typeof task.typeName === 'string' ? task.typeName : '';
+  }
+
+  /** Kind + scope line for the currently selected task (below the task field). */
+  get selectedTaskKindSummary(): string {
+    const task = this.selectedTaskForParams as Record<string, unknown> | null;
+    if (!task) {
+      return '';
+    }
+    return this.getTaskKindDisplayForListItem(task);
+  }
+
+  /** Task group name for the selected task (full task or projection). */
+  get selectedTaskGroupLabel(): string | null {
+    const task = this.selectedTaskForParams as any;
+    if (!task) {
+      return null;
+    }
+    if (typeof task.groupName === 'string' && task.groupName.trim()) {
+      return task.groupName;
+    }
+    const g = task.group;
+    if (g != null && typeof g === 'object' && typeof (g as { name?: string }).name === 'string') {
+      return (g as { name: string }).name;
+    }
+    return null;
+  }
+
+  /** One-line mat-hint: kind/scope and group separated by · */
+  get selectedTaskHintLine(): string {
+    const kind = this.selectedTaskKindSummary;
+    const group = this.selectedTaskGroupLabel;
+    const groupPart = group
+      ? `${this.translateService.instant('entity.tree.groupTask')}: ${group}`
+      : '';
+    if (kind && groupPart) {
+      return `${kind} · ${groupPart}`;
+    }
+    return kind || groupPart;
+  }
 
   getAllServices = (): Observable<any> => {
     return this.serviceService.getAll().pipe(
@@ -1644,6 +1837,7 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
     this.fieldsConfigForm.get('output')?.patchValue(formValues.output);
     this.fieldsConfigForm.get('input')?.patchValue(formValues.input);
     this.fieldsConfigForm.get('namespaces')?.patchValue(formValues.namespaces);
+    this.applyTaskInputDefaultsFromMetadata(origMapping);
     const firstNonLabelKey = this.nodeOutputsControls
       .filter(c => c.views.includes(this.currentViewMode) && !c.key.includes('Label'))
       .map(c => c.key)[0] ?? null;
@@ -1672,6 +1866,7 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
   }
 
   async addTaskInput() {
+    this.clearTaskInputFormControls();
     this.getAllElementsEventTasks.next(this.treeNodeForm.value);
     let task = null;
     if (this.currentNodeTask && this.currentNodeTask.id !== this.treeNodeForm.value.taskId) {
@@ -1709,6 +1904,47 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
       label,
       value: raw.value ?? null
     };
+  }
+
+  /**
+   * Formats a task parameter default for display, autocomplete options, and form prefill.
+   */
+  formatTaskParameterDefaultForInput(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * When opening field configuration, prefill input mapping from task metadata only if
+   * the node has no saved entry for that parameter key (unset vs explicit null in saved input).
+   */
+  private applyTaskInputDefaultsFromMetadata(origMapping: { input?: Record<string, { value?: unknown }> } | null): void {
+    const inputGroup = this.fieldsConfigForm.get('input') as UntypedFormGroup | null;
+    if (!inputGroup) {
+      return;
+    }
+    const savedInput = origMapping?.input;
+    this.nodeInputsControls.forEach((param) => {
+      const key = param.name;
+      if (savedInput && Object.prototype.hasOwnProperty.call(savedInput, key)) {
+        return;
+      }
+      const formatted = this.formatTaskParameterDefaultForInput(param.value);
+      if (formatted === '') {
+        return;
+      }
+      const group = inputGroup.get(key) as UntypedFormGroup | null;
+      group?.patchValue({ value: formatted }, { emitEvent: false });
+    });
   }
 
   addNamespacesControl(origMapping) {
@@ -1812,7 +2048,7 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
   }
 
   updateNode() {
-    const formValue = this.treeNodeForm.value;
+    const formValue = this.treeNodeForm.getRawValue();
     const nodeUpdate = {
       ...formValue,
       nodeType: formValue.nodeType
@@ -1839,12 +2075,12 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
           || this.currentTreeType === this.codeValues.treeType.edition) {
           const taskId = this.treeNodeForm.get('taskId').value;
           this.currentNodeTask = taskId ? await firstValueFrom(this.taskService.get(taskId)) : null;
-          this.getAllElementsEventTasks.next(this.treeNodeForm.value);
+          this.getAllElementsEventTasks.next(this.treeNodeForm.getRawValue());
         }
         if ([constants.treeDomainKey.cartography, constants.treeDomainKey.task].includes(effectiveType)) {
           const cartographyId = this.treeNodeForm.get('cartographyId').value;
           this.currentNodeCartography = cartographyId ? await firstValueFrom(this.cartographyService.get(cartographyId)) : cartographyId;
-          this.getAllElementsEventCartographies.next(this.treeNodeForm.value);
+          this.getAllElementsEventCartographies.next(this.treeNodeForm.getRawValue());
         }
       } else {
         await this.updateCartographyTreeLeft(null);
@@ -2534,6 +2770,11 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
     return control.key;
   }
 
+  /** Stable identity for input-mapping autocomplete app/parent options (string `value` is unique per option). */
+  trackByMappingOptionValue(_index: number, opt: { value: string }): string {
+    return opt.value;
+  }
+
   /**
    * Checks if a label should be translated.
    * Translation keys typically contain dots (e.g., 'nodeMapping.price'),
@@ -2836,8 +3077,18 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
    * Returns the task name to display in the input field.
    */
   displayTask = (task: any): string | null => {
-    if (!task) return null;
-    return task.name || null;
+    const taskNameFallback = this.treeNodeForm?.get('taskName')?.value ?? null;
+    if (!task) {
+      return taskNameFallback;
+    }
+    if (typeof task === 'object' && task !== null) {
+      const n = task.name;
+      if (n != null && String(n).trim().length > 0) {
+        return n;
+      }
+      return taskNameFallback;
+    }
+    return null;
   };
 
   /**
@@ -2919,6 +3170,16 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
       if (this.treeNodeForm.value.taskName !== null) {
         this.updateTaskTreeLeft(null);
       }
+      return;
+    }
+
+    if (!this.isAllowedTreeNodeTaskType(task)) {
+      this.loggerService.warn('TreeNodesComponent.onTaskSelected - Task type not allowed for tree node', {
+        taskId: (task as { id?: number })?.id,
+        typeId: this.resolveTaskTypeId(task)
+      });
+      this.treeNodeForm.get('task')?.setValue(null, { emitEvent: false });
+      this.clearTaskSelection();
       return;
     }
 
