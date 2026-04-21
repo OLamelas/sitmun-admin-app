@@ -105,6 +105,10 @@ export class ServiceFormComponent extends BaseFormComponent<Service> implements 
 
   readonly config = Configuration.SERVICE;
 
+  get serviceAuthenticationModes() {
+    return this.codeList('service.authenticationMode').filter(m => m.value !== 'API key');
+  }
+
   /**
    * Flag indicating if projections can be removed from the service.
    * Always true as projections are user-manageable.

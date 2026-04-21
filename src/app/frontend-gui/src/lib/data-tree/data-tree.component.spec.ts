@@ -1145,7 +1145,7 @@ describe('DataTreeComponent', () => {
       (component as any).expandedNodeIdsState = new Set(['1', '11', '2']);
       (component as any).tree = { expand: jest.fn(), collapse: jest.fn() };
       const syncSpy = jest.spyOn(component as any, 'syncTreeExpansionFromIdState').mockImplementation(() => {});
-      const collapseSpy = jest.spyOn(component as any, 'collapseAllFlatNodes').mockImplementation(() => {
+      const _collapseSpy = jest.spyOn(component as any, 'collapseAllFlatNodes').mockImplementation(() => {
         (component as any).expandedNodeIdsState.clear();
       });
       

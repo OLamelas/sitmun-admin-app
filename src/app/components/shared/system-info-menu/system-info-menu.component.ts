@@ -8,7 +8,6 @@ import { TranslateService } from '@ngx-translate/core';
 import { map } from 'rxjs/operators';
 
 import { AboutDialogComponent, AboutDialogData } from '@app/components/shared/about-dialog/about-dialog.component';
-import { AuthService } from '@app/core/auth/auth.service';
 import { LoginService } from '@app/core/auth/login.service';
 import { Principal } from '@app/core/auth/principal.service';
 import { FeatureFlagKeys, FeatureFlagConfig } from '@app/core/features/feature-flag.config';
@@ -35,7 +34,7 @@ export class SystemInfoMenuComponent implements OnInit {
   });
   environment = environment;
   angularVersion = VERSION.full;
-  
+
   unreviewedErrorCount = toSignal(
     this.errorTrackingService.errors$.pipe(
       map(() => this.errorTrackingService.getUnreviewedCount())
@@ -49,13 +48,12 @@ export class SystemInfoMenuComponent implements OnInit {
     { initialValue: 0 }
   );
   currentCategory = '';
-  
+
   private destroyRef = inject(DestroyRef);
 
   constructor(
     private principal: Principal,
     private loginService: LoginService,
-    private authService: AuthService,
     private router: Router,
     private loggerService: LoggerService,
     private errorTrackingService: ErrorTrackingService,
@@ -83,16 +81,13 @@ export class SystemInfoMenuComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Load user if already authenticated (don't wait for menu to open)
-    if (this.authService.getToken()) {
-      this.loadCurrentUser();
-      // Set up subscription to authentication state changes
-      this.principal.getAuthenticationState()
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => {
-          this.loadCurrentUser();
-        });
-    }
+    // Keep user signal synced with current backend session.
+    this.loadCurrentUser();
+    this.principal.getAuthenticationState()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.loadCurrentUser();
+      });
   }
 
 
@@ -100,11 +95,11 @@ export class SystemInfoMenuComponent implements OnInit {
    * Called when the menu is opened to load data
    */
   onMenuOpened(): void {
-    // Ensure user is loaded if authenticated (in case it wasn't loaded in ngOnInit)
-    if (this.authService.getToken() && !this.currentUser()) {
+    // Ensure user is loaded when menu opens
+    if (!this.currentUser()) {
       this.loadCurrentUser();
     }
-    
+
     // Ensure current category is set when menu opens
     if (!this.environment.production && !this.currentCategory) {
       const categories = this.featureFlagService.getCategories();
@@ -115,29 +110,19 @@ export class SystemInfoMenuComponent implements OnInit {
   }
 
   loadCurrentUser(): void {
-    // Only load if we have a token (user is authenticated)
-    if (this.authService.getToken()) {
-      this.principal.identity().then((user) => {
-        // Set user if it exists (getUserFullName will handle empty properties)
-        if (user) {
-          this.currentUser.set(user);
-        } else {
-          this.currentUser.set(null);
-          this.loggerService.warn('User identity returned null');
-        }
-        // Mark for check to update the view
-        this.cdr.markForCheck();
-      }).catch((error) => {
-        // If identity fails, set to null
+    this.principal.identity().then((user) => {
+      if (user) {
+        this.currentUser.set(user);
+      } else {
+        this.loggerService.warn('User identity returned null');
         this.currentUser.set(null);
-        this.loggerService.error('Failed to load user identity:', error);
-        this.cdr.markForCheck();
-      });
-    } else {
-      // No token, user is not authenticated
-      this.currentUser.set(null);
+      }
       this.cdr.markForCheck();
-    }
+    }).catch((error) => {
+      this.currentUser.set(null);
+      this.loggerService.error('Failed to load user identity:', error);
+      this.cdr.markForCheck();
+    });
   }
 
   onLogLevelChange(level: LogLevel): void {
@@ -179,7 +164,7 @@ export class SystemInfoMenuComponent implements OnInit {
   openAboutDialog(): void {
     // Get translated application name
     const applicationName = this.translateService.instant('systemInfo.applicationName');
-    
+
     const dialogData: AboutDialogData = {
       applicationName: applicationName,
       version: this.environment.version || 'N/A',
@@ -202,10 +187,10 @@ export class SystemInfoMenuComponent implements OnInit {
       timestamp: new Date().toISOString(),
       source: 'System Info Menu'
     };
-    
+
     // Log via logger service (LoggerService will also track it once)
     this.loggerService.error('Test error triggered from system menu', testError);
-    
+
     // Open the error sidebar to show the error
     this.openErrorSidebar();
   }
@@ -225,7 +210,7 @@ export class SystemInfoMenuComponent implements OnInit {
       const firstName = user.firstName?.trim() || '';
       const lastName = user.lastName?.trim() || '';
       const username = user.username?.trim() || '';
-      
+
       if (firstName && lastName) {
         return `${firstName} ${lastName}`;
       } else if (firstName) {
@@ -297,12 +282,12 @@ export class SystemInfoMenuComponent implements OnInit {
     if (event) {
       event.stopPropagation();
     }
-    
+
     if (!this.environment.production) {
       try {
         // Call the service's toggleFeature method
         this.featureFlagService.toggleFeature(flag);
-        
+
         // Get updated config to show current state
         const config = this.featureFlagService.getFeatureConfig(flag);
         const state = config?.enabled ? 'enabled' : 'disabled';
@@ -311,7 +296,7 @@ export class SystemInfoMenuComponent implements OnInit {
           { state }
         );
         this.snackBar.open(message, '', { duration: 2000 });
-        
+
         // Mark for check - let Angular's change detection handle the update naturally
         // The observable subscription will trigger FeatureFlagDirective updates automatically
         this.cdr.markForCheck();
@@ -344,4 +329,3 @@ export class SystemInfoMenuComponent implements OnInit {
     return this.featureFlagService.isFeatureEnabled(flag);
   }
 }
-
