@@ -39,13 +39,13 @@
             <mat-label>{{ 'common.form.type' | translate }}</mat-label>
             <mat-select formControlName="scope" class="form-control" (selectionChange)="onTypeChange($event)" required>
               <mat-option [value]="serviceType.value" *ngFor="let serviceType of this.codeList('queryTask.scope')">
-                {{ ('entity.task.query.scope.' + serviceType.value) | translate }}
+                {{ serviceType.description}}
               </mat-option>
             </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline" class="half add-gap" *ngIf="!isNew()">
             <mat-label>{{ 'common.form.type' | translate }}</mat-label>
-            <input matInput [readonly]="true" [value]="('entity.task.query.scope.' + entityForm.get('scope').value) | translate">
+            <input matInput [readonly]="true" [value]="findInCodeList('queryTask.scope', entityForm.get('scope').value)?.description">
             <mat-hint align="end">{{ 'common.hint.valuefixed' | translate}}</mat-hint>
           </mat-form-field>
           <mat-form-field appearance="outline" class="half">
