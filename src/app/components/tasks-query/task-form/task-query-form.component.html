@@ -170,6 +170,47 @@
             </mat-form-field>
             <div class="break"></div>
           </ng-container>
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.query.mimeType' | translate }}</mat-label>
+            <mat-select formControlName="mimeType">
+              <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
+              <mat-option [value]="mimeTypeOption.value" *ngFor="let mimeTypeOption of codeList('queryTask.mimeType')">
+                {{ mimeTypeOption.description }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="half">
+            <mat-label>{{ 'entity.task.query.filename' | translate }}</mat-label>
+            <input matInput type="text" formControlName="filename" [maxlength]="255">
+            <mat-hint align="end">{{ entityForm.get('filename') | characterCount }}</mat-hint>
+          </mat-form-field>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="sitmun-mat-card-margin" appearance="outlined"
+        *ngIf="isWebApiQueryNoProxyScope()">
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>{{ 'entity.task.query.webapi' | translate }}</mat-label>
+            <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="4"></textarea>
+            <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.query.mimeType' | translate }}</mat-label>
+            <mat-select formControlName="mimeType">
+              <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
+              <mat-option [value]="mimeTypeOption.value" *ngFor="let mimeTypeOption of codeList('queryTask.mimeType')">
+                {{ mimeTypeOption.description }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="half">
+            <mat-label>{{ 'entity.task.query.filename' | translate }}</mat-label>
+            <input matInput type="text" formControlName="filename" [maxlength]="255">
+            <mat-hint align="end">{{ entityForm.get('filename') | characterCount }}</mat-hint>
+          </mat-form-field>
+          <div style="margin: 12px 0; padding: 8px; background-color: #fff3e0; border-radius: 4px; font-size: 0.9em; color: #e65100;">
+            <div>{{ 'entity.task.query.urlHint' | translate }}</div>
+          </div>
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"
@@ -183,30 +224,6 @@
           <div style="margin: 12px 0; padding: 8px; background-color: #fff3e0; border-radius: 4px; font-size: 0.9em; color: #e65100;">
             <div>{{ 'entity.task.query.urlHint' | translate }}</div>
           </div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card class="sitmun-mat-card-margin" appearance="outlined"
-        *ngIf="isResourceQueryScope()">
-        <mat-card-content>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>{{ 'entity.task.query.resource.url' | translate }}</mat-label>
-            <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="3"></textarea>
-            <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="half add-gap">
-            <mat-label>{{ 'entity.task.query.resource.mimeType' | translate }}</mat-label>
-            <mat-select formControlName="mimeType">
-              <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
-              <mat-option [value]="mimeTypeOption.value" *ngFor="let mimeTypeOption of codeList('queryTask.mimeType')">
-                {{ mimeTypeOption.description }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="half">
-            <mat-label>{{ 'entity.task.query.resource.filename' | translate }}</mat-label>
-            <input matInput type="text" formControlName="filename" [maxlength]="255">
-            <mat-hint align="end">{{ entityForm.get('filename') | characterCount }}</mat-hint>
-          </mat-form-field>
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"

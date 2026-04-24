@@ -496,7 +496,6 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
       }
       const scope = String(task.properties?.scope || '').toLowerCase();
       return scope !== this.codeValues.queryTaskScope.cartographyQuery
-        && scope !== this.codeValues.queryTaskScope.resource
         && !task.cartographyId;
     });
   }

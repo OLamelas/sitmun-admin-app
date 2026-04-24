@@ -182,6 +182,10 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.webApiQuery;
   }
 
+  isWebApiQueryNoProxyScope(): boolean {
+    return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.webApiQueryNoProxy;
+  }
+
   /**
    * Checks if the current task scope is Cartography query
    * @returns boolean indicating if scope is Cartography query
@@ -192,10 +196,6 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
 
   isUrlQueryScope(): boolean {
     return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.urlQuery;
-  }
-
-  isResourceQueryScope(): boolean {
-    return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.resource;
   }
 
   /**
@@ -576,10 +576,28 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('apiKeyType')?.enable({ emitEvent: false });
       this.entityForm.get('apiKeyKeyName')?.enable({ emitEvent: false });
       this.entityForm.get('apiKeyHeaderValue')?.enable({ emitEvent: false });
-      this.entityForm.get('mimeType')?.setValue(null);
-      this.entityForm.get('mimeType')?.disable({ emitEvent: false });
-      this.entityForm.get('filename')?.setValue(null);
-      this.entityForm.get('filename')?.disable({ emitEvent: false });
+      this.entityForm.get('mimeType')?.enable({ emitEvent: false });
+      this.entityForm.get('filename')?.enable({ emitEvent: false });
+    } else if (value === scope?.webApiQueryNoProxy) {
+      this.entityForm.get('command').enable({ emitEvent: false });
+      this.entityForm.get('connectionId').setValue(null);
+      this.entityForm.get('connectionId').disable({ emitEvent: false });
+      this.entityForm.get('cartographyId').setValue(null);
+      this.entityForm.get('cartographyId').disable({ emitEvent: false });
+      this.entityForm.get('authenticationMode')?.setValue(null);
+      this.entityForm.get('authenticationMode')?.disable({ emitEvent: false });
+      this.entityForm.get('user')?.setValue(null);
+      this.entityForm.get('user')?.disable({ emitEvent: false });
+      this.entityForm.get('password')?.setValue(null);
+      this.entityForm.get('password')?.disable({ emitEvent: false });
+      this.entityForm.get('apiKeyType')?.setValue(null);
+      this.entityForm.get('apiKeyType')?.disable({ emitEvent: false });
+      this.entityForm.get('apiKeyKeyName')?.setValue(null);
+      this.entityForm.get('apiKeyKeyName')?.disable({ emitEvent: false });
+      this.entityForm.get('apiKeyHeaderValue')?.setValue(null);
+      this.entityForm.get('apiKeyHeaderValue')?.disable({ emitEvent: false });
+      this.entityForm.get('mimeType')?.enable({ emitEvent: false });
+      this.entityForm.get('filename')?.enable({ emitEvent: false });
     } else if (value === scope?.urlQuery) {
       this.entityForm.get('command').enable({ emitEvent: false });
       this.entityForm.get('connectionId').setValue(null);
@@ -602,26 +620,6 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('mimeType')?.disable({ emitEvent: false });
       this.entityForm.get('filename')?.setValue(null);
       this.entityForm.get('filename')?.disable({ emitEvent: false });
-    } else if (value === scope?.resource) {
-      this.entityForm.get('command').enable({ emitEvent: false });
-      this.entityForm.get('connectionId').setValue(null);
-      this.entityForm.get('connectionId').disable({ emitEvent: false });
-      this.entityForm.get('cartographyId').setValue(null);
-      this.entityForm.get('cartographyId').disable({ emitEvent: false });
-      this.entityForm.get('authenticationMode')?.setValue(null);
-      this.entityForm.get('authenticationMode')?.disable({ emitEvent: false });
-      this.entityForm.get('user')?.setValue(null);
-      this.entityForm.get('user')?.disable({ emitEvent: false });
-      this.entityForm.get('password')?.setValue(null);
-      this.entityForm.get('password')?.disable({ emitEvent: false });
-      this.entityForm.get('apiKeyType')?.setValue(null);
-      this.entityForm.get('apiKeyType')?.disable({ emitEvent: false });
-      this.entityForm.get('apiKeyKeyName')?.setValue(null);
-      this.entityForm.get('apiKeyKeyName')?.disable({ emitEvent: false });
-      this.entityForm.get('apiKeyHeaderValue')?.setValue(null);
-      this.entityForm.get('apiKeyHeaderValue')?.disable({ emitEvent: false });
-      this.entityForm.get('mimeType')?.enable({ emitEvent: false });
-      this.entityForm.get('filename')?.enable({ emitEvent: false });
     } else {
       this.entityForm.get('command').setValue(null);
       this.entityForm.get('command').disable({ emitEvent: false });
