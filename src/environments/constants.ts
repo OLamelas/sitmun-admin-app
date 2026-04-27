@@ -9,7 +9,7 @@ const codeValue = {
     webApiQuery: 'web-api-query',
     webApiQueryNoProxy: 'web-api-query-no-proxy',
     cartographyQuery: 'cartography-query',
-    urlQuery: 'URL'
+    urlQuery: 'external-link'
   },
   editionTaskScope: {
     dbEdition: 'db-edit',
