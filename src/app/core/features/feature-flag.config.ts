@@ -47,7 +47,7 @@ export const PROD_FEATURE_FLAGS: Record<FeatureFlagKeys, FeatureFlagConfig> = {
   },
   SERVICES_PARAMETERS_FEATURE: {
     key: FEATURE_FLAGS.SERVICES_PARAMETERS_FEATURE,
-    enabled: false,
+    enabled: true,
     description: 'featureFlags.servicesParametersFeature.description',
     category: 'Services'
   }
@@ -81,7 +81,7 @@ export const DEV_FEATURE_FLAGS: Record<FeatureFlagKeys, FeatureFlagConfig> = {
   SERVICES_PARAMETERS_FEATURE: {
     key: FEATURE_FLAGS.SERVICES_PARAMETERS_FEATURE,
     enabled: true,
-    experimental: true,
+    experimental: false,
     description: 'featureFlags.servicesParametersFeature.description',
     category: 'Services'
   }
