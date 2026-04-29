@@ -1,5 +1,6 @@
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
 import {Component, OnDestroy, OnInit, TemplateRef, ViewChild} from '@angular/core';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import {MatChipInputEvent} from '@angular/material/chips';
 import {MatDialog} from '@angular/material/dialog';
@@ -12,6 +13,7 @@ import {map} from 'rxjs/operators';
 import {BaseFormComponent} from "@app/components/base-form.component";
 import {DataTableDefinition, TemplateDialog} from "@app/components/data-tables.util";
 import {Configuration} from "@app/core/config/configuration";
+import {FeatureFlagService} from '@app/core/features/feature-flag.service';
 import {MessagesInterceptorStateService} from "@app/core/interceptors/messages.interceptor";
 import {
   Cartography,
@@ -19,6 +21,7 @@ import {
   CartographyService,
   CartographyStyle,
   CartographyStyleService,
+  CodeList,
   CodeListService,
   Service,
   ServiceParameter,
@@ -98,7 +101,7 @@ import {constants} from '@environments/constants';
 @Component({
     selector: 'app-service-form',
     templateUrl: './service-form.component.html',
-    styles: [],
+    styleUrls: ['./service-form.component.scss'],
     standalone: false
 })
 export class ServiceFormComponent extends BaseFormComponent<Service> implements OnInit, OnDestroy {
@@ -158,6 +161,9 @@ export class ServiceFormComponent extends BaseFormComponent<Service> implements 
    */
   private wmsLayersCapabilities: WMSLayersCapabilities = new WMSLayersCapabilities();
 
+  /** Avoid duplicate `dataTables.register` and skip parameters in `saveAll` when the tab is hidden. */
+  private parametersTableRegisteredWithRegistry = false;
+
   /**
    * Reference to the parameter dialog template.
    * Used when opening the dialog for adding new parameters.
@@ -204,10 +210,18 @@ export class ServiceFormComponent extends BaseFormComponent<Service> implements 
     public cartographyStyleService: CartographyStyleService,
     public wmsCapabilitiesService: WMSCapabilitiesService,
     private readonly serviceService: ServiceService,
+    private readonly featureFlagService: FeatureFlagService,
   ) {
     super(dialog, translateService, translationService, codeListService, loggerService, errorHandler, activatedRoute, router, loadingService, messagesInterceptorState);
     this.layersTable = this.defineLayersTable();
     this.parametersTable = this.defineParametersTable();
+  }
+
+  override ngOnInit(): void {
+    super.ngOnInit();
+    this.featureFlagService.featureFlags$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.maybeRegisterParametersTable());
   }
 
   /**
@@ -217,9 +231,18 @@ export class ServiceFormComponent extends BaseFormComponent<Service> implements 
    * @returns Promise that resolves when initialization is complete
    */
   override async preFetchData() {
-    this.dataTables.register(this.layersTable).register(this.parametersTable);
+    this.dataTables.register(this.layersTable);
+    this.maybeRegisterParametersTable();
     this.initTranslations('Service', ['description', 'name'])
     await this.initCodeLists(['service.type', 'service.authenticationMode', 'serviceParameter.type'])
+  }
+
+  private maybeRegisterParametersTable(): void {
+    if (!this.featureFlagService.isFeatureEnabled('SERVICES_PARAMETERS_FEATURE') || this.parametersTableRegisteredWithRegistry) {
+      return;
+    }
+    this.dataTables.register(this.parametersTable);
+    this.parametersTableRegisteredWithRegistry = true;
   }
 
   /**
@@ -453,6 +476,8 @@ export class ServiceFormComponent extends BaseFormComponent<Service> implements 
                 description: capabilities.abstract?.substring(0, 4000),
                 supportedSRS: capabilities.supportedSRS
               });
+              // patchValue does not mark the form dirty; save is gated on dirty in canSaveEntity.
+              this.entityForm.markAsDirty();
             })
             .catch((reason) => this.errorHandler.handleError(reason, 'entity.service.error.processCapabilities'));
         }
@@ -586,6 +611,60 @@ export class ServiceFormComponent extends BaseFormComponent<Service> implements 
   }
 
   /**
+   * {@code serviceParameter.type} minus {@code service.type} values, except:
+   * the service’s selected type (e.g. WMS on a WMS service), non-service codes (e.g. VARY), and the dialog’s current parameter type.
+   * The service’s protocol type is listed first; remaining entries follow sorted by description.
+   */
+  private parameterTypesForNewParameterDialog(selectedParameterType: string | null | undefined): CodeList[] {
+    const parameterTypes = this.codeList('serviceParameter.type');
+    const serviceTypeValues = new Set(this.codeList('service.type').map((c) => c.value));
+    const selectedServiceType = this.entityForm?.get('type')?.value ?? this.entityToEdit?.type ?? null;
+    const filtered = parameterTypes.filter((pt) => {
+      if (!serviceTypeValues.has(pt.value)) {
+        return true;
+      }
+      return pt.value === selectedServiceType || pt.value === selectedParameterType;
+    });
+    return this.orderNewParameterTypesWithServiceTypeFirst(filtered, selectedServiceType);
+  }
+
+  /** Puts the service protocol type first when present; otherwise sorts by description. */
+  private orderNewParameterTypesWithServiceTypeFirst(
+    filtered: CodeList[],
+    selectedServiceType: string | null | undefined,
+  ): CodeList[] {
+    const byDescription = (a: CodeList, b: CodeList) => a.description.localeCompare(b.description);
+    if (!selectedServiceType) {
+      return [...filtered].sort(byDescription);
+    }
+    const primary = filtered.find((pt) => pt.value === selectedServiceType);
+    const rest = filtered.filter((pt) => pt.value !== selectedServiceType).sort(byDescription);
+    return primary ? [primary, ...rest] : [...filtered].sort(byDescription);
+  }
+
+  /** Options for the new-parameter dialog type control (see {@link parameterTypesForNewParameterDialog}). */
+  newParameterDialogParameterTypes(): CodeList[] {
+    const selected = this.parametersTable?.templateDialog('newParameterDialog')?.form?.get('type')?.value;
+    return this.parameterTypesForNewParameterDialog(selected);
+  }
+
+  /**
+   * Label for the parameters grid and dialog: ngx-translate when {@code entity.serviceParameter.typeLabel.*}
+   * exists, otherwise codelist description (API / DB, may follow another language).
+   */
+  serviceParameterTypeDescription(type: string | undefined | null): string {
+    if (type == null || type === '') {
+      return '';
+    }
+    const key = `entity.serviceParameter.typeLabel.${type}`;
+    const translated = this.translateService.instant(key);
+    if (translated !== key) {
+      return translated;
+    }
+    return this.findInCodeList('serviceParameter.type', type)?.description ?? type;
+  }
+
+  /**
    * Defines the data table configuration for managing service parameters.
    * Sets up columns, data fetching, updating logic, and dialog templates.
    *
@@ -606,7 +685,7 @@ export class ServiceFormComponent extends BaseFormComponent<Service> implements 
           return this.entityToEdit.getRelationArrayEx(ServiceParameter, 'parameters')
             .pipe(map(data => data.map(element => Object.assign(new ServiceParameter(), {
               ...element,
-              typeDescription: this.findInCodeList('serviceParameter.type', element.type)?.description
+              typeDescription: this.serviceParameterTypeDescription(element.type)
             }))))
         } else {
           return of([]);
@@ -628,14 +707,22 @@ export class ServiceFormComponent extends BaseFormComponent<Service> implements 
         .withTitle('entity.service.newParameter')
         .withForm(
           new UntypedFormGroup({
-            name: new UntypedFormControl('', [Validators.required,]),
-            type: new UntypedFormControl('', [Validators.required,]),
-            value: new UntypedFormControl(''),
+            name: new UntypedFormControl('', [Validators.required, Validators.maxLength(50)]),
+            type: new UntypedFormControl('', [Validators.required]),
+            value: new UntypedFormControl('', [Validators.maxLength(250)]),
           })
         ).withPreOpenFunction((form: UntypedFormGroup) => {
-          const defaultType = this.defaultValueOrNull('serviceParameter.type');
-          form.reset({type: defaultType?.value || null});
+          const allowed = this.parameterTypesForNewParameterDialog(null);
+          const initialType = allowed[0]?.value ?? null;
+          form.reset({name: '', type: initialType, value: ''});
         }).build())
+      .withTargetToRelation((items: ServiceParameter[]) =>
+        items.map((item) =>
+          Object.assign(new ServiceParameter(), item, {
+            typeDescription: this.serviceParameterTypeDescription(item.type),
+          }),
+        ),
+      )
       .build();
   }
 }

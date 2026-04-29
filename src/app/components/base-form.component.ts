@@ -691,9 +691,12 @@ export class BaseFormComponent<T extends Resource> implements OnInit, AfterViewI
     // Update initial form values to reset to a modified state
     this.initialFormValues = form.getRawValue();
 
-    // Remove modified styling from all form fields
+    // Remove modified styling from all form fields (must mirror checkControlModified)
     Object.keys(form.controls).forEach(key => {
-      const element = document.querySelector(`[formControlName="${key}"]`)?.closest('mat-form-field');
+      let element = document.querySelector(`[formControlName="${key}"]`)?.closest('mat-form-field');
+      if (!element) {
+        element = document.querySelector(`[formControlName="${key}"]`);
+      }
       if (element) {
         element.classList.remove('input-modified');
       }
