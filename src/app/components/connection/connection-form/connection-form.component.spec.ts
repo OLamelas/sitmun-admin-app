@@ -16,7 +16,7 @@ import {CartographyService, CodeListService, ConnectionService, TaskService, Tra
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
 import {LoggerService} from '@app/services/logger.service';
-import {configureLoggerForTests} from '@app/testing/test-helpers';
+import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing/test-helpers';
 
 import { ConnectionFormComponent } from './connection-form.component';
 
@@ -47,8 +47,17 @@ describe('ConnectionFormComponent', () => {
             })
           }
         })],
-      providers: [ConnectionService, CartographyService, TaskService, CodeListService,TranslationService,ResourceService,ExternalService,
-        { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }, ]
+      providers: [
+        provideErrorHandlerForTests(),
+        ConnectionService,
+        CartographyService,
+        TaskService,
+        CodeListService,
+        TranslationService,
+        ResourceService,
+        ExternalService,
+        { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }
+      ]
     })
     .compileComponents();
   });

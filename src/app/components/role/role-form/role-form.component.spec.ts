@@ -21,7 +21,7 @@ import {
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
 import {LoggerService} from '@app/services/logger.service';
-import {configureLoggerForTests} from '@app/testing/test-helpers';
+import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing/test-helpers';
 
 import { RoleFormComponent } from './role-form.component';
 
@@ -53,7 +53,7 @@ describe('RoleFormComponent', () => {
           })
         }
       })],
-      providers: [RoleService, UserService, TerritoryService, ApplicationService, CodeListService,
+      providers: [provideErrorHandlerForTests(), RoleService, UserService, TerritoryService, ApplicationService, CodeListService,
         CartographyGroupService,UserConfigurationService, CartographyService, TaskService,ResourceService,ExternalService,
         { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }, ]
     })

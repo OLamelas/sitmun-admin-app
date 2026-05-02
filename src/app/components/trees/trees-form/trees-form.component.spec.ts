@@ -28,7 +28,7 @@ import {
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
 import {LoggerService} from '@app/services/logger.service';
-import {configureLoggerForTests} from '@app/testing/test-helpers';
+import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing/test-helpers';
 
 import {TreeNodesComponent} from './tree-nodes/tree-nodes.component';
 import { TreesFormComponent } from './trees-form.component';
@@ -63,7 +63,7 @@ describe('TreesFormComponent', () => {
             })
           }
         })],
-      providers: [TreeService, TreeNodeService, ApplicationService, ServiceService, CapabilitiesService, CartographyService, CodeListService, TranslationService, ResourceService, ExternalService, TaskService, RoleService,
+      providers: [provideErrorHandlerForTests(), TreeService, TreeNodeService, ApplicationService, ServiceService, CapabilitiesService, CartographyService, CodeListService, TranslationService, ResourceService, ExternalService, TaskService, RoleService,
         { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }]
     })
     .compileComponents();
