@@ -226,7 +226,13 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       queryableFeatureAvailable: new UntypedFormControl(this.entityToEdit.queryableFeatureAvailable || false, []),
       joinedQueryableLayers: new UntypedFormControl(this.entityToEdit.queryableLayers?.join(','), [queryableLayersValidator]),
       thematic: new UntypedFormControl(this.entityToEdit.thematic, []),
-      blocked: new UntypedFormControl(this.entityToEdit.blocked || true, []),
+      /** True when the layer may be used by viewers (inverse of API `blocked`). */
+      availableForClients: new UntypedFormControl(
+        this.isNewOrDuplicated()
+          ? false
+          : this.entityToEdit.blocked !== true,
+        []
+      ),
       selectableFeatureEnabled: new UntypedFormControl(this.entityToEdit.selectableFeatureEnabled, [],),
       joinedSelectableLayers: new UntypedFormControl(this.entityToEdit.selectableLayers?.join(','), []),
       spatialSelectionServiceId: new UntypedFormControl(this.entityToEdit.spatialSelectionServiceId, []),
@@ -255,17 +261,16 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
   createObject(id: number = null): Cartography {
     let safeToEdit = CartographyProjection.fromObject(this.entityToEdit);
     const formValues = this.entityForm.getRawValue();
-    safeToEdit = Object.assign(safeToEdit,
-      formValues,
-      {
-        id: id,
-        layers: formValues.joinedLayers ? formValues.joinedLayers.split(',') : [],
-        queryableLayers: formValues.queryableLayers ? formValues.queryableLayers.split(',') : [],
-        selectableLayers: formValues.selectableLayers ? formValues.selectableLayers.split(',') : [],
-        service: this.serviceService.createProxy(formValues.serviceId),
-      }
-    );
-    return Cartography.fromObject(safeToEdit)
+    const { availableForClients, ...formValuesWithoutAvail } = formValues;
+    safeToEdit = Object.assign(safeToEdit, formValuesWithoutAvail, {
+      id: id,
+      blocked: availableForClients !== true,
+      layers: formValues.joinedLayers ? formValues.joinedLayers.split(',') : [],
+      queryableLayers: formValues.queryableLayers ? formValues.queryableLayers.split(',') : [],
+      selectableLayers: formValues.selectableLayers ? formValues.selectableLayers.split(',') : [],
+      service: this.serviceService.createProxy(formValues.serviceId),
+    });
+    return Cartography.fromObject(safeToEdit);
   }
 
   /**

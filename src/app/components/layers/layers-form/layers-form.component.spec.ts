@@ -18,6 +18,7 @@ import {
   CartographyFilterService,
   CartographyGroupService,
   CartographyParameterService,
+  CartographyProjection,
   CartographyService,
   CartographySpatialSelectionParameterService,
   CartographyStyleService,
@@ -33,7 +34,7 @@ import {
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
 import {LoggerService} from '@app/services/logger.service';
-import {configureLoggerForTests} from '@app/testing/test-helpers';
+import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing/test-helpers';
 
 import { LayersFormComponent } from './layers-form.component';
 
@@ -71,10 +72,27 @@ describe('LayersFormComponent', () => {
             })
           }
         })],
-      providers: [CartographyService, ServiceService, ConnectionService, TerritoryTypeService,
-        TreeNodeService, GetInfoService, CartographyStyleService, TerritoryService, CartographyGroupService, CartographyAvailabilityService,
-        CartographyParameterService, CartographySpatialSelectionParameterService, CodeListService, CartographyFilterService, TranslationService, ResourceService, ExternalService,
-        { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService },]
+      providers: [
+        provideErrorHandlerForTests(),
+        CartographyService,
+        ServiceService,
+        ConnectionService,
+        TerritoryTypeService,
+        TreeNodeService,
+        GetInfoService,
+        CartographyStyleService,
+        TerritoryService,
+        CartographyGroupService,
+        CartographyAvailabilityService,
+        CartographyParameterService,
+        CartographySpatialSelectionParameterService,
+        CodeListService,
+        CartographyFilterService,
+        TranslationService,
+        ResourceService,
+        ExternalService,
+        { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }
+      ]
     })
       .compileComponents();
   });
@@ -216,7 +234,7 @@ describe('LayersFormComponent', () => {
       queryableFeatureAvailable: true,
       joinedQueryableLayers: 'queryableLayer',
       thematic: true,
-      blocked: true,
+      availableForClients: true,
       selectableFeatureEnabled: true,
       spatialSelectionServiceId: 1,
       joinedSelectableLayers: 'layerSelected',
@@ -253,7 +271,7 @@ describe('LayersFormComponent', () => {
       queryableFeatureAvailable: true,
       joinedQueryableLayers: 'queryableLayer',
       thematic: true,
-      blocked: true,
+      availableForClients: true,
       selectableFeatureEnabled: true,
       spatialSelectionServiceId: 1,
       joinedSelectableLayers: 'layerSelected',
@@ -289,11 +307,76 @@ describe('LayersFormComponent', () => {
     expect(component.entityForm.get('queryableFeatureAvailable')).toBeTruthy();
     expect(component.entityForm.get('joinedQueryableLayers')).toBeTruthy();
     expect(component.entityForm.get('thematic')).toBeTruthy();
-    expect(component.entityForm.get('blocked')).toBeTruthy();
+    expect(component.entityForm.get('availableForClients')).toBeTruthy();
     expect(component.entityForm.get('selectableFeatureEnabled')).toBeTruthy();
     expect(component.entityForm.get('spatialSelectionServiceId')).toBeTruthy();
     expect(component.entityForm.get('joinedSelectableLayers')).toBeTruthy();
     expect(component.entityForm.get('useAllStyles')).toBeTruthy();
+  });
+
+  it('availableForClients is inverse of API blocked on load and save', () => {
+    component.entityID = 100;
+    component.duplicateID = -1;
+    component.entityToEdit = Object.assign(new CartographyProjection(), {
+      blocked: false,
+      name: 'layer',
+      layers: ['x'],
+      serviceId: 1
+    });
+    component.postFetchData();
+    expect(component.entityForm.get('availableForClients')?.value).toBe(true);
+
+    component.entityToEdit = Object.assign(new CartographyProjection(), {
+      blocked: true,
+      name: 'layer',
+      layers: ['x'],
+      serviceId: 1
+    });
+    component.postFetchData();
+    expect(component.entityForm.get('availableForClients')?.value).toBe(false);
+
+    component.entityForm.patchValue({
+      name: 'layer',
+      joinedLayers: 'x',
+      serviceId: 1,
+      availableForClients: true
+    });
+    const created = component.createObject(9);
+    expect(created.blocked).toBe(false);
+
+    component.entityForm.patchValue({ availableForClients: false });
+    const createdBlocked = component.createObject(9);
+    expect(createdBlocked.blocked).toBe(true);
+  });
+
+  it('new or duplicated layer defaults to blocked (not available for clients) until enabled', () => {
+    component.entityID = -1;
+    component.duplicateID = -1;
+    component.entityToEdit = component.empty();
+    component.postFetchData();
+    expect(component.entityForm.get('availableForClients')?.value).toBe(false);
+    component.entityForm.patchValue({
+      name: 'n',
+      joinedLayers: 'a',
+      serviceId: 1
+    });
+    expect(component.createObject().blocked).toBe(true);
+
+    component.duplicateID = 99;
+    component.entityToEdit = Object.assign(new CartographyProjection(), {
+      blocked: false,
+      name: 'copy me',
+      layers: ['x'],
+      serviceId: 1
+    });
+    component.postFetchData();
+    expect(component.entityForm.get('availableForClients')?.value).toBe(false);
+    component.entityForm.patchValue({
+      name: 'copy',
+      joinedLayers: 'x',
+      serviceId: 1
+    });
+    expect(component.createObject().blocked).toBe(true);
   });
 
   it('Load button disabled', () => {
