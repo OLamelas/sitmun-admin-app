@@ -465,10 +465,12 @@ export class TreesFormComponent extends BaseFormComponent<Tree> {
           imageName: file.name
         });
         this.markTreeImageAsModified();
+        // Same filename can be selected again on the next open.
+        fileInput.value = '';
       };
       reader.readAsDataURL(file);
+      return;
     }
-    // Allow selecting the same filename again in subsequent uploads.
     fileInput.value = '';
   }
 
