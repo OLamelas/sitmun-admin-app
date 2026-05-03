@@ -1684,6 +1684,7 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
       newFolder.description = newFolder.description.substring(0, 249);
     }
 
+    // Tree node stores a single URL; WMS may repeat MetadataURL/DataURL — keep first only.
     if (capability.MetadataURL != undefined) {
       const metadataURL = Array.isArray(capability.MetadataURL) ? capability.MetadataURL[0] : capability.MetadataURL;
       newFolder.metadataURL = metadataURL.OnlineResource['xlink:href'];
