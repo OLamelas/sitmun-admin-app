@@ -12,9 +12,9 @@ import { AccountService } from '@app/core/account/account.service';
 import { AuthService } from '@app/core/auth/auth.service';
 import { LoginService } from '@app/core/auth/login.service';
 import { Principal } from '@app/core/auth/principal.service';
-import { User } from '@app/domain';
 import { ExternalConfigurationService } from '@app/core/config/external-configuration.service';
-import {ExternalService, ResourceService} from '@app/core/hal/services';
+import { ExternalService, ResourceService } from '@app/core/hal/services';
+import { User } from '@app/domain';
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
 

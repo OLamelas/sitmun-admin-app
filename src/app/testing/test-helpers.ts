@@ -23,13 +23,14 @@ export function configureLoggerForTests(loggerService: LoggerService): void {
  * after tests are done").
  */
 export function provideErrorHandlerForTests(): Provider {
+  const noop = (): null => null;
   return {
     provide: ErrorHandlerService,
     useFactory: (): ErrorHandlerService =>
       ({
-        handleError: jest.fn().mockReturnValue(null),
-        handleDataNotFound: jest.fn().mockReturnValue(null),
-        missingRequiredFields: jest.fn().mockReturnValue(null)
+        handleError: noop,
+        handleDataNotFound: noop,
+        missingRequiredFields: noop
       }) as unknown as ErrorHandlerService
   };
 }
