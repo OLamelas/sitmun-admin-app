@@ -56,7 +56,7 @@ import {constants} from '@environments/constants';
 @Component({
     selector: 'app-layers-form',
     templateUrl: './layers-form.component.html',
-    styles: [],
+    styleUrls: ['./layers-form.component.scss'],
     standalone: false
 })
 export class LayersFormComponent extends BaseFormComponent<CartographyProjection> {

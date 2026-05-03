@@ -1,0 +1,16 @@
+// Details tab: even vertical rhythm (avoids margin-collapse between mat-form-field,
+// raised actions, and checkboxes).
+:host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+:host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack mat-form-field {
+  margin-bottom: 0;
+}
+
+:host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack mat-checkbox {
+  margin-top: 0;
+  margin-bottom: 0;
+}
