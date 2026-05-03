@@ -79,14 +79,27 @@
       </mat-card>
       <mat-card appearance="outlined" class="sitmun-mat-card-margin">
         <mat-card-content class="sitmun-service-form-stack">
-          <mat-form-field appearance="outline" class="quarter add-gap">
-            <mat-label>{{ 'entity.cartography.minimumScale' | translate }}</mat-label>
-            <input matInput type="number" formControlName="minimumScale">
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="quarter add-gap">
-            <mat-label>{{ 'entity.cartography.maximumScale' | translate }}</mat-label>
-            <input matInput type="number" formControlName="maximumScale">
-          </mat-form-field>
+          <div class="sitmun-layers-scale-row">
+            <mat-form-field appearance="outline" class="half add-gap" subscriptSizing="dynamic">
+              <mat-label>{{ 'entity.cartography.minimumScale' | translate }}</mat-label>
+              <input matInput type="number" min="0" step="1" formControlName="minimumScale">
+              <mat-hint align="start">{{ 'entity.cartography.hint.minimumScale' | translate }}</mat-hint>
+              <mat-error *ngIf="entityForm.get('minimumScale')?.errors?.['scaleInteger']">
+                {{ 'entity.cartography.error.scaleNonNegativeInteger' | translate }}
+              </mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="half" subscriptSizing="dynamic">
+              <mat-label>{{ 'entity.cartography.maximumScale' | translate }}</mat-label>
+              <input matInput type="number" min="0" step="1" formControlName="maximumScale">
+              <mat-hint align="start">{{ 'entity.cartography.hint.maximumScale' | translate }}</mat-hint>
+              <mat-error *ngIf="entityForm.get('maximumScale')?.errors?.['scaleInteger']">
+                {{ 'entity.cartography.error.scaleNonNegativeInteger' | translate }}
+              </mat-error>
+              <mat-error *ngIf="entityForm.errors?.['scaleRange']">
+                {{ 'entity.cartography.error.scaleRange' | translate }}
+              </mat-error>
+            </mat-form-field>
+          </div>
           <mat-form-field appearance="outline" class="quarter add-gap">
             <mat-label>{{ 'entity.cartography.order' | translate }}</mat-label>
             <input matInput type="number" formControlName="order">

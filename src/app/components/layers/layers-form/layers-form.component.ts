@@ -183,6 +183,42 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       throw new Error('Cannot initialize form: entity is undefined');
     }
 
+    const nonNegativeIntegerValidator: ValidatorFn = (
+      control: AbstractControl
+    ): ValidationErrors | null => {
+      const raw = control.value;
+      if (raw === null || raw === undefined || raw === '') {
+        return null;
+      }
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
+        return { scaleInteger: true };
+      }
+      return null;
+    };
+
+    const scaleRangeValidator: ValidatorFn = (
+      group: AbstractControl
+    ): ValidationErrors | null => {
+      if (!group) {
+        return null;
+      }
+      const minRaw = group.get('minimumScale')?.value;
+      const maxRaw = group.get('maximumScale')?.value;
+      if (minRaw == null || maxRaw == null || minRaw === '' || maxRaw === '') {
+        return null;
+      }
+      const min = Number(minRaw);
+      const max = Number(maxRaw);
+      if (!Number.isFinite(min) || !Number.isFinite(max)) {
+        return null;
+      }
+      if (min === 0 || max === 0) {
+        return null;
+      }
+      return max > min ? null : { scaleRange: true };
+    };
+
     // Custom validator to ensure queryable layers are subset of joined layers
     const queryableLayersValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
       if (!control.value) return null;
@@ -205,12 +241,17 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       return invalidLayers.length > 0 ? { invalidLayers: invalidLayers } : null;
     };
 
-    this.entityForm = new UntypedFormGroup({
+    this.entityForm = new UntypedFormGroup(
+      {
       name: new UntypedFormControl(this.entityToEdit.name, [Validators.required]),
       serviceId: new UntypedFormControl(this.entityToEdit.serviceId, [Validators.required]),
       joinedLayers: new UntypedFormControl(this.entityToEdit.layers?.join(','), [Validators.required]),
-      minimumScale: new UntypedFormControl(this.entityToEdit.minimumScale, []),
-      maximumScale: new UntypedFormControl(this.entityToEdit.maximumScale, []),
+      minimumScale: new UntypedFormControl(this.entityToEdit.minimumScale, [
+        nonNegativeIntegerValidator
+      ]),
+      maximumScale: new UntypedFormControl(this.entityToEdit.maximumScale, [
+        nonNegativeIntegerValidator
+      ]),
       order: new UntypedFormControl(this.entityToEdit.order, []),
       transparency: new UntypedFormControl(this.entityToEdit.transparency, []),
       metadataURL: new UntypedFormControl(this.entityToEdit.metadataURL, []),
@@ -237,7 +278,9 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       joinedSelectableLayers: new UntypedFormControl(this.entityToEdit.selectableLayers?.join(','), []),
       spatialSelectionServiceId: new UntypedFormControl(this.entityToEdit.spatialSelectionServiceId, []),
       useAllStyles: new UntypedFormControl(this.entityToEdit.useAllStyles || false, []),
-    });
+      },
+      { validators: [scaleRangeValidator] }
+    );
 
     if (this.isNew()) {
       this.entityForm.get('spatialSelectionServiceId').setValue(null);

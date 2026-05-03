@@ -785,6 +785,127 @@ describe('LayersFormComponent', () => {
     // expect(component.manageGetInfoResults(requestResult,true).length).toEqual(0);
     expect(true).toBeTruthy(); // Placeholder assertion
 
-  })
+  });
+
+  describe('scale validators', () => {
+    const patchValidBasics = () => {
+      component.entityForm.patchValue({
+        name: 'name',
+        serviceId: 1,
+        joinedLayers: 'layer',
+        order: 1,
+        transparency: '50',
+        metadataURL: 'url',
+        legendType: 1,
+        legendURL: 'url',
+        source: 'source',
+        description: 'description',
+        datasetURL: 'dataset',
+        applyFilterToGetMap: true,
+        applyFilterToGetFeatureInfo: true,
+        applyFilterToSpatialSelection: true,
+        queryableFeatureEnabled: true,
+        queryableFeatureAvailable: true,
+        joinedQueryableLayers: 'queryableLayer',
+        thematic: true,
+        availableForClients: true,
+        selectableFeatureEnabled: true,
+        spatialSelectionServiceId: 1,
+        joinedSelectableLayers: 'layerSelected',
+        useAllStyles: true
+      });
+    };
+
+    it('accepts empty min and max with otherwise valid form', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({
+        minimumScale: null,
+        maximumScale: null
+      });
+      expect(component.entityForm.get('minimumScale')?.errors?.['scaleInteger']).toBeFalsy();
+      expect(component.entityForm.errors?.['scaleRange']).toBeFalsy();
+      expect(component.entityForm.valid).toBeTruthy();
+    });
+
+    it('accepts min 0 and max 0', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 0, maximumScale: 0 });
+      expect(component.entityForm.valid).toBeTruthy();
+      expect(component.entityForm.errors?.['scaleRange']).toBeFalsy();
+    });
+
+    it('accepts min 0 and max positive', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 0, maximumScale: 50000 });
+      expect(component.entityForm.valid).toBeTruthy();
+    });
+
+    it('accepts min positive and max 0', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 200, maximumScale: 0 });
+      expect(component.entityForm.valid).toBeTruthy();
+    });
+
+    it('rejects when both positive and max equals min', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 200, maximumScale: 200 });
+      expect(component.entityForm.errors?.['scaleRange']).toBeTruthy();
+      expect(component.entityForm.valid).toBeFalsy();
+    });
+
+    it('rejects when both positive and max less than min', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 50000, maximumScale: 200 });
+      expect(component.entityForm.errors?.['scaleRange']).toBeTruthy();
+      expect(component.entityForm.valid).toBeFalsy();
+    });
+
+    it('rejects negative minimumScale', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: -1, maximumScale: 1000 });
+      expect(component.entityForm.get('minimumScale')?.errors?.['scaleInteger']).toBeTruthy();
+      expect(component.entityForm.valid).toBeFalsy();
+    });
+
+    it('rejects decimal minimumScale', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 1.5, maximumScale: 1000 });
+      expect(component.entityForm.get('minimumScale')?.errors?.['scaleInteger']).toBeTruthy();
+      expect(component.entityForm.valid).toBeFalsy();
+    });
+
+    it('invalid persisted minimumScale makes form invalid on load', () => {
+      component.entityToEdit = Object.assign(new CartographyProjection(), {
+        name: 'layer',
+        layers: ['x'],
+        serviceId: 1,
+        minimumScale: -5,
+        maximumScale: null
+      });
+      component.postFetchData();
+      expect(component.entityForm.get('minimumScale')?.errors?.['scaleInteger']).toBeTruthy();
+      expect(component.canSave()).toBeFalsy();
+    });
+
+    it('createObject passes through 0 and null scale values', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({
+        minimumScale: 0,
+        maximumScale: null
+      });
+      const created = component.createObject(1);
+      expect(created.minimumScale).toBe(0);
+      expect(created.maximumScale).toBeNull();
+    });
+
+    it('clears scaleRange when min is corrected', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 200, maximumScale: 150 });
+      expect(component.entityForm.errors?.['scaleRange']).toBeTruthy();
+      component.entityForm.patchValue({ minimumScale: 100 });
+      expect(component.entityForm.errors?.['scaleRange']).toBeFalsy();
+      expect(component.entityForm.valid).toBeTruthy();
+    });
+  });
 
 });

@@ -14,3 +14,17 @@
   margin-top: 0;
   margin-bottom: 0;
 }
+
+// Min / max scale on one row; top-align so unequal hint heights do not overlap the next control.
+:host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack .sitmun-layers-scale-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+:host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack .sitmun-layers-scale-row > mat-form-field {
+  margin-bottom: 0;
+}
