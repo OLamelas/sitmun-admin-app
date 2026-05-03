@@ -12,6 +12,10 @@ import {of} from 'rxjs';
 
 import {FormToolbarComponent} from '@app/components/shared/form-toolbar/form-toolbar.component';
 import { ExternalConfigurationService } from '@app/core/config/external-configuration.service';
+import { FeatureFlagComponent } from '@app/core/features/feature-flag.component';
+import { FeatureFlagDirective } from '@app/core/features/feature-flag.directive';
+import { FeatureFlagPipe } from '@app/core/features/feature-flag.pipe';
+import { FeatureFlagService } from '@app/core/features/feature-flag.service';
 import {ExternalService, ResourceService} from '@app/core/hal';
 import {
   CartographyAvailabilityService,
@@ -61,7 +65,13 @@ describe('LayersFormComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [LayersFormComponent, FormToolbarComponent],
+      declarations: [
+        LayersFormComponent,
+        FormToolbarComponent,
+        FeatureFlagDirective,
+        FeatureFlagComponent,
+        FeatureFlagPipe
+      ],
       imports: [FormsModule, ReactiveFormsModule, RouterModule.forRoot([], {}), HttpClientTestingModule, SitmunFrontendGuiModule,
         RouterTestingModule, MaterialModule, RouterModule, MatIconTestingModule, BrowserAnimationsModule,
         TranslateModule.forRoot({
@@ -74,6 +84,7 @@ describe('LayersFormComponent', () => {
         })],
       providers: [
         provideErrorHandlerForTests(),
+        FeatureFlagService,
         CartographyService,
         ServiceService,
         ConnectionService,

@@ -235,53 +235,87 @@
         </mat-card-content>
       </mat-card>
     </mat-tab>
-    <mat-tab label="{{ 'entity.cartography.styles.header' | translate }}">
-      <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-        <mat-card-content class="sitmun-service-form-stack">
-          <mat-form-field appearance="outline" class="half">
-            <mat-label>{{ 'entity.cartography.styles.legendType' | translate }}</mat-label>
-            <mat-select formControlName="legendType" [placeholder]="'common.form.none' | translate">
-              <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
-              <mat-option [value]="legendType.value" *ngFor="let legendType of this.codeList('cartography.legendType')">
-                {{ legendType.description }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>{{ 'entity.cartography.styles.legendURL' | translate }}</mat-label>
-            <input appUrlInput formControlName="legendURL" matInput type="text">
-          </mat-form-field>
-          <mat-checkbox formControlName="useAllStyles">
-            {{ 'entity.cartography.styles.useAllStyles' | translate }}
-          </mat-checkbox>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined">
-        <mat-card-content>
-          <app-data-grid [changeHeightButton]="true"
-                         [allNewElements]="isNewOrDuplicated()"
-                         [columnDefs]="stylesTable.relationsColumnsDefs"
-                         [getAll]='stylesTable.relationsFetchFn'
-                         [eventAddItemsSubscription]='stylesTable.addCommandEvent$.asObservable()'
-                         [eventGetAllRowsSubscription]='stylesTable.saveCommandEvent$.asObservable()'
-                         [eventRefreshSubscription]='stylesTable.refreshCommandEvent$.asObservable()'
-                         [discardChangesButton]=true
-                         [redoButton]=true
-                         [undoButton]=true
-                         [deleteButton]=true
-                         [addButton]=true
-                         [hideDuplicateButton]=true
-                         [hideReplaceButton]=true
-                         [defaultColumnSorting]='stylesTable.defaultRelationsSorting()'
-                         (getAllRows)="stylesTable.handleSaveRelations($event)"
-                         [actionButton]=true
-                         (add)="stylesTable.openTemplateDialog('newStyleDialog')"
-                         *ngIf="dataLoaded"
-          >
-          </app-data-grid>
-        </mat-card-content>
-      </mat-card>
-    </mat-tab>
+    <ng-container *appFeatureFlag="'LAYERS_LEGEND_TAB_FEATURE'">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <app-feature-flag [text]="'entity.cartography.legend.tab' | translate" [flag]="'LAYERS_LEGEND_TAB_FEATURE'"></app-feature-flag>
+        </ng-template>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin sitmun-experimental-notice-card">
+          <mat-card-content class="sitmun-experimental-notice">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <div>
+              <p>{{ 'entity.cartography.experimentalSitnaProfileNotice' | translate }}</p>
+              <p class="sitmun-experimental-notice-secondary">{{ 'entity.cartography.legend.sitnaControlCapabilities' | translate }}</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content class="sitmun-service-form-stack">
+            <mat-form-field appearance="outline" class="half">
+              <mat-label>{{ 'entity.cartography.styles.legendType' | translate }}</mat-label>
+              <mat-select formControlName="legendType" [placeholder]="'common.form.none' | translate">
+                <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
+                <mat-option [value]="legendType.value" *ngFor="let legendType of this.codeList('cartography.legendType')">
+                  {{ legendType.description }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>{{ 'entity.cartography.styles.legendURL' | translate }}</mat-label>
+              <input appUrlInput formControlName="legendURL" matInput type="text">
+            </mat-form-field>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </ng-container>
+    <ng-container *appFeatureFlag="'LAYERS_CARTOGRAPHY_STYLES_TAB_FEATURE'">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <app-feature-flag [text]="'entity.cartography.styles.header' | translate" [flag]="'LAYERS_CARTOGRAPHY_STYLES_TAB_FEATURE'"></app-feature-flag>
+        </ng-template>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin sitmun-experimental-notice-card">
+          <mat-card-content class="sitmun-experimental-notice">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <p>{{ 'entity.cartography.experimentalSitnaProfileNotice' | translate }}</p>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content class="sitmun-service-form-stack">
+            <div class="sitmun-checkbox-with-hint">
+              <mat-checkbox formControlName="useAllStyles">
+                {{ 'entity.cartography.styles.useAllStyles' | translate }}
+              </mat-checkbox>
+              <p class="sitmun-form-hint-text">{{ 'entity.cartography.styles.useAllStylesHint' | translate }}</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined">
+          <mat-card-content>
+            <app-data-grid [changeHeightButton]="true"
+                           [allNewElements]="isNewOrDuplicated()"
+                           [columnDefs]="stylesTable.relationsColumnsDefs"
+                           [getAll]='stylesTable.relationsFetchFn'
+                           [eventAddItemsSubscription]='stylesTable.addCommandEvent$.asObservable()'
+                           [eventGetAllRowsSubscription]='stylesTable.saveCommandEvent$.asObservable()'
+                           [eventRefreshSubscription]='stylesTable.refreshCommandEvent$.asObservable()'
+                           [discardChangesButton]=true
+                           [redoButton]=true
+                           [undoButton]=true
+                           [deleteButton]=true
+                           [addButton]=true
+                           [hideDuplicateButton]=true
+                           [hideReplaceButton]=true
+                           [defaultColumnSorting]='stylesTable.defaultRelationsSorting()'
+                           (getAllRows)="stylesTable.handleSaveRelations($event)"
+                           [actionButton]=true
+                           (add)="stylesTable.openTemplateDialog('newStyleDialog')"
+                           *ngIf="dataLoaded"
+            >
+            </app-data-grid>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </ng-container>
     <mat-tab label="{{ 'entity.cartography.territories.header' | translate }}">
       <mat-card appearance="outlined">
         <mat-card-content>
