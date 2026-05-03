@@ -253,7 +253,7 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
         nonNegativeIntegerValidator
       ]),
       order: new UntypedFormControl(this.entityToEdit.order, []),
-      transparency: new UntypedFormControl(this.entityToEdit.transparency, []),
+      transparency: new UntypedFormControl(this.entityToEdit.transparency ?? 0, [Validators.min(0), Validators.max(100)]),
       metadataURL: new UntypedFormControl(this.entityToEdit.metadataURL, []),
       legendType: new UntypedFormControl(this.entityToEdit.legendType || null, []),
       legendURL: new UntypedFormControl(this.entityToEdit.legendURL, []),

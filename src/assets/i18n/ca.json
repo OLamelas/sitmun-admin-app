@@ -318,6 +318,7 @@
   "entity.cartography.hint.layerSet": "Identificadors publicats pel servei, separats per comes, en l’ordre de la petició (el sentit depèn del tipus de servei; p. ex. noms de capa WMS).",
   "entity.cartography.hint.minimumScale": "La capa s'amaga quan l'escala del mapa és més fina que aquest denominador; 0 o camp buit vol dir sense límit inferior. En serveis OGC, s'exposa en clients SITNA com a MinScaleDenominator.",
   "entity.cartography.hint.maximumScale": "La capa s'amaga quan l'escala del mapa és més grossera que aquest denominador; 0 o camp buit vol dir sense límit superior. En serveis OGC, s'exposa en clients SITNA com a MaxScaleDenominator.",
+  "entity.cartography.hint.transparency": "Valor de 0 a 100; 0 és la màxima opacitat.",
   "entity.cartography.error.scaleNonNegativeInteger": "L'escala ha de ser un enter no negatiu (useu 0 o buit per sense límit).",
   "entity.cartography.error.scaleRange": "L'escala màxima ha de ser superior a la mínima.",
   "entity.cartography.label": "Capa",

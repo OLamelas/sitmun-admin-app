@@ -314,6 +314,29 @@ describe('LayersFormComponent', () => {
     expect(component.entityForm.get('useAllStyles')).toBeTruthy();
   });
 
+  it('transparency defaults to 0 when not provided by the API', () => {
+    component.entityID = -1;
+    component.duplicateID = -1;
+    component.entityToEdit = component.empty();
+    component.postFetchData();
+    expect(component.entityForm.get('transparency')?.value).toBe(0);
+    expect(component.entityForm.get('transparency')?.valid).toBe(true);
+  });
+
+  it('transparency rejects values outside the 0..100 range', () => {
+    component.entityID = -1;
+    component.duplicateID = -1;
+    component.entityToEdit = component.empty();
+    component.postFetchData();
+    const transparency = component.entityForm.get('transparency');
+    transparency?.setValue(-1);
+    expect(transparency?.valid).toBe(false);
+    transparency?.setValue(101);
+    expect(transparency?.valid).toBe(false);
+    transparency?.setValue(50);
+    expect(transparency?.valid).toBe(true);
+  });
+
   it('availableForClients is inverse of API blocked on load and save', () => {
     component.entityID = 100;
     component.duplicateID = -1;

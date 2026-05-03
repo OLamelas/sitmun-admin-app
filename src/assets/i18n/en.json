@@ -318,6 +318,7 @@
   "entity.cartography.hint.layerSet": "Identifiers published by the service, comma-separated, in request order (meaning depends on service type; e.g. WMS layer names).",
   "entity.cartography.hint.minimumScale": "The layer is hidden when the map is at a finer scale than this denominator; use 0 or leave the field empty for no lower limit. In OGC services, it is exposed to SITNA clients as MinScaleDenominator.",
   "entity.cartography.hint.maximumScale": "The layer is hidden when the map is at a coarser scale than this denominator; use 0 or leave the field empty for no upper limit. In OGC services, it is exposed to SITNA clients as MaxScaleDenominator.",
+  "entity.cartography.hint.transparency": "Value from 0 to 100; 0 is maximum opacity.",
   "entity.cartography.error.scaleNonNegativeInteger": "Scale must be a non-negative integer (use 0 or empty for no bound).",
   "entity.cartography.error.scaleRange": "Maximum scale must be greater than minimum scale.",
   "entity.cartography.label": "Layer",
