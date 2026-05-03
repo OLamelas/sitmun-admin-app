@@ -312,6 +312,8 @@
   "entity.cartography.filters.parameters.type": "Tipus",
   "entity.cartography.filters.parameters.valueType": "Tipus de valor",
   "entity.cartography.filters.parameters.values": "Valors",
+  "entity.cartography.hint.description": "Pels administrators.",
+  "entity.cartography.hint.name": "Se mostra al selector de mapa de fons quand la capa es dins un grop de fons.",
   "entity.cartography.label": "Capa",
   "entity.cartography.layerSet": "Capes a mostrar",
   "entity.cartography.maximumScale": "Escala màxima",

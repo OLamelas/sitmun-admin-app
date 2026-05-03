@@ -312,6 +312,8 @@
   "entity.cartography.filters.parameters.type": "Type",
   "entity.cartography.filters.parameters.valueType": "Value type",
   "entity.cartography.filters.parameters.values": "Values",
+  "entity.cartography.hint.description": "For administrators.",
+  "entity.cartography.hint.name": "Shown in the basemap selector when this layer is in a background group.",
   "entity.cartography.label": "Layer",
   "entity.cartography.layerSet": "Layers to display",
   "entity.cartography.maximumScale": "Maximum scale",

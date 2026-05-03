@@ -312,6 +312,8 @@
   "entity.cartography.filters.parameters.type": "Type",
   "entity.cartography.filters.parameters.valueType": "Type de valeur",
   "entity.cartography.filters.parameters.values": "Valeurs",
+  "entity.cartography.hint.description": "Pour les administrateurs.",
+  "entity.cartography.hint.name": "Affiché dans le sélecteur de fond cartographique lorsque la couche appartient à un groupe de fond.",
   "entity.cartography.label": "Calque",
   "entity.cartography.layerSet": "Calques à afficher",
   "entity.cartography.maximumScale": "Échelle maximale",

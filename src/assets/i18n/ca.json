@@ -312,6 +312,8 @@
   "entity.cartography.filters.parameters.type": "Tipus",
   "entity.cartography.filters.parameters.valueType": "Tipus de valor",
   "entity.cartography.filters.parameters.values": "Valors",
+  "entity.cartography.hint.description": "Per a administradors.",
+  "entity.cartography.hint.name": "Es mostra al selector de mapa base quan la capa és en un grup de fons.",
   "entity.cartography.label": "Capa",
   "entity.cartography.layerSet": "Capes a mostrar",
   "entity.cartography.maximumScale": "Escala màxima",

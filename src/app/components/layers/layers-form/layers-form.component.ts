@@ -126,7 +126,7 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
     this.dataTables.register(this.treesNodesTable).register(this.cartographyPermissionsTable)
       .register(this.territoryAvailabilitiesTable).register(this.stylesTable)
       .register(this.territorialFiltersTable).register(this.parametersTable);
-    this.initTranslations('Cartography', ['description'])
+    this.initTranslations('Cartography', ['name', 'description'])
     await this.initCodeLists([
       'cartography.geometryType', 'cartography.legendType','cartographyParameter.type',
       'cartographyFilter.type','cartographyFilter.valueType', 'cartographyParameter.format',
