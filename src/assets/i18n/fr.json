@@ -299,7 +299,7 @@
   "entity.cartography.featureInformation.parameters.title": "Ajouter des paramètres d'information alphanumérique",
   "entity.cartography.featureInformation.parameters.type": "Type",
   "entity.cartography.featureInformation.parameters.value": "Valeur",
-  "entity.cartography.featureInformation.queryable": "Le calque peut être interrogé pour récupérer des informations alphanumériques",
+  "entity.cartography.featureInformation.queryable": "La couche ou les couches du service peuvent être interrogées pour récupérer des informations alphanumériques",
   "entity.cartography.filters.applyFilterToGetFeatureInfo": "Appliquer les filtres aux requêtes d'information de la caractéristique",
   "entity.cartography.filters.applyFilterToGetMap": "Appliquer les filtres aux requêtes de carte",
   "entity.cartography.filters.applyFilterToSpatialSelection": "Appliquer les filtres aux requêtes de sélection spatiale",

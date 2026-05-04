@@ -46,6 +46,10 @@
           <mat-checkbox formControlName="availableForClients">
             {{ 'entity.cartography.available' | translate }}
           </mat-checkbox>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+        <mat-card-content class="sitmun-service-form-stack">
           <mat-form-field appearance="outline" class="half">
             <mat-label>{{ 'entity.service.label' | translate }}</mat-label>
             <mat-select formControlName="serviceId" [placeholder]="'entity.cartography.serviceName.select' | translate">
@@ -75,6 +79,9 @@
             <input matInput type="text" formControlName="joinedLayers" required>
             <mat-hint align="start">{{ 'entity.cartography.hint.layerSet' | translate }}</mat-hint>
           </mat-form-field>
+          <mat-checkbox formControlName="queryableFeatureEnabled">
+            {{ 'entity.cartography.featureInformation.queryable' | translate }}
+          </mat-checkbox>
         </mat-card-content>
       </mat-card>
       <mat-card appearance="outlined" class="sitmun-mat-card-margin">
@@ -163,13 +170,6 @@
       </mat-tab>
     </ng-container>
     <mat-tab label="{{ 'entity.cartography.featureInformation.header' | translate }}">
-        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-          <mat-card-content class="sitmun-service-form-stack">
-            <mat-checkbox formControlName="queryableFeatureEnabled">
-              {{ 'entity.cartography.featureInformation.queryable' | translate }}
-            </mat-checkbox>
-          </mat-card-content>
-        </mat-card>
         <mat-card appearance="outlined" *ngIf="entityForm.get('queryableFeatureEnabled').value"
                   class="sitmun-mat-card-margin">
           <mat-card-content class="sitmun-service-form-stack">

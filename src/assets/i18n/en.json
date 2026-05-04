@@ -299,7 +299,7 @@
   "entity.cartography.featureInformation.parameters.title": "Add feature information parameters",
   "entity.cartography.featureInformation.parameters.type": "Type",
   "entity.cartography.featureInformation.parameters.value": "Value",
-  "entity.cartography.featureInformation.queryable": "Layer can be queried for alphanumeric information",
+  "entity.cartography.featureInformation.queryable": "Layer or layers from the service can be queried for alphanumeric information",
   "entity.cartography.filters.applyFilterToGetFeatureInfo": "Apply filters to get feature info requests",
   "entity.cartography.filters.applyFilterToGetMap": "Apply filters to map requests",
   "entity.cartography.filters.applyFilterToSpatialSelection": "Apply filters to spatial selection requests",

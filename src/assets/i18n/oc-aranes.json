@@ -299,7 +299,7 @@
   "entity.cartography.featureInformation.parameters.title": "Afegeix paràmetres d'informació de la feature",
   "entity.cartography.featureInformation.parameters.type": "Tipus",
   "entity.cartography.featureInformation.parameters.value": "Valor",
-  "entity.cartography.featureInformation.queryable": "La capa pot ser consultada per a la recuperació d'informació alfanumèrica",
+  "entity.cartography.featureInformation.queryable": "La capa o les capes deth servici poden ser consultades per a la recuperació d'informació alfanumèrica",
   "entity.cartography.filters.applyFilterToGetFeatureInfo": "Aplicar filtres a les peticions d'informació de la feature",
   "entity.cartography.filters.applyFilterToGetMap": "Aplicar filtres a les peticions de mapa",
   "entity.cartography.filters.applyFilterToSpatialSelection": "Aplicar filtres a les peticions de selecció espacial",

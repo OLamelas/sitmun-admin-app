@@ -299,7 +299,7 @@
   "entity.cartography.featureInformation.parameters.title": "Añadir parámetros de información de la feature",
   "entity.cartography.featureInformation.parameters.type": "Tipo",
   "entity.cartography.featureInformation.parameters.value": "Valor",
-  "entity.cartography.featureInformation.queryable": "La capa puede ser consultada para la recuperación de información alfanumérica",
+  "entity.cartography.featureInformation.queryable": "La capa o capas del servicio pueden ser consultadas para la recuperación de información alfanumérica",
   "entity.cartography.filters.applyFilterToGetFeatureInfo": "Aplicar filtros a las peticiones de información de features",
   "entity.cartography.filters.applyFilterToGetMap": "Aplicar filtros a las peticiones de mapas",
   "entity.cartography.filters.applyFilterToSpatialSelection": "Aplicar filtros a las peticiones de selección espacial",
