@@ -94,3 +94,22 @@
 :host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack .sitmun-layers-scale-row > mat-form-field {
   margin-bottom: 0;
 }
+
+// Order / source: same row; full width when source field is hidden (feature flag off).
+:host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack .sitmun-layers-order-source-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+:host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack .sitmun-layers-order-source-row > mat-form-field {
+  margin-bottom: 0;
+}
+
+:host form.sitmun-cartography-form-entity mat-card-content.sitmun-service-form-stack .sitmun-layers-order-source-row > mat-form-field:only-child {
+  width: 100%;
+  margin-right: 0;
+}
