@@ -195,46 +195,57 @@
           </mat-card-content>
         </mat-card>
       </mat-tab>
-    <mat-tab label="{{ 'entity.cartography.filters.header' | translate }}">
-      <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-        <mat-card-content class="sitmun-service-form-stack">
-          <mat-checkbox formControlName="applyFilterToGetMap">
-            {{ 'entity.cartography.filters.applyFilterToGetMap' | translate }}
-          </mat-checkbox>
-          <mat-checkbox formControlName="applyFilterToSpatialSelection">
-            {{ 'entity.cartography.filters.applyFilterToSpatialSelection' | translate }}
-          </mat-checkbox>
-          <mat-checkbox formControlName="applyFilterToGetFeatureInfo">
-            {{ 'entity.cartography.filters.applyFilterToGetFeatureInfo' | translate }}
-          </mat-checkbox>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-        <mat-card-content>
-          <app-data-grid [changeHeightButton]="true"
-                         [allNewElements]="isNewOrDuplicated()"
-                         [columnDefs]="territorialFiltersTable.relationsColumnsDefs"
-                         [getAll]='territorialFiltersTable.relationsFetchFn'
-                         [eventAddItemsSubscription]='territorialFiltersTable.addCommandEvent$.asObservable()'
-                         [eventGetAllRowsSubscription]='territorialFiltersTable.saveCommandEvent$.asObservable()'
-                         [eventRefreshSubscription]='territorialFiltersTable.refreshCommandEvent$.asObservable()'
-                         [discardChangesButton]=true
-                         [redoButton]=true
-                         [undoButton]=true
-                         [deleteButton]=true
-                         [addButton]=true
-                         [hideDuplicateButton]=true
-                         [hideReplaceButton]=true
-                         [defaultColumnSorting]='territorialFiltersTable.defaultRelationsSorting()'
-                         (getAllRows)="territorialFiltersTable.handleSaveRelations($event)"
-                         [actionButton]=true
-                         (add)="territorialFiltersTable.openTemplateDialog('newTerritorialFilterDialog')"
-                         *ngIf="dataLoaded"
-          >
-          </app-data-grid>
-        </mat-card-content>
-      </mat-card>
-    </mat-tab>
+    <ng-container *appFeatureFlag="'LAYERS_FILTERS_TAB_FEATURE'">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <app-feature-flag [text]="'entity.cartography.filters.header' | translate" [flag]="'LAYERS_FILTERS_TAB_FEATURE'"></app-feature-flag>
+        </ng-template>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin sitmun-experimental-notice-card">
+          <mat-card-content class="sitmun-experimental-notice">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <p>{{ 'entity.cartography.experimentalSitnaProfileNotice' | translate }}</p>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content class="sitmun-service-form-stack">
+            <mat-checkbox formControlName="applyFilterToGetMap">
+              {{ 'entity.cartography.filters.applyFilterToGetMap' | translate }}
+            </mat-checkbox>
+            <mat-checkbox formControlName="applyFilterToSpatialSelection">
+              {{ 'entity.cartography.filters.applyFilterToSpatialSelection' | translate }}
+            </mat-checkbox>
+            <mat-checkbox formControlName="applyFilterToGetFeatureInfo">
+              {{ 'entity.cartography.filters.applyFilterToGetFeatureInfo' | translate }}
+            </mat-checkbox>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content>
+            <app-data-grid [changeHeightButton]="true"
+                           [allNewElements]="isNewOrDuplicated()"
+                           [columnDefs]="territorialFiltersTable.relationsColumnsDefs"
+                           [getAll]='territorialFiltersTable.relationsFetchFn'
+                           [eventAddItemsSubscription]='territorialFiltersTable.addCommandEvent$.asObservable()'
+                           [eventGetAllRowsSubscription]='territorialFiltersTable.saveCommandEvent$.asObservable()'
+                           [eventRefreshSubscription]='territorialFiltersTable.refreshCommandEvent$.asObservable()'
+                           [discardChangesButton]=true
+                           [redoButton]=true
+                           [undoButton]=true
+                           [deleteButton]=true
+                           [addButton]=true
+                           [hideDuplicateButton]=true
+                           [hideReplaceButton]=true
+                           [defaultColumnSorting]='territorialFiltersTable.defaultRelationsSorting()'
+                           (getAllRows)="territorialFiltersTable.handleSaveRelations($event)"
+                           [actionButton]=true
+                           (add)="territorialFiltersTable.openTemplateDialog('newTerritorialFilterDialog')"
+                           *ngIf="dataLoaded"
+            >
+            </app-data-grid>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </ng-container>
     <ng-container *appFeatureFlag="'LAYERS_LEGEND_TAB_FEATURE'">
       <mat-tab>
         <ng-template mat-tab-label>

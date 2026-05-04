@@ -927,6 +927,7 @@
   "featureFlags.layersSourceFeature.description": "Fonctionnalité de source",
   "featureFlags.layersLegendTab.description": "Formulaire calque : onglet type de légende et URL de légende",
   "featureFlags.layersCartographyStylesTab.description": "Formulaire calque : noms de style OGC et utiliser tous les styles",
+  "featureFlags.layersFiltersTab.description": "Formulaire calque : filtres territoriaux et options d’application des filtres",
   "featureFlags.servicesCrsList.description": "Listes CRS des services",
   "featureFlags.servicesParametersFeature.description": "Onglet paramètres du service",
   "lang.ca": "Catalan",
