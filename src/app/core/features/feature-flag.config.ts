@@ -25,6 +25,8 @@ export const FEATURE_FLAGS = {
   LAYERS_CARTOGRAPHY_STYLES_TAB_FEATURE: 'layers-cartography-styles-tab',
   /** Layers form: territorial filters and apply-filter toggles (not in viewer client profile yet). */
   LAYERS_FILTERS_TAB_FEATURE: 'layers-filters-tab',
+  /** Layers form: GetFeatureInfo / queryable layer subset and optional cartography parameters (not in SITNA client profile yet). */
+  LAYERS_FEATURE_INFORMATION_TAB_FEATURE: 'layers-feature-information-tab',
 } as const;
 
 export type FeatureFlagKeys = keyof typeof FEATURE_FLAGS;
@@ -76,6 +78,13 @@ export const PROD_FEATURE_FLAGS: Record<FeatureFlagKeys, FeatureFlagConfig> = {
     enabled: false,
     experimental: true,
     description: 'featureFlags.layersFiltersTab.description',
+    category: 'Layers'
+  },
+  LAYERS_FEATURE_INFORMATION_TAB_FEATURE: {
+    key: FEATURE_FLAGS.LAYERS_FEATURE_INFORMATION_TAB_FEATURE,
+    enabled: false,
+    experimental: true,
+    description: 'featureFlags.layersFeatureInformationTab.description',
     category: 'Layers'
   }
 };
@@ -131,6 +140,13 @@ export const DEV_FEATURE_FLAGS: Record<FeatureFlagKeys, FeatureFlagConfig> = {
     enabled: true,
     experimental: true,
     description: 'featureFlags.layersFiltersTab.description',
+    category: 'Layers'
+  },
+  LAYERS_FEATURE_INFORMATION_TAB_FEATURE: {
+    key: FEATURE_FLAGS.LAYERS_FEATURE_INFORMATION_TAB_FEATURE,
+    enabled: true,
+    experimental: true,
+    description: 'featureFlags.layersFeatureInformationTab.description',
     category: 'Layers'
   }
 }; 

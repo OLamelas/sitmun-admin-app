@@ -928,6 +928,7 @@
   "featureFlags.layersLegendTab.description": "Formulario de capa: pestaña tipo de leyenda y URL de leyenda",
   "featureFlags.layersCartographyStylesTab.description": "Formulario de capa: nombres de estilo OGC y utilizar todos los estilos",
   "featureFlags.layersFiltersTab.description": "Formulario de capa: filtros territoriales y opciones de aplicar filtro",
+  "featureFlags.layersFeatureInformationTab.description": "Formulario de capa: información alfanumérica (GetFeatureInfo) — subconjunto de capas consultables y parámetros opcionales",
   "featureFlags.servicesCrsList.description": "Listas CRS de servicios",
   "featureFlags.servicesParametersFeature.description": "Pestaña de parámetros del servicio",
   "lang.ca": "Catalán",

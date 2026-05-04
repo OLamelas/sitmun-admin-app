@@ -934,6 +934,7 @@
   "featureFlags.layersLegendTab.description": "Layer form: legend type and legend URL tab",
   "featureFlags.layersCartographyStylesTab.description": "Layer form: OGC style names and use-all-styles",
   "featureFlags.layersFiltersTab.description": "Layer form: territorial filters and apply-filter toggles",
+  "featureFlags.layersFeatureInformationTab.description": "Layer form: feature information (GetFeatureInfo) — queryable layer subset and optional parameters",
   "featureFlags.servicesCrsList.description": "Services CRS list",
   "featureFlags.servicesParametersFeature.description": "Service parameters tab",
   "lang.ca": "Catalan",

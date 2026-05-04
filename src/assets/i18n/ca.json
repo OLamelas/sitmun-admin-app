@@ -928,6 +928,7 @@
   "featureFlags.layersLegendTab.description": "Formulari de capa: pestanya tipus de llegenda i URL de llegenda",
   "featureFlags.layersCartographyStylesTab.description": "Formulari de capa: noms d’estil OGC i utilitzar tots els estils",
   "featureFlags.layersFiltersTab.description": "Formulari de capa: filtres territorials i opcions d’aplicar filtre",
+  "featureFlags.layersFeatureInformationTab.description": "Formulari de capa: informació alfanumèrica (GetFeatureInfo) — subconjunt de capes consultables i paràmetres opcionals",
   "featureFlags.servicesCrsList.description": "Llistes CRS de serveis",
   "featureFlags.servicesParametersFeature.description": "Pestanya de paràmetres del servei",
   "lang.ca": "Català",

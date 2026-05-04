@@ -291,7 +291,6 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       this.entityForm.get('joinedQueryableLayers').disable();
     } else if (!this.entityToEdit.queryableFeatureEnabled) {
       this.entityForm.get('joinedSelectableLayers').setValue(null);
-      this.entityForm.get('joinedQueryableLayers').disable();
     }
   }
 
