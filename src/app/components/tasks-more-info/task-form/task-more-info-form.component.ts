@@ -535,7 +535,12 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
 
     const relations = await firstValueFrom(this.entityToEdit.getRelationArrayEx(TaskRelation, 'relations'));
     const matchingRelations = relations.filter(relation => relation.relationType === this.queryTaskRelationType);
-    const currentRelation = this.selectedQueryTaskRelation || matchingRelations[0] || null;
+
+    // Locate the current relation by ID inside the freshly-fetched list to avoid
+    // reference-equality mismatches that would cause all relations to be deleted.
+    const currentRelationId = this.selectedQueryTaskRelation?.id ?? null;
+    const matchById = currentRelationId === null ? undefined : matchingRelations.find(r => r.id === currentRelationId);
+    const currentRelation = matchById ?? matchingRelations[0] ?? null;
 
     for (const relation of matchingRelations.filter(relation => relation !== currentRelation)) {
       await firstValueFrom(this.taskRelationService.delete(relation));
@@ -546,8 +551,8 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
       return;
     }
 
-    const relatedTask = await firstValueFrom(currentRelation.getRelationEx(Task, 'relatedTask'));
-    if (relatedTask?.id === queryTaskId) {
+    // Use the stored selectedQueryTaskId to avoid an extra API round-trip.
+    if (this.selectedQueryTaskId === queryTaskId) {
       return;
     }
 
