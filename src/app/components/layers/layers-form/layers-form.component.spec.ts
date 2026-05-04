@@ -141,7 +141,6 @@ describe('LayersFormComponent', () => {
     expect(component).toBeTruthy();
   });
 
-
   it('should instantiate cartographyService', () => {
     expect(cartographyService).toBeTruthy();
   });

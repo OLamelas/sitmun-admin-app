@@ -21,7 +21,7 @@
     <mat-tab label="{{ 'common.form.details' | translate }}">
       <mat-card class="sitmun-mat-card-margin" appearance="outlined">
         <mat-card-content class="sitmun-service-form-stack">
-          <mat-form-field appearance="outline" class="full">
+          <mat-form-field appearance="outline" class="full sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
             <mat-label>{{ 'common.form.name' | translate }} ({{ defaultLang }})</mat-label>
             <input matInput type="text" formControlName="name" [maxlength]="100" required>
             <mat-hint align="start">{{ 'entity.cartography.hint.name' | translate }}</mat-hint>
@@ -34,7 +34,7 @@
                       (click)="onTranslated('name')"
                       onKeyDown="onTranslated('name')">translate</mat-icon>
           </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
+          <mat-form-field appearance="outline" class="full sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
             <mat-label>{{ 'common.form.description' | translate }} ({{ defaultLang }})</mat-label>
             <textarea matInput type="text" formControlName="description" [maxlength]="4000"> </textarea>
             <mat-hint align="start">{{ 'entity.cartography.hint.description' | translate }}</mat-hint>
@@ -117,12 +117,12 @@
               <input matInput type="text" formControlName="source">
             </mat-form-field>
           </ng-container>
-          <mat-form-field appearance="outline" class="full">
+          <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
             <mat-label>{{ 'entity.cartography.datasetURL' | translate }}</mat-label>
             <input appUrlInput formControlName="datasetURL" matInput type="text">
             <mat-hint align="start">{{ 'entity.cartography.hint.datasetURL' | translate }}</mat-hint>
           </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
+          <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
             <mat-label>{{ 'entity.cartography.metadataURL' | translate }}</mat-label>
             <input appUrlInput formControlName="metadataURL" matInput type="text">
             <mat-hint align="start">{{ 'entity.cartography.hint.metadataURL' | translate }}</mat-hint>
