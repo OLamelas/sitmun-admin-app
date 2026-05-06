@@ -178,11 +178,11 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
     this.taskGroupList = taskGroups;
     this.cartographies = cartographies;
     this.connections = connections;
-    this.moreInfoUI = uiList.find(ui => ui.name === 'sitna.moreInfo');
+    this.moreInfoUI = uiList.find(ui => ui.name === 'sitmun.moreInfo');
     if (!this.moreInfoUI) {
-      this.loggerService.error('UI control "sitna.moreInfo" not found in database - task will not be identified correctly');
+      this.loggerService.error('UI control "sitmun.moreInfo" not found in database - task will not be identified correctly');
     } else {
-      this.loggerService.info(`UI control "sitna.moreInfo" loaded with ID: ${this.moreInfoUI.id}`);
+      this.loggerService.info(`UI control "sitmun.moreInfo" loaded with ID: ${this.moreInfoUI.id}`);
     }
   }
 
