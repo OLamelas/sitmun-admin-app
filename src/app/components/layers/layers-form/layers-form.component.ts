@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http";
-import {Component, inject, TemplateRef, ViewChild} from '@angular/core';
+import {Component, TemplateRef, ViewChild} from '@angular/core';
 import {
   AbstractControl,
   FormControl,
@@ -14,13 +14,12 @@ import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute, Router} from '@angular/router';
 
 import {TranslateService} from '@ngx-translate/core';
-import { firstValueFrom, Observable, of} from 'rxjs';
+import { firstValueFrom, of} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {BaseFormComponent} from '@app/components/base-form.component';
 import {DataTableDefinition, TemplateDialog} from '@app/components/data-tables.util';
 import {Configuration} from "@app/core/config/configuration";
-import { FeatureFlagService } from '@app/core/features/feature-flag.service';
 import {MessagesInterceptorStateService} from '@app/core/interceptors/messages.interceptor';
 import {
   Cartography,
@@ -62,16 +61,6 @@ import {constants} from '@environments/constants';
 })
 export class LayersFormComponent extends BaseFormComponent<CartographyProjection> {
   readonly config = Configuration.LAYER;
-
-  private readonly featureFlagService = inject(FeatureFlagService);
-  /** True when the layer form should show the order/source row (either flag enabled). */
-  protected readonly layersOrderSourceRowVisible$: Observable<boolean> = this.featureFlagService.featureFlags$.pipe(
-    map(
-      () =>
-        this.featureFlagService.isFeatureEnabled('LAYERS_ORDER_FEATURE') ||
-        this.featureFlagService.isFeatureEnabled('LAYERS_SOURCE_FEATURE')
-    )
-  );
 
   protected readonly treesNodesTable: DataTableDefinition<TreeNodeProjection, TreeNodeProjection>;
   protected readonly cartographyPermissionsTable: DataTableDefinition<CartographyGroupProjection, CartographyGroupProjection>;

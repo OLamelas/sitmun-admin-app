@@ -1,29 +1,27 @@
-const REQUIRED_KEYS = [
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+/** Keys that must exist in every shipped locale bundle (layers form, feature flags, scale hints). */
+const KEYS = [
   'entity.cartography.hint.minimumScale',
   'entity.cartography.hint.maximumScale',
   'entity.cartography.error.scaleNonNegativeInteger',
-  'entity.cartography.error.scaleRange'
+  'entity.cartography.error.scaleRange',
+  'entity.cartography.hint.order',
+  'entity.cartography.hint.source',
+  'featureFlags.layersFeatureInformationTab.description'
 ] as const;
 
-const LOCALE_FILES = [
-  'ca',
-  'en',
-  'es',
-  'fr',
-  'oc-aranes'
-] as const;
+const LANGS = ['ca', 'en', 'es', 'fr', 'oc-aranes'] as const;
 
-describe('Cartography scale i18n keys', () => {
-  LOCALE_FILES.forEach((lang) => {
-    it(`should define all scale keys in ${lang}.json`, () => {
-      const bundle = require(`../../assets/i18n/${lang}.json`) as Record<
-        string,
-        string
-      >;
-      REQUIRED_KEYS.forEach((k) => {
-        expect(bundle[k]).toBeDefined();
-        expect(String(bundle[k]).length).toBeGreaterThan(0);
-      });
-    });
+describe('Cartography / layers form i18n keys', () => {
+  it.each(LANGS)('%s.json defines required keys', (lang) => {
+    const bundle = JSON.parse(
+      readFileSync(join(__dirname, `../../assets/i18n/${lang}.json`), 'utf8')
+    ) as Record<string, string>;
+    for (const k of KEYS) {
+      expect(bundle[k]).toBeDefined();
+      expect(String(bundle[k]).length).toBeGreaterThan(0);
+    }
   });
 });

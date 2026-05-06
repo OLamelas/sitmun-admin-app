@@ -15,8 +15,6 @@ export interface FeatureFlagConfig {
 export const FEATURE_FLAGS = {
   LAYERS_QUERYABLE_FEATURE: 'layers-queryable-feature',
   LAYERS_SOURCE_FEATURE: 'layers-source-feature',
-  /** Layers form: display order field (experimental; rarely honored by SITNA client profile / viewer). */
-  LAYERS_ORDER_FEATURE: 'layers-order-feature',
   /** Service CRS lists in the profile; pairs with STM_CONF viewer.useCrsListForServiceCrs on the platform. */
   SERVICES_CRS_LIST: 'services-crs-list',
   /** Service-level HTTP/query parameters (viewer + proxy); admin UI tab on the service form. */
@@ -47,12 +45,6 @@ export const PROD_FEATURE_FLAGS: Record<FeatureFlagKeys, FeatureFlagConfig> = {
     key: FEATURE_FLAGS.LAYERS_SOURCE_FEATURE,
     enabled: false,
     description: 'featureFlags.layersSourceFeature.description',
-    category: 'Layers'
-  },
-  LAYERS_ORDER_FEATURE: {
-    key: FEATURE_FLAGS.LAYERS_ORDER_FEATURE,
-    enabled: false,
-    description: 'featureFlags.layersOrderFeature.description',
     category: 'Layers'
   },
   SERVICES_CRS_LIST: {
@@ -113,13 +105,6 @@ export const DEV_FEATURE_FLAGS: Record<FeatureFlagKeys, FeatureFlagConfig> = {
     enabled: true,
     experimental: true,
     description: 'featureFlags.layersSourceFeature.description',
-    category: 'Layers'
-  },
-  LAYERS_ORDER_FEATURE: {
-    key: FEATURE_FLAGS.LAYERS_ORDER_FEATURE,
-    enabled: true,
-    experimental: true,
-    description: 'featureFlags.layersOrderFeature.description',
     category: 'Layers'
   },
   SERVICES_CRS_LIST: {

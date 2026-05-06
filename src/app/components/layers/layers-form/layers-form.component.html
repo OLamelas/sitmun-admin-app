@@ -122,28 +122,22 @@
             <input appUrlInput formControlName="metadataURL" matInput type="text">
             <mat-hint align="start">{{ 'entity.cartography.hint.metadataURL' | translate }}</mat-hint>
           </mat-form-field>
-          <ng-container *ngIf="layersOrderSourceRowVisible$ | async">
-            <div class="sitmun-layers-order-source-row">
-              <ng-container *appFeatureFlag="'LAYERS_ORDER_FEATURE'">
-                <mat-form-field appearance="outline" class="half add-gap sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
-                  <mat-label>
-                    <app-feature-flag [text]="'entity.cartography.order' | translate" [flag]="'LAYERS_ORDER_FEATURE'"></app-feature-flag>
-                  </mat-label>
-                  <input matInput type="number" formControlName="order">
-                  <mat-hint align="start">{{ 'entity.cartography.hint.order' | translate }}</mat-hint>
-                </mat-form-field>
-              </ng-container>
-              <ng-container *appFeatureFlag="'LAYERS_SOURCE_FEATURE'">
-                <mat-form-field appearance="outline" class="half sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
-                  <mat-label>
-                    <app-feature-flag [text]="'entity.cartography.source' | translate" [flag]="'LAYERS_SOURCE_FEATURE'"></app-feature-flag>
-                  </mat-label>
-                  <input matInput type="text" formControlName="source">
-                  <mat-hint align="start">{{ 'entity.cartography.hint.source' | translate }}</mat-hint>
-                </mat-form-field>
-              </ng-container>
-            </div>
-          </ng-container>
+          <div class="sitmun-layers-order-source-row">
+            <mat-form-field appearance="outline" class="half add-gap sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
+              <mat-label>{{ 'entity.cartography.order' | translate }}</mat-label>
+              <input matInput type="number" step="1" formControlName="order">
+              <mat-hint align="start">{{ 'entity.cartography.hint.order' | translate }}</mat-hint>
+            </mat-form-field>
+            <ng-container *appFeatureFlag="'LAYERS_SOURCE_FEATURE'">
+              <mat-form-field appearance="outline" class="half sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
+                <mat-label>
+                  <app-feature-flag [text]="'entity.cartography.source' | translate" [flag]="'LAYERS_SOURCE_FEATURE'"></app-feature-flag>
+                </mat-label>
+                <input matInput type="text" formControlName="source">
+                <mat-hint align="start">{{ 'entity.cartography.hint.source' | translate }}</mat-hint>
+              </mat-form-field>
+            </ng-container>
+          </div>
         </mat-card-content>
       </mat-card>
     </mat-tab>
