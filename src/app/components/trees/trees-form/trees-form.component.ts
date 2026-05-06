@@ -1,12 +1,12 @@
-import {Component, ViewChild} from '@angular/core';
+import {Component, Injector, ViewChild, afterNextRender, inject} from '@angular/core';
 import {UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import {MatDialog} from '@angular/material/dialog';
-import {MatTabChangeEvent} from '@angular/material/tabs';
+import {MatTabChangeEvent, MatTabGroup} from '@angular/material/tabs';
 import {ActivatedRoute, Router} from '@angular/router';
 
 
 import {TranslateService} from '@ngx-translate/core';
-import {firstValueFrom,map, of} from 'rxjs';
+import {firstValueFrom, map, of} from 'rxjs';
 
 import {BaseFormComponent} from '@app/components/base-form.component';
 import {DataTableDefinition} from '@app/components/data-tables.util';
@@ -40,13 +40,37 @@ import {TreeNodesComponent} from './tree-nodes/tree-nodes.component';
     standalone: false
 })
 export class TreesFormComponent extends BaseFormComponent<Tree> {
+  /** Tab index of "Tree structure" (second tab: Details, Tree, Applications, Roles). */
+  static readonly TREE_STRUCTURE_TAB_INDEX = 1;
+
   readonly config = Configuration.TREE;
   readonly treeTypeNodeTypes = config.treeTypeNodeTypes;
   override readonly codeValues = constants.codeValue;
 
+  private readonly injector = inject(Injector);
+
   currentTreeType: string;
-  @ViewChild('treeNodesComponent') treeNodesComponent: TreeNodesComponent;
+  eagerLoadTreeStructure = false;
+  private duplicateStructureTabPrimed = false;
+  /** Tab to restore after priming finishes; null when no prime is in flight. */
+  private pendingRestoreTabIdx: number | null = null;
+  @ViewChild('tabGroup') tabGroup: MatTabGroup;
   @ViewChild('applicationsGrid') applicationsGrid: any;
+
+  private _treeNodesComponent: TreeNodesComponent | undefined;
+
+  /**
+   * Two-way accessor decorated with @ViewChild so Angular populates it when the lazy
+   * matTabContent portal attaches the child. Tests still assign via the public setter.
+   */
+  @ViewChild('treeNodesComponent')
+  set treeNodesComponent(c: TreeNodesComponent | undefined) {
+    this._treeNodesComponent = c;
+    this.handleTreeNodesComponentReady(c);
+  }
+  get treeNodesComponent(): TreeNodesComponent | undefined {
+    return this._treeNodesComponent;
+  }
 
   /**
    * Data table configuration for managing tree applications.
@@ -84,6 +108,49 @@ export class TreesFormComponent extends BaseFormComponent<Tree> {
     this.initializeTreesForm();
   }
 
+  override afterFetch(): void {
+    super.afterFetch();
+    this.scheduleDuplicateTreeTabPrime();
+  }
+
+  /**
+   * matTabContent only attaches when its tab becomes center. For duplication we need TreeNodesComponent
+   * instantiated while the user stays on General. Prime by switching to the tree tab; the ViewChild
+   * setter fires when the portal attaches and triggers the tab restore.
+   * mat-tab-group uses preserveContent=true so leaving the tab does not detach the portal (see tabs.mjs).
+   */
+  private scheduleDuplicateTreeTabPrime(): void {
+    if (!this.eagerLoadTreeStructure || !this.dataLoaded || this.duplicateStructureTabPrimed) {
+      return;
+    }
+    this.duplicateStructureTabPrimed = true;
+    afterNextRender(() => {
+      const group = this.tabGroup;
+      if (!group) {
+        return;
+      }
+      if (this._treeNodesComponent) {
+        return;
+      }
+      this.pendingRestoreTabIdx = group.selectedIndex ?? 0;
+      group.selectedIndex = TreesFormComponent.TREE_STRUCTURE_TAB_INDEX;
+    }, {injector: this.injector});
+  }
+
+  /** Called by the @ViewChild setter when the lazy tree-nodes child mounts; restores the originally selected tab. */
+  private handleTreeNodesComponentReady(c: TreeNodesComponent | undefined): void {
+    if (!c || this.pendingRestoreTabIdx === null) {
+      return;
+    }
+    const idx = this.pendingRestoreTabIdx;
+    this.pendingRestoreTabIdx = null;
+    afterNextRender(() => {
+      if (this.tabGroup) {
+        this.tabGroup.selectedIndex = idx;
+      }
+      this.activeTabIndex = idx;
+    }, {injector: this.injector});
+  }
 
   /**
    * Prepares component data before fetching the entity.
@@ -169,6 +236,9 @@ export class TreesFormComponent extends BaseFormComponent<Tree> {
         this.currentTreeType = defaultType.value;
       }
     }
+
+    // Set stable flag for eager tree structure loading during duplication
+    this.eagerLoadTreeStructure = this.isDuplicated();
 
     // Image preview is now handled by the ImagePreviewComponent via imageSource input
   }
@@ -301,37 +371,54 @@ export class TreesFormComponent extends BaseFormComponent<Tree> {
     // Save nodes through subcomponent
     if (this.treeNodesComponent) {
       await this.treeNodesComponent.saveNodes(this.entityToEdit, this.entityID);
+    } else if (_isDuplicated) {
+      this.loggerService.warn(
+        'TreesFormComponent.updateDataRelated: treeNodesComponent missing during duplication; nodes were not saved.'
+      );
     }
   }
 
   /**
-   * Validates if the form can be saved.
-   * Checks tree-specific validations in addition to form validity.
-   *
-   * @returns True if the form is valid and tree validations pass, false otherwise
+   * Matches canSaveEntity so the toolbar and save action do not diverge when switching tabs.
    */
   override canSave(): boolean {
-    return this.entityForm.valid && this.treeValidations();
+    return this.canSaveEntity;
   }
 
   /**
    * Computed property that determines if the save button should be enabled.
    * Extends base implementation to include tree node change detection.
-   * 
+   * Does not treat "duplicate opened" alone as a change: Save enables only when the form, grids,
+   * translations, or tree nodes report real edits (cloned nodes appear as pending until first save).
+   *
    * @returns True if save button should be enabled, false otherwise
    */
   override get canSaveEntity(): boolean {
-    // Include base checks (form dirty, data tables, translations)
+    if (this.eagerLoadTreeStructure && !this.isDuplicatedTreeReadyForSave()) {
+      return false;
+    }
+
     const baseCanSave = super.canSaveEntity;
-    
-    // Also check if tree nodes have unsaved changes
-    const hasTreeNodeChanges = this.treeNodesComponent?.hasUnsavedChanges() ?? false;
-    
-    // Enable save if form is valid and any changes exist
+    const hasTreeNodeChanges = this.treeNodesComponent?.hasUnsavedChangesForToolbar() ?? false;
     const isFormValid = this.entityForm?.valid ?? false;
     const hasAnyChanges = baseCanSave || (isFormValid && hasTreeNodeChanges);
-    
+
     return hasAnyChanges && this.treeValidations();
+  }
+
+  /**
+   * Checks if a duplicated tree's structure data is ready for saving.
+   * For non-duplicate flows, always returns true.
+   * For duplicates, ensures the tree data has been loaded into the data tree component.
+   *
+   * @returns True if ready to save, false if still loading
+   */
+  private isDuplicatedTreeReadyForSave(): boolean {
+    if (!this.eagerLoadTreeStructure) {
+      return true;
+    }
+
+    return (this.treeNodesComponent?.getNodesForValidation()?.length ?? 0) > 0;
   }
 
   /**

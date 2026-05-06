@@ -2,7 +2,8 @@
   <mat-card-content>
     <div class="formDiv resizable-container">
       <div class="tree-panel" [style.width.%]="treePanelWidth" *ngIf="dataLoaded && codeListsInitialized">
-        <app-data-tree [getAll]='getAllTreeNodes' (emitNode)="nodeReceived($event)" (addNode)="addNodeWithType($event.parent, $event.nodeType)"
+        <app-data-tree [getAll]='getAllTreeNodes' (emitNode)="nodeReceived($event)" (structureMutated)="onStructureMutatedFromDataTree()"
+          (addNode)="addNodeWithType($event.parent, $event.nodeType)"
           (loadButtonClicked)="loadGroupLayersButtonClicked($event)"
           [eventNodeUpdatedSubscription]='sendNodeUpdated.asObservable()' [loadDataButton]="loadDataButton$"
           [eventGetAllRowsSubscription]='getAllElementsNodes.asObservable()'

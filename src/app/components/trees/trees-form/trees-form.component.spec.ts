@@ -90,6 +90,7 @@ describe('TreesFormComponent', () => {
     // Mock treeNodesComponent BEFORE any getter access (canSaveEntity is called during detectChanges)
     component.treeNodesComponent = {
       hasUnsavedChanges: jest.fn(() => false),
+      hasUnsavedChangesForToolbar: jest.fn(() => false),
       treeNodeForm: null
     } as any;
     
@@ -276,6 +277,7 @@ describe('TreesFormComponent', () => {
       };
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => true),
+        hasUnsavedChangesForToolbar: jest.fn(() => true),
         treeNodeForm: null,
         getNodesForValidation: jest.fn(() => [rootNode] as any)
       } as any;
@@ -295,6 +297,7 @@ describe('TreesFormComponent', () => {
       };
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => true),
+        hasUnsavedChangesForToolbar: jest.fn(() => true),
         treeNodeForm: null,
         getNodesForValidation: jest.fn(() => [rootNode] as any)
       } as any;
@@ -314,6 +317,7 @@ describe('TreesFormComponent', () => {
       };
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => true),
+        hasUnsavedChangesForToolbar: jest.fn(() => true),
         treeNodeForm: null,
         getNodesForValidation: jest.fn(() => [rootNode] as any)
       } as any;
@@ -333,6 +337,7 @@ describe('TreesFormComponent', () => {
       };
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => true),
+        hasUnsavedChangesForToolbar: jest.fn(() => true),
         treeNodeForm: null,
         getNodesForValidation: jest.fn(() => [rootNode] as any)
       } as any;
@@ -412,6 +417,7 @@ describe('TreesFormComponent', () => {
       component.entityForm.patchValue({ name: null });
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => true),
+        hasUnsavedChangesForToolbar: jest.fn(() => true),
         treeNodeForm: null,
         getNodesForValidation: jest.fn(() => [])
       } as any;
@@ -422,6 +428,7 @@ describe('TreesFormComponent', () => {
     it('does not throw when tree nodes are not loaded yet', () => {
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => false),
+        hasUnsavedChangesForToolbar: jest.fn(() => false),
         treeNodeForm: null,
         getNodesForValidation: jest.fn(() => [])
       } as any;
@@ -439,6 +446,7 @@ describe('TreesFormComponent', () => {
       };
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => true),
+        hasUnsavedChangesForToolbar: jest.fn(() => true),
         treeNodeForm: null,
         getNodesForValidation: jest.fn(() => [rootNode] as any)
       } as any;
@@ -458,6 +466,7 @@ describe('TreesFormComponent', () => {
       };
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => true),
+        hasUnsavedChangesForToolbar: jest.fn(() => true),
         treeNodeForm: null,
         getNodesForValidation: jest.fn(() => [rootNode] as any)
       } as any;
@@ -588,6 +597,7 @@ describe('TreesFormComponent', () => {
       };
       component.treeNodesComponent = {
         hasUnsavedChanges: jest.fn(() => false),
+        hasUnsavedChangesForToolbar: jest.fn(() => false),
         treeNodeForm: null,
         dataTree: mockDataTree,
         getNodesForValidation: jest.fn(() => mockDataTree.dataSource.data)
@@ -964,6 +974,7 @@ describe('TreesFormComponent', () => {
       beforeEach(() => {
         component.treeNodesComponent = {
           hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
           treeNodeForm: null,
           getNodesForValidation: jest.fn(() => [])
         } as any;
@@ -1028,6 +1039,7 @@ describe('TreesFormComponent', () => {
       beforeEach(() => {
         component.treeNodesComponent = {
           hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
           treeNodeForm: null,
           getNodesForValidation: jest.fn(() => [])
         } as any;
@@ -1069,6 +1081,224 @@ describe('TreesFormComponent', () => {
         expect(result).toBe(false);
         expect(showErrorSpy).not.toHaveBeenCalled();
         showErrorSpy.mockRestore();
+      });
+    });
+  });
+
+  describe('Tree duplication save behavior (issue #392)', () => {
+    describe('canSaveEntity in duplicate mode', () => {
+      it('does not enable save when duplicate tree is loaded but nothing changed', () => {
+        component.entityID = -1;
+        component.duplicateID = 42;
+        component.eagerLoadTreeStructure = true;
+        component.entityForm.patchValue({ name: 'Test Tree', type: 'touristic' });
+        component.entityForm.markAsPristine();
+        
+        const rootNode = { isRoot: true, children: [] };
+        component.treeNodesComponent = {
+          hasUnsavedChanges: jest.fn(() => true),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          getNodesForValidation: jest.fn(() => [rootNode] as any),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component.canSaveEntity).toBe(false);
+      });
+
+      it('enables save when duplicate tree has unsaved node changes', () => {
+        component.entityID = -1;
+        component.duplicateID = 42;
+        component.eagerLoadTreeStructure = true;
+        component.entityForm.patchValue({ name: 'Test Tree', type: 'touristic' });
+        component.entityForm.markAsPristine();
+        
+        const rootNode = { isRoot: true, children: [] };
+        component.treeNodesComponent = {
+          hasUnsavedChanges: jest.fn(() => true),
+          hasUnsavedChangesForToolbar: jest.fn(() => true),
+          getNodesForValidation: jest.fn(() => [rootNode] as any),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component.canSaveEntity).toBe(true);
+      });
+
+      it('blocks save when duplicate tree data is not yet loaded', () => {
+        component.entityID = -1;
+        component.duplicateID = 42;
+        component.eagerLoadTreeStructure = true;
+        component.entityForm.patchValue({ name: 'Test Tree', type: 'touristic' });
+        component.entityForm.markAsPristine();
+        
+        component.treeNodesComponent = {
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          getNodesForValidation: jest.fn(() => []),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component.canSaveEntity).toBe(false);
+      });
+
+      it('allows save for non-duplicate flows without tree data check', () => {
+        component.entityID = 123;
+        component.duplicateID = -1;
+        component.eagerLoadTreeStructure = false;
+        component.entityForm.patchValue({ name: 'Test Tree', type: 'touristic' });
+        component.entityForm.markAsDirty();
+        
+        component.treeNodesComponent = {
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          getNodesForValidation: jest.fn(() => []),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component.canSaveEntity).toBe(true);
+      });
+    });
+
+    describe('canSave matches canSaveEntity', () => {
+      it('returns false when duplicate tree is ready but nothing changed', () => {
+        component.eagerLoadTreeStructure = true;
+        component.entityForm.patchValue({ name: 'Test Tree', type: 'touristic' });
+        component.entityForm.markAsPristine();
+        
+        const rootNode = { isRoot: true, children: [] };
+        component.treeNodesComponent = {
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          getNodesForValidation: jest.fn(() => [rootNode] as any),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component.canSave()).toBe(false);
+        expect(component.canSave()).toBe(component.canSaveEntity);
+      });
+
+      it('returns false when duplicate tree data is not loaded', () => {
+        component.eagerLoadTreeStructure = true;
+        component.entityForm.patchValue({ name: 'Test Tree', type: 'touristic' });
+        
+        component.treeNodesComponent = {
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          getNodesForValidation: jest.fn(() => []),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component.canSave()).toBe(false);
+        expect(component.canSave()).toBe(component.canSaveEntity);
+      });
+
+      it('returns true for non-duplicate flows when form has changes', () => {
+        component.eagerLoadTreeStructure = false;
+        component.entityForm.patchValue({ name: 'Test Tree', type: 'touristic' });
+        component.entityForm.markAsDirty();
+        
+        component.treeNodesComponent = {
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          getNodesForValidation: jest.fn(() => []),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component.canSave()).toBe(true);
+        expect(component.canSave()).toBe(component.canSaveEntity);
+      });
+    });
+
+    describe('updateDataRelated with saveNodes', () => {
+      it('invokes saveNodes when treeNodesComponent exists', async () => {
+        const saveNodesSpy = jest.fn().mockResolvedValue(undefined);
+        component.treeNodesComponent = {
+          saveNodes: saveNodesSpy,
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          getNodesForValidation: jest.fn(() => []),
+          treeNodeForm: null
+        } as any;
+        
+        component.entityID = 123;
+        component.entityToEdit = new Tree();
+        component.entityToEdit.id = 123;
+        component.entityToEdit.name = 'Test Tree';
+        
+        await component.updateDataRelated(true);
+        
+        expect(saveNodesSpy).toHaveBeenCalledWith(component.entityToEdit, 123);
+      });
+
+      it('logs warning when treeNodesComponent is missing during duplication', async () => {
+        const warnSpy = jest.spyOn(component['loggerService'], 'warn').mockImplementation(() => {});
+        component.treeNodesComponent = undefined as any;
+        component.entityID = 123;
+        component.entityToEdit = new Tree();
+        
+        await component.updateDataRelated(true);
+        
+        expect(warnSpy).toHaveBeenCalledWith(
+          'TreesFormComponent.updateDataRelated: treeNodesComponent missing during duplication; nodes were not saved.'
+        );
+        warnSpy.mockRestore();
+      });
+
+      it('does not log warning when treeNodesComponent is missing for non-duplicate', async () => {
+        const warnSpy = jest.spyOn(component['loggerService'], 'warn').mockImplementation(() => {});
+        component.treeNodesComponent = undefined as any;
+        component.entityID = 123;
+        component.entityToEdit = new Tree();
+        
+        await component.updateDataRelated(false);
+        
+        expect(warnSpy).not.toHaveBeenCalled();
+        warnSpy.mockRestore();
+      });
+    });
+
+    describe('isDuplicatedTreeReadyForSave', () => {
+      it('returns true for non-eager flows', () => {
+        component.eagerLoadTreeStructure = false;
+        component.treeNodesComponent = {
+          getNodesForValidation: jest.fn(() => []),
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component['isDuplicatedTreeReadyForSave']()).toBe(true);
+      });
+
+      it('returns true when eager tree has loaded nodes', () => {
+        component.eagerLoadTreeStructure = true;
+        const rootNode = { isRoot: true, children: [] };
+        component.treeNodesComponent = {
+          getNodesForValidation: jest.fn(() => [rootNode]),
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component['isDuplicatedTreeReadyForSave']()).toBe(true);
+      });
+
+      it('returns false when eager tree has no nodes yet', () => {
+        component.eagerLoadTreeStructure = true;
+        component.treeNodesComponent = {
+          getNodesForValidation: jest.fn(() => []),
+          hasUnsavedChanges: jest.fn(() => false),
+          hasUnsavedChangesForToolbar: jest.fn(() => false),
+          treeNodeForm: null
+        } as any;
+        
+        expect(component['isDuplicatedTreeReadyForSave']()).toBe(false);
+      });
+
+      it('returns false when treeNodesComponent is undefined in eager mode', () => {
+        component.eagerLoadTreeStructure = true;
+        component.treeNodesComponent = undefined as any;
+        
+        expect(component['isDuplicatedTreeReadyForSave']()).toBe(false);
       });
     });
   });
