@@ -28,4 +28,22 @@ describe('TaskBasicFormComponent (properties contract)', () => {
     expect(result.properties?.parameters).toEqual([{ name: 'id', type: 'number', value: '1' }]);
     expect(result.properties?.futureKey).toEqual({ nested: true });
   });
+
+  it('adds an empty parameters array on createObject when properties are empty', () => {
+    const component = Object.create(TaskBasicFormComponent.prototype) as TaskBasicFormComponent;
+    component.entityToEdit = TaskProjection.fromObject({
+      id: null,
+      name: 'basic',
+      properties: null
+    });
+    component.entityForm = new FormGroup({
+      name: new FormControl('basic'),
+      uiId: new FormControl(16),
+      taskGroupId: new FormControl(1)
+    });
+
+    const result = component.createObject();
+
+    expect(result.properties?.parameters).toEqual([]);
+  });
 });
