@@ -648,7 +648,11 @@ export class BaseFormComponent<T extends Resource> implements OnInit, AfterViewI
   async initCodeLists(codeList: string[]): Promise<void[]> {
     return Promise.all(codeList.map(async code => {
       const list: CodeList[] = await firstValueFrom(this.getCodeListValues(code))
-      this.codelists.set(code, [...list].sort((a, b) => a.description.localeCompare(b.description)));
+      this.codelists.set(code, [...list].sort((a, b) => {
+        if (a.defaultCode && !b.defaultCode) return -1;
+        if (!a.defaultCode && b.defaultCode) return 1;
+        return a.description.localeCompare(b.description);
+      }));
     }));
   }
 
