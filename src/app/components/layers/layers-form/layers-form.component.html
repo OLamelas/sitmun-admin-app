@@ -7,38 +7,51 @@
   [canSave]="canSaveEntity"
   [form]="entityForm"
   entityLabelPrefix="entity.cartography"
-  [validationFieldLabelKeys]="{ serviceId: 'entity.cartography.serviceName', joinedLayers: 'entity.cartography.layerSet' }"
+  [validationFieldLabelKeys]="{ serviceId: 'entity.service.label', joinedLayers: 'entity.cartography.layerSet' }"
   [dataLoaded]="dataLoaded"
   (save)="onSaveButtonClicked()"
   (back)="utils.navigateBack()">
 </app-form-toolbar>
-<mat-tab-group
-  mat-stretch-tabs="false"
-  mat-align-tabs="end"
-  [dynamicHeight]="true"
-  preserveContent="true">
-  >
-  <form [formGroup]='entityForm' *ngIf="dataLoaded">
+<form [formGroup]='entityForm' *ngIf="dataLoaded" class="sitmun-cartography-form-entity">
+  <mat-tab-group
+    mat-stretch-tabs="false"
+    mat-align-tabs="end"
+    [dynamicHeight]="true"
+    preserveContent="true">
     <mat-tab label="{{ 'common.form.details' | translate }}">
       <mat-card class="sitmun-mat-card-margin" appearance="outlined">
-        <mat-card-content>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>{{ 'common.form.name' | translate }}</mat-label>
-            <input matInput type="text" formControlName="name" required>
+        <mat-card-content class="sitmun-service-form-stack">
+          <mat-form-field appearance="outline" class="full sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
+            <mat-label>{{ 'common.form.name' | translate }} ({{ defaultLang }})</mat-label>
+            <input matInput type="text" formControlName="name" [maxlength]="100" required>
+            <mat-hint align="start">{{ 'entity.cartography.hint.name' | translate }}</mat-hint>
+            <mat-hint align="end" [class.text-warning]="entityForm.get('name')?.value?.length > 100">
+              {{ entityForm.get('name') | characterCount }}
+              <mat-icon *ngIf="entityForm.get('name')?.value?.length > 100" fontIcon="warning"
+                        class="warning-icon"></mat-icon>
+            </mat-hint>
+            <mat-icon matSuffix class="iconTranslate"
+                      (click)="onTranslated('name')"
+                      onKeyDown="onTranslated('name')">translate</mat-icon>
           </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
+          <mat-form-field appearance="outline" class="full sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
             <mat-label>{{ 'common.form.description' | translate }} ({{ defaultLang }})</mat-label>
-            <textarea matInput type="text" formControlName="description"> </textarea>
+            <textarea matInput type="text" formControlName="description" [maxlength]="4000"> </textarea>
+            <mat-hint align="start">{{ 'entity.cartography.hint.description' | translate }}</mat-hint>
+            <mat-hint align="end">{{ entityForm.get('description') | characterCount }}</mat-hint>
             <mat-icon matSuffix class="iconTranslate"
                       (click)="onTranslated('description')"
                       onKeyDown="onTranslated('description')">translate</mat-icon>
           </mat-form-field>
-          <mat-checkbox formControlName="blocked">
+          <mat-checkbox formControlName="availableForClients">
             {{ 'entity.cartography.available' | translate }}
           </mat-checkbox>
-          <div class="break"></div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+        <mat-card-content class="sitmun-service-form-stack">
           <mat-form-field appearance="outline" class="half">
-            <mat-label>{{ 'entity.cartography.serviceName' | translate }}</mat-label>
+            <mat-label>{{ 'entity.service.label' | translate }}</mat-label>
             <mat-select formControlName="serviceId" [placeholder]="'entity.cartography.serviceName.select' | translate">
               <mat-select-trigger>
                 <ng-container *ngIf="entityForm.get('serviceId')?.value as serviceId">
@@ -59,203 +72,72 @@
                 </a>
               </mat-option>
             </mat-select>
+            <mat-hint align="start">{{ 'entity.cartography.hint.service' | translate }}</mat-hint>
           </mat-form-field>
           <mat-form-field appearance="outline" class="full">
             <mat-label>{{ 'entity.cartography.layerSet' | translate }}</mat-label>
             <input matInput type="text" formControlName="joinedLayers" required>
+            <mat-hint align="start">{{ 'entity.cartography.hint.layerSet' | translate }}</mat-hint>
           </mat-form-field>
+          <mat-checkbox formControlName="queryableFeatureEnabled">
+            {{ 'entity.cartography.featureInformation.queryable' | translate }}
+          </mat-checkbox>
         </mat-card-content>
       </mat-card>
       <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-        <mat-card-content>
-          <mat-form-field appearance="outline" class="quarter add-gap">
-            <mat-label>{{ 'entity.cartography.minimumScale' | translate }}</mat-label>
-            <input matInput type="number" formControlName="minimumScale">
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="quarter add-gap">
-            <mat-label>{{ 'entity.cartography.maximumScale' | translate }}</mat-label>
-            <input matInput type="number" formControlName="maximumScale">
-          </mat-form-field>
-          <div class="break"></div>
-          <mat-form-field appearance="outline" class="quarter add-gap">
-            <mat-label>{{ 'entity.cartography.order' | translate }}</mat-label>
-            <input matInput type="number" formControlName="order">
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="quarter add-gap">
-            <mat-label>{{ 'entity.cartography.transparency' | translate }}</mat-label>
-            <input matInput type="number" formControlName="transparency">
-          </mat-form-field>
-          <ng-container *appFeatureFlag="'LAYERS_SOURCE_FEATURE'">
-            <mat-form-field appearance="outline" class="quarter">
-              <mat-label>
-                <app-feature-flag [text]="'entity.cartography.source' | translate" [flag]="'LAYERS_SOURCE_FEATURE'"></app-feature-flag>
-              </mat-label>
-              <input matInput type="text" formControlName="source">
+        <mat-card-content class="sitmun-service-form-stack">
+          <div class="sitmun-layers-scale-row">
+            <mat-form-field appearance="outline" class="half add-gap" subscriptSizing="dynamic">
+              <mat-label>{{ 'entity.cartography.minimumScale' | translate }}</mat-label>
+              <input matInput type="number" min="0" step="1" formControlName="minimumScale">
+              <mat-hint align="start">{{ 'entity.cartography.hint.minimumScale' | translate }}</mat-hint>
+              <mat-error *ngIf="entityForm.get('minimumScale')?.errors?.['scaleInteger']">
+                {{ 'entity.cartography.error.scaleNonNegativeInteger' | translate }}
+              </mat-error>
             </mat-form-field>
-          </ng-container>
-          <div class="break"></div>
-          <mat-form-field appearance="outline" class="full">
+            <mat-form-field appearance="outline" class="half" subscriptSizing="dynamic">
+              <mat-label>{{ 'entity.cartography.maximumScale' | translate }}</mat-label>
+              <input matInput type="number" min="0" step="1" formControlName="maximumScale">
+              <mat-hint align="start">{{ 'entity.cartography.hint.maximumScale' | translate }}</mat-hint>
+              <mat-error *ngIf="entityForm.get('maximumScale')?.errors?.['scaleInteger']">
+                {{ 'entity.cartography.error.scaleNonNegativeInteger' | translate }}
+              </mat-error>
+              <mat-error *ngIf="entityForm.errors?.['scaleRange']">
+                {{ 'entity.cartography.error.scaleRange' | translate }}
+              </mat-error>
+            </mat-form-field>
+          </div>
+          <mat-form-field appearance="outline" class="half" subscriptSizing="dynamic">
+            <mat-label>{{ 'entity.cartography.transparency' | translate }}</mat-label>
+            <input matInput type="number" formControlName="transparency" min="0" max="100">
+            <mat-hint align="start">{{ 'entity.cartography.hint.transparency' | translate }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
             <mat-label>{{ 'entity.cartography.datasetURL' | translate }}</mat-label>
             <input appUrlInput formControlName="datasetURL" matInput type="text">
+            <mat-hint align="start">{{ 'entity.cartography.hint.datasetURL' | translate }}</mat-hint>
           </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
+          <mat-form-field appearance="outline" class="full" subscriptSizing="dynamic">
             <mat-label>{{ 'entity.cartography.metadataURL' | translate }}</mat-label>
             <input appUrlInput formControlName="metadataURL" matInput type="text">
+            <mat-hint align="start">{{ 'entity.cartography.hint.metadataURL' | translate }}</mat-hint>
           </mat-form-field>
-        </mat-card-content>
-      </mat-card>
-    </mat-tab>
-    <ng-container *appFeatureFlag="'LAYERS_QUERYABLE_FEATURE'">
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <app-feature-flag [text]="'entity.cartography.parameters.header' | translate" [flag]="'LAYERS_QUERYABLE_FEATURE'"></app-feature-flag>
-        </ng-template>
-        <mat-card appearance="outlined">
-          <mat-card-content>
-            <app-data-grid [changeHeightButton]="true"
-                          [allNewElements]="isNewOrDuplicated()"
-                          [columnDefs]="parametersTable.relationsColumnsDefs"
-                          [getAll]='parametersTable.relationsFetchFn'
-                          [eventAddItemsSubscription]='parametersTable.addCommandEvent$.asObservable()'
-                          [eventGetAllRowsSubscription]='parametersTable.saveCommandEvent$.asObservable()'
-                          [eventRefreshSubscription]='parametersTable.refreshCommandEvent$.asObservable()'
-                          [discardChangesButton]=true
-                          [redoButton]=true
-                          [undoButton]=true
-                          [deleteButton]=true
-                          [addButton]=true
-                          [hideDuplicateButton]=true
-                          [hideReplaceButton]=true
-                          [defaultColumnSorting]='parametersTable.defaultRelationsSorting()'
-                          (getAllRows)="parametersTable.handleSaveRelations($event)"
-                          [actionButton]=true
-                          (add)="parametersTable.openTemplateDialog('newParameterDialog')"
-                          *ngIf="dataLoaded"
-            >
-            </app-data-grid>
-          </mat-card-content>
-        </mat-card>
-      </mat-tab>
-    </ng-container>
-    <mat-tab label="{{ 'entity.cartography.featureInformation.header' | translate }}">
-        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-          <mat-card-content>
-            <mat-checkbox formControlName="queryableFeatureEnabled">
-              {{ 'entity.cartography.featureInformation.queryable' | translate }}
-            </mat-checkbox>
-          </mat-card-content>
-        </mat-card>
-        <mat-card appearance="outlined" *ngIf="entityForm.get('queryableFeatureEnabled').value"
-                  class="sitmun-mat-card-margin">
-          <mat-card-content>
-            <mat-checkbox formControlName="queryableFeatureAvailable">
-              {{ 'entity.cartography.featureInformation.layerAll' | translate }}
-            </mat-checkbox>
-            <div class="break"></div>
-            <mat-form-field appearance="outline" class="half and-gap"
-                            *ngIf="entityForm.get('queryableFeatureAvailable').value !== true">
-              <mat-label>{{ 'entity.cartography.featureInformation.layerFilter' | translate }}</mat-label>
-              <input matInput type="text" formControlName="joinedQueryableLayers">
-              <mat-error *ngIf="entityForm.get('joinedQueryableLayers').errors?.['invalidLayers']">
-                {{ 'entity.cartography.featureInformation.invalidLayers' | translate }}
-                : {{ entityForm.get('joinedQueryableLayers').errors?.['invalidLayers'].join(', ') }}
-              </mat-error>
-              <mat-error *ngIf="entityForm.get('joinedQueryableLayers').errors?.['duplicateLayers']">
-                {{ 'entity.cartography.featureInformation.duplicateLayers' | translate }}
-                : {{ entityForm.get('joinedQueryableLayers').errors?.['duplicateLayers'].join(', ') }}
-              </mat-error>
-              <mat-hint *ngIf="!entityForm.get('joinedQueryableLayers').value || getAvailableLayers()">
-                {{ 'entity.cartography.featureInformation.availableLayers' | translate }}: {{ getAvailableLayers() }}
-              </mat-hint>
+          <div class="sitmun-layers-order-source-row">
+            <mat-form-field appearance="outline" class="half add-gap sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
+              <mat-label>{{ 'entity.cartography.order' | translate }}</mat-label>
+              <input matInput type="number" step="1" formControlName="order">
+              <mat-hint align="start">{{ 'entity.cartography.hint.order' | translate }}</mat-hint>
             </mat-form-field>
-          </mat-card-content>
-        </mat-card>
-      </mat-tab>
-    <mat-tab label="{{ 'entity.cartography.filters.header' | translate }}">
-      <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-        <mat-card-content>
-          <mat-checkbox formControlName="applyFilterToGetMap">
-            {{ 'entity.cartography.filters.applyFilterToGetMap' | translate }}
-          </mat-checkbox>
-          <mat-checkbox formControlName="applyFilterToSpatialSelection">
-            {{ 'entity.cartography.filters.applyFilterToSpatialSelection' | translate }}
-          </mat-checkbox>
-          <mat-checkbox formControlName="applyFilterToGetFeatureInfo">
-            {{ 'entity.cartography.filters.applyFilterToGetFeatureInfo' | translate }}
-          </mat-checkbox>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-        <mat-card-content>
-          <app-data-grid [changeHeightButton]="true"
-                         [allNewElements]="isNewOrDuplicated()"
-                         [columnDefs]="territorialFiltersTable.relationsColumnsDefs"
-                         [getAll]='territorialFiltersTable.relationsFetchFn'
-                         [eventAddItemsSubscription]='territorialFiltersTable.addCommandEvent$.asObservable()'
-                         [eventGetAllRowsSubscription]='territorialFiltersTable.saveCommandEvent$.asObservable()'
-                         [eventRefreshSubscription]='territorialFiltersTable.refreshCommandEvent$.asObservable()'
-                         [discardChangesButton]=true
-                         [redoButton]=true
-                         [undoButton]=true
-                         [deleteButton]=true
-                         [addButton]=true
-                         [hideDuplicateButton]=true
-                         [hideReplaceButton]=true
-                         [defaultColumnSorting]='territorialFiltersTable.defaultRelationsSorting()'
-                         (getAllRows)="territorialFiltersTable.handleSaveRelations($event)"
-                         [actionButton]=true
-                         (add)="territorialFiltersTable.openTemplateDialog('newTerritorialFilterDialog')"
-                         *ngIf="dataLoaded"
-          >
-          </app-data-grid>
-        </mat-card-content>
-      </mat-card>
-    </mat-tab>
-    <mat-tab label="{{ 'entity.cartography.styles.header' | translate }}">
-      <mat-card appearance="outlined" class="sitmun-mat-card-margin">
-        <mat-card-content>
-          <mat-form-field appearance="outline" class="half">
-            <mat-label>{{ 'entity.cartography.styles.legendType' | translate }}</mat-label>
-            <mat-select formControlName="legendType" [placeholder]="'common.form.none' | translate">
-              <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
-              <mat-option [value]="legendType.value" *ngFor="let legendType of this.codeList('cartography.legendType')">
-                {{ legendType.description }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-          <div class="break"></div>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>{{ 'entity.cartography.styles.legendURL' | translate }}</mat-label>
-            <input appUrlInput formControlName="legendURL" matInput type="text">
-          </mat-form-field>
-          <mat-checkbox formControlName="useAllStyles">
-            {{ 'entity.cartography.styles.useAllStyles' | translate }}
-          </mat-checkbox>
-        </mat-card-content>
-      </mat-card>
-      <mat-card appearance="outlined">
-        <mat-card-content>
-          <app-data-grid [changeHeightButton]="true"
-                         [allNewElements]="isNewOrDuplicated()"
-                         [columnDefs]="stylesTable.relationsColumnsDefs"
-                         [getAll]='stylesTable.relationsFetchFn'
-                         [eventAddItemsSubscription]='stylesTable.addCommandEvent$.asObservable()'
-                         [eventGetAllRowsSubscription]='stylesTable.saveCommandEvent$.asObservable()'
-                         [eventRefreshSubscription]='stylesTable.refreshCommandEvent$.asObservable()'
-                         [discardChangesButton]=true
-                         [redoButton]=true
-                         [undoButton]=true
-                         [deleteButton]=true
-                         [addButton]=true
-                         [hideDuplicateButton]=true
-                         [hideReplaceButton]=true
-                         [defaultColumnSorting]='stylesTable.defaultRelationsSorting()'
-                         (getAllRows)="stylesTable.handleSaveRelations($event)"
-                         [actionButton]=true
-                         (add)="stylesTable.openTemplateDialog('newStyleDialog')"
-                         *ngIf="dataLoaded"
-          >
-          </app-data-grid>
+            <ng-container *appFeatureFlag="'LAYERS_SOURCE_FEATURE'">
+              <mat-form-field appearance="outline" class="half sitmun-cartography-rich-hint-field" subscriptSizing="dynamic">
+                <mat-label>
+                  <app-feature-flag [text]="'entity.cartography.source' | translate" [flag]="'LAYERS_SOURCE_FEATURE'"></app-feature-flag>
+                </mat-label>
+                <input matInput type="text" formControlName="source">
+                <mat-hint align="start">{{ 'entity.cartography.hint.source' | translate }}</mat-hint>
+              </mat-form-field>
+            </ng-container>
+          </div>
         </mat-card-content>
       </mat-card>
     </mat-tab>
@@ -338,8 +220,203 @@
         </mat-card-content>
       </mat-card>
     </mat-tab>
-  </form>
-</mat-tab-group>
+    <ng-container *appFeatureFlag="'LAYERS_FEATURE_INFORMATION_TAB_FEATURE'">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <app-feature-flag [text]="'entity.cartography.featureInformation.header' | translate" [flag]="'LAYERS_FEATURE_INFORMATION_TAB_FEATURE'"></app-feature-flag>
+        </ng-template>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin sitmun-experimental-notice-card">
+          <mat-card-content class="sitmun-experimental-notice">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <p>{{ 'entity.cartography.experimentalSitnaProfileNotice' | translate }}</p>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content class="sitmun-service-form-stack">
+            <mat-checkbox formControlName="queryableFeatureAvailable">
+              {{ 'entity.cartography.featureInformation.layerAll' | translate }}
+            </mat-checkbox>
+            <mat-form-field appearance="outline" class="half and-gap"
+                            *ngIf="entityForm.get('queryableFeatureAvailable').value !== true">
+              <mat-label>{{ 'entity.cartography.featureInformation.layerFilter' | translate }}</mat-label>
+              <input matInput type="text" formControlName="joinedQueryableLayers">
+              <mat-error *ngIf="entityForm.get('joinedQueryableLayers').errors?.['invalidLayers']">
+                {{ 'entity.cartography.featureInformation.invalidLayers' | translate }}
+                : {{ entityForm.get('joinedQueryableLayers').errors?.['invalidLayers'].join(', ') }}
+              </mat-error>
+              <mat-error *ngIf="entityForm.get('joinedQueryableLayers').errors?.['duplicateLayers']">
+                {{ 'entity.cartography.featureInformation.duplicateLayers' | translate }}
+                : {{ entityForm.get('joinedQueryableLayers').errors?.['duplicateLayers'].join(', ') }}
+              </mat-error>
+              <mat-hint *ngIf="!entityForm.get('joinedQueryableLayers').value || getAvailableLayers()">
+                {{ 'entity.cartography.featureInformation.availableLayers' | translate }}: {{ getAvailableLayers() }}
+              </mat-hint>
+            </mat-form-field>
+          </mat-card-content>
+        </mat-card>
+        <ng-container *appFeatureFlag="'LAYERS_QUERYABLE_FEATURE'">
+          <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+            <mat-card-content>
+              <app-data-grid [changeHeightButton]="true"
+                            [allNewElements]="isNewOrDuplicated()"
+                            [columnDefs]="parametersTable.relationsColumnsDefs"
+                            [getAll]='parametersTable.relationsFetchFn'
+                            [eventAddItemsSubscription]='parametersTable.addCommandEvent$.asObservable()'
+                            [eventGetAllRowsSubscription]='parametersTable.saveCommandEvent$.asObservable()'
+                            [eventRefreshSubscription]='parametersTable.refreshCommandEvent$.asObservable()'
+                            [discardChangesButton]=true
+                            [redoButton]=true
+                            [undoButton]=true
+                            [deleteButton]=true
+                            [addButton]=true
+                            [hideDuplicateButton]=true
+                            [hideReplaceButton]=true
+                            [defaultColumnSorting]='parametersTable.defaultRelationsSorting()'
+                            (getAllRows)="parametersTable.handleSaveRelations($event)"
+                            [actionButton]=true
+                            (add)="parametersTable.openTemplateDialog('newParameterDialog')"
+                            *ngIf="dataLoaded"
+              >
+              </app-data-grid>
+            </mat-card-content>
+          </mat-card>
+        </ng-container>
+      </mat-tab>
+    </ng-container>
+    <ng-container *appFeatureFlag="'LAYERS_FILTERS_TAB_FEATURE'">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <app-feature-flag [text]="'entity.cartography.filters.header' | translate" [flag]="'LAYERS_FILTERS_TAB_FEATURE'"></app-feature-flag>
+        </ng-template>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin sitmun-experimental-notice-card">
+          <mat-card-content class="sitmun-experimental-notice">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <p>{{ 'entity.cartography.experimentalSitnaProfileNotice' | translate }}</p>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content class="sitmun-service-form-stack">
+            <mat-checkbox formControlName="applyFilterToGetMap">
+              {{ 'entity.cartography.filters.applyFilterToGetMap' | translate }}
+            </mat-checkbox>
+            <mat-checkbox formControlName="applyFilterToSpatialSelection">
+              {{ 'entity.cartography.filters.applyFilterToSpatialSelection' | translate }}
+            </mat-checkbox>
+            <mat-checkbox formControlName="applyFilterToGetFeatureInfo">
+              {{ 'entity.cartography.filters.applyFilterToGetFeatureInfo' | translate }}
+            </mat-checkbox>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content>
+            <app-data-grid [changeHeightButton]="true"
+                           [allNewElements]="isNewOrDuplicated()"
+                           [columnDefs]="territorialFiltersTable.relationsColumnsDefs"
+                           [getAll]='territorialFiltersTable.relationsFetchFn'
+                           [eventAddItemsSubscription]='territorialFiltersTable.addCommandEvent$.asObservable()'
+                           [eventGetAllRowsSubscription]='territorialFiltersTable.saveCommandEvent$.asObservable()'
+                           [eventRefreshSubscription]='territorialFiltersTable.refreshCommandEvent$.asObservable()'
+                           [discardChangesButton]=true
+                           [redoButton]=true
+                           [undoButton]=true
+                           [deleteButton]=true
+                           [addButton]=true
+                           [hideDuplicateButton]=true
+                           [hideReplaceButton]=true
+                           [defaultColumnSorting]='territorialFiltersTable.defaultRelationsSorting()'
+                           (getAllRows)="territorialFiltersTable.handleSaveRelations($event)"
+                           [actionButton]=true
+                           (add)="territorialFiltersTable.openTemplateDialog('newTerritorialFilterDialog')"
+                           *ngIf="dataLoaded"
+            >
+            </app-data-grid>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </ng-container>
+    <ng-container *appFeatureFlag="'LAYERS_LEGEND_TAB_FEATURE'">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <app-feature-flag [text]="'entity.cartography.legend.tab' | translate" [flag]="'LAYERS_LEGEND_TAB_FEATURE'"></app-feature-flag>
+        </ng-template>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin sitmun-experimental-notice-card">
+          <mat-card-content class="sitmun-experimental-notice">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <div>
+              <p>{{ 'entity.cartography.experimentalSitnaProfileNotice' | translate }}</p>
+              <p class="sitmun-experimental-notice-secondary">{{ 'entity.cartography.legend.sitnaControlCapabilities' | translate }}</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content class="sitmun-service-form-stack">
+            <mat-form-field appearance="outline" class="half">
+              <mat-label>{{ 'entity.cartography.styles.legendType' | translate }}</mat-label>
+              <mat-select formControlName="legendType" [placeholder]="'common.form.none' | translate">
+                <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
+                <mat-option [value]="legendType.value" *ngFor="let legendType of this.codeList('cartography.legendType')">
+                  {{ legendType.description }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>{{ 'entity.cartography.styles.legendURL' | translate }}</mat-label>
+              <input appUrlInput formControlName="legendURL" matInput type="text">
+            </mat-form-field>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </ng-container>
+    <ng-container *appFeatureFlag="'LAYERS_CARTOGRAPHY_STYLES_TAB_FEATURE'">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <app-feature-flag [text]="'entity.cartography.styles.header' | translate" [flag]="'LAYERS_CARTOGRAPHY_STYLES_TAB_FEATURE'"></app-feature-flag>
+        </ng-template>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin sitmun-experimental-notice-card">
+          <mat-card-content class="sitmun-experimental-notice">
+            <mat-icon aria-hidden="true">info</mat-icon>
+            <p>{{ 'entity.cartography.experimentalSitnaProfileNotice' | translate }}</p>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined" class="sitmun-mat-card-margin">
+          <mat-card-content class="sitmun-service-form-stack">
+            <div class="sitmun-checkbox-with-hint">
+              <mat-checkbox formControlName="useAllStyles">
+                {{ 'entity.cartography.styles.useAllStyles' | translate }}
+              </mat-checkbox>
+              <p class="sitmun-form-hint-text">{{ 'entity.cartography.styles.useAllStylesHint' | translate }}</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card appearance="outlined">
+          <mat-card-content>
+            <app-data-grid [changeHeightButton]="true"
+                           [allNewElements]="isNewOrDuplicated()"
+                           [columnDefs]="stylesTable.relationsColumnsDefs"
+                           [getAll]='stylesTable.relationsFetchFn'
+                           [eventAddItemsSubscription]='stylesTable.addCommandEvent$.asObservable()'
+                           [eventGetAllRowsSubscription]='stylesTable.saveCommandEvent$.asObservable()'
+                           [eventRefreshSubscription]='stylesTable.refreshCommandEvent$.asObservable()'
+                           [discardChangesButton]=true
+                           [redoButton]=true
+                           [undoButton]=true
+                           [deleteButton]=true
+                           [addButton]=true
+                           [hideDuplicateButton]=true
+                           [hideReplaceButton]=true
+                           [defaultColumnSorting]='stylesTable.defaultRelationsSorting()'
+                           (getAllRows)="stylesTable.handleSaveRelations($event)"
+                           [actionButton]=true
+                           (add)="stylesTable.openTemplateDialog('newStyleDialog')"
+                           *ngIf="dataLoaded"
+            >
+            </app-data-grid>
+          </mat-card-content>
+        </mat-card>
+      </mat-tab>
+    </ng-container>
+  </mat-tab-group>
+</form>
 
 
 <ng-template #newParameterDialog>

@@ -13,9 +13,11 @@
   (back)="utils.navigateBack()">
 </app-form-toolbar>
 <mat-tab-group
+  #tabGroup
   mat-stretch-tabs="false"
   mat-align-tabs="end"
   [dynamicHeight]="true"
+  [preserveContent]="true"
   (selectedTabChange)="onTabChange($event)">
   <mat-tab label="{{ 'common.form.details' | translate }}">
     <form [formGroup]='entityForm' *ngIf="dataLoaded">
@@ -89,6 +91,7 @@
   <mat-tab label="{{ 'entity.tree.treeStructure' | translate }}">
     <ng-template matTabContent>
       <app-tree-nodes
+        *ngIf="dataLoaded"
         #treeNodesComponent
         [tree]="entityToEdit"
         [entityID]="entityID"

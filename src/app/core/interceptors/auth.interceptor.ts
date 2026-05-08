@@ -2,7 +2,7 @@ import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/c
 
 import { Observable } from 'rxjs';
 
-/** Interceptor for authentication token in API requests */
+/** Interceptor for authentication cookie in API requests */
 export class AuthInterceptor implements HttpInterceptor {
 
     /** constructor*/
@@ -10,15 +10,10 @@ export class AuthInterceptor implements HttpInterceptor {
 
     /** request handler */
     intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+        request = request.clone({
+            withCredentials: true
+        });
 
-        const token = sessionStorage.getItem('authenticationToken');
-      if (token) {
-            request = request.clone({
-                setHeaders: {
-                    Authorization: 'Bearer ' + token
-                }
-            });
-        }
         return next.handle(request);
     }
 

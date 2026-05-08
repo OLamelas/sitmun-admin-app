@@ -383,6 +383,8 @@ export class DataTreeComponent implements OnInit {
   @Output() emitNode: EventEmitter<EmitNodePayload>;
   @Output() emitAllNodes: EventEmitter<EmitAllRowsPayload>;
   @Output() loadButtonClicked: EventEmitter<FileNode[]>;
+  /** Emits when the user mutates tree structure or node payloads (not selection-only). Used to gate Save on duplicate. */
+  @Output() structureMutated = new EventEmitter<void>();
   @Input() eventNodeUpdatedSubscription: Observable<unknown>;
   @Input() eventCreateNodeSubscription: Observable<unknown>;
   @Input() eventGetAllRowsSubscription: Observable<string>;
@@ -436,6 +438,10 @@ export class DataTreeComponent implements OnInit {
     this.emitNode = new EventEmitter<EmitNodePayload>();
     this.emitAllNodes = new EventEmitter<EmitAllRowsPayload>();
     this.loadButtonClicked = new EventEmitter<FileNode[]>();
+  }
+
+  private notifyStructureMutated(): void {
+    this.structureMutated.emit();
   }
 
   /** Subscribe optional input observable with destroy-aware lifecycle handling. */
@@ -1106,6 +1112,7 @@ export class DataTreeComponent implements OnInit {
     const applied = this.executeDropOperation(dropContext);
     if (applied) {
       this.rebuildTreeForData([dropContext.rootNode]);
+      this.notifyStructureMutated();
     }
 
     this.resetDragState();
@@ -1327,7 +1334,7 @@ export class DataTreeComponent implements OnInit {
     }
     context.siblings[context.index] = updatedNode;
     this.rebuildTreeForData(dataToChange);
-
+    this.notifyStructureMutated();
   }
 
   /** 
@@ -1370,6 +1377,7 @@ export class DataTreeComponent implements OnInit {
       });
     }
     this.rebuildTreeForData(dataToChange);
+    this.notifyStructureMutated();
   }
 
   private getNodeParent(treeData: FileNode[], node: FileNode): FileNode | null {
@@ -1452,15 +1460,19 @@ export class DataTreeComponent implements OnInit {
         break;
       case 'delete':
         this.handleDeleteAction(changedData, nodeClicked);
+        this.notifyStructureMutated();
         break;
       case 'restore':
         this.handleRestoreAction(changedData, nodeClicked);
+        this.notifyStructureMutated();
         break;
       case 'revert':
         this.handleRevertAction(changedData, nodeClicked, id);
+        this.notifyStructureMutated();
         break;
       case 'remove':
         this.handleRemoveAction(changedData, nodeClicked);
+        this.notifyStructureMutated();
         break;
       default:
         return;

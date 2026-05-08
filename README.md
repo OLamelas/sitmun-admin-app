@@ -1,7 +1,7 @@
 # SITMUN Administration Application
 
 [![License: EUPL v1.2](https://img.shields.io/badge/License-EUPL%20v1.2-blue.svg)](LICENSE)
-![Version](https://img.shields.io/badge/version-1.2.5-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.6-blue.svg)
 
 The **SITMUN Administration Application** is the official web-based frontend for managing the SITMUN geospatial application platform. Built with TypeScript and Angular 19, it provides a comprehensive administrative interface for the [SITMUN Backend Core](https://github.com/sitmun/sitmun-backend-core) REST API.
 
@@ -75,6 +75,7 @@ cd sitmun-admin-app
 
 # Install dependencies
 npm ci
+# (uses project .npmrc: legacy-peer-deps=true so npm 10 matches CI)
 
 # Start development server
 npm start

@@ -284,13 +284,6 @@ export class BaseFormComponent<T extends Resource> implements OnInit, AfterViewI
    */
   async fetchData(): Promise<void> {
     try {
-      // Prevent unauthorized backend calls if the user is logged out
-      const token = sessionStorage.getItem('authenticationToken');
-      if (!token) {
-        this.loggerService.debug('fetchData skipped: no auth token');
-        this.dataLoaded = false;
-        return;
-      }
       await this.processRouteParams();
       await this.preFetchData();
       if (!this.isNewOrDuplicated()) {
@@ -382,7 +375,7 @@ export class BaseFormComponent<T extends Resource> implements OnInit, AfterViewI
    *
    * @returns {void}
    */
-   
+
   postFetchData(): void {
   }
 
@@ -572,7 +565,7 @@ export class BaseFormComponent<T extends Resource> implements OnInit, AfterViewI
    *
    * @returns {Promise<number>} Promise that resolves with the ID of the created entity
    */
-   
+
   createEntity(): Promise<number> {
     return Promise.resolve(null)
   }
@@ -594,7 +587,7 @@ export class BaseFormComponent<T extends Resource> implements OnInit, AfterViewI
    * @param {boolean} _isDuplicated - Whether the operation is a duplication
    * @returns {Promise<void>} Promise that resolves when related data is updated
    */
-   
+
   updateDataRelated(_isDuplicated: boolean): Promise<void> {
     return Promise.resolve()
   }
@@ -655,7 +648,11 @@ export class BaseFormComponent<T extends Resource> implements OnInit, AfterViewI
   async initCodeLists(codeList: string[]): Promise<void[]> {
     return Promise.all(codeList.map(async code => {
       const list: CodeList[] = await firstValueFrom(this.getCodeListValues(code))
-      this.codelists.set(code, [...list].sort((a, b) => a.description.localeCompare(b.description)));
+      this.codelists.set(code, [...list].sort((a, b) => {
+        if (a.defaultCode && !b.defaultCode) return -1;
+        if (!a.defaultCode && b.defaultCode) return 1;
+        return a.description.localeCompare(b.description);
+      }));
     }));
   }
 
@@ -694,9 +691,12 @@ export class BaseFormComponent<T extends Resource> implements OnInit, AfterViewI
     // Update initial form values to reset to a modified state
     this.initialFormValues = form.getRawValue();
 
-    // Remove modified styling from all form fields
+    // Remove modified styling from all form fields (must mirror checkControlModified)
     Object.keys(form.controls).forEach(key => {
-      const element = document.querySelector(`[formControlName="${key}"]`)?.closest('mat-form-field');
+      let element = document.querySelector(`[formControlName="${key}"]`)?.closest('mat-form-field');
+      if (!element) {
+        element = document.querySelector(`[formControlName="${key}"]`);
+      }
       if (element) {
         element.classList.remove('input-modified');
       }

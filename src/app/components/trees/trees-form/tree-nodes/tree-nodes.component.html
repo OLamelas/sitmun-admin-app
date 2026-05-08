@@ -2,7 +2,8 @@
   <mat-card-content>
     <div class="formDiv resizable-container">
       <div class="tree-panel" [style.width.%]="treePanelWidth" *ngIf="dataLoaded && codeListsInitialized">
-        <app-data-tree [getAll]='getAllTreeNodes' (emitNode)="nodeReceived($event)" (addNode)="addNodeWithType($event.parent, $event.nodeType)"
+        <app-data-tree [getAll]='getAllTreeNodes' (emitNode)="nodeReceived($event)" (structureMutated)="onStructureMutatedFromDataTree()"
+          (addNode)="addNodeWithType($event.parent, $event.nodeType)"
           (loadButtonClicked)="loadGroupLayersButtonClicked($event)"
           [eventNodeUpdatedSubscription]='sendNodeUpdated.asObservable()' [loadDataButton]="loadDataButton$"
           [eventGetAllRowsSubscription]='getAllElementsNodes.asObservable()'
@@ -180,10 +181,12 @@
                         <mat-form-field appearance="outline" class="full">
                           <mat-label>{{ 'entity.tree.metadataURL' | translate }}</mat-label>
                           <input matInput type="text" formControlName="metadataURL">
+                          <mat-hint align="start">{{ 'entity.tree.hint.metadataURL' | translate }}</mat-hint>
                         </mat-form-field>
                         <mat-form-field appearance="outline" class="full">
                           <mat-label>{{ 'entity.tree.datasetURL' | translate }}</mat-label>
                           <input matInput type="text" formControlName="datasetURL">
+                          <mat-hint align="start">{{ 'entity.tree.hint.datasetURL' | translate }}</mat-hint>
                         </mat-form-field>
                       </div>
                     </div>
@@ -304,13 +307,13 @@
                           <mat-spinner *ngIf="tasksLoading" matSuffix diameter="20" class="task-config-spinner"></mat-spinner>
                           <mat-autocomplete #taskAutocomplete="matAutocomplete"
                             [displayWith]="displayTask" (optionSelected)="onTaskSelected($event)">
-                            <mat-option *ngFor="let task of filteredTasks" [value]="task">
+                            <mat-option *ngFor="let task of filteredTasks; trackBy: trackTaskOptionById" [value]="task">
                               <div class="task-option">
                                 <div class="task-name-row">
                                   <strong class="task-name">{{ task.name }}</strong>
-                                  <span *ngIf="task.typeName" class="task-detail">
-                                    - {{ task.typeName }}
-                                  </span>
+                                  <ng-container *ngIf="getTaskKindDisplayForListItem(task) as kindLabel">
+                                    <span class="task-detail"> - {{ kindLabel }}</span>
+                                  </ng-container>
                                 </div>
                                 <div *ngIf="task.groupName" class="task-group">
                                   <span class="group-label">{{ 'entity.tree.groupTask' | translate }}: </span>
@@ -319,6 +322,7 @@
                               </div>
                             </mat-option>
                           </mat-autocomplete>
+                          <mat-hint *ngIf="hasTaskSelected && selectedTaskHintLine" class="task-selected-hint">{{ selectedTaskHintLine }}</mat-hint>
                         </mat-form-field>
                       </div>
                       <div class="task-config-row" *ngIf="showFilterableInTaskPanel">
@@ -420,17 +424,41 @@
               <div class="field-config-row" [formGroupName]="control.name">
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>{{control.label || control.name}}</mat-label>
-                  <mat-select formControlName="value">
-                    <mat-option value="">{{ 'common.form.none' | translate }}</mat-option>
+                  <input matInput type="text" formControlName="value"
+                    [matAutocomplete]="inputMappingAuto" autocomplete="off" />
+                  <mat-autocomplete #inputMappingAuto="matAutocomplete"
+                    panelClass="input-mapping-suggestions-panel">
+                    <ng-container *ngIf="formatTaskParameterDefaultForInput(control.value) as defaultStr">
+                      <mat-optgroup [label]="'entity.tree.taskParamDefault' | translate">
+                        <mat-option [value]="defaultStr">
+                          <div class="input-mapping-option">
+                            <strong class="input-mapping-option-name">{{ control.label || control.name }}</strong>
+                            <span class="input-mapping-option-sep">: </span>
+                            <span class="input-mapping-option-token">{{ defaultStr }}</span>
+                          </div>
+                        </mat-option>
+                      </mat-optgroup>
+                    </ng-container>
                     <mat-optgroup [label]="'entity.tree.appVars' | translate">
-                      <mat-option *ngFor="let opt of mappingAppOptions" [value]="opt.value">{{opt.label}}</mat-option>
+                      <mat-option *ngFor="let opt of mappingAppOptions; trackBy: trackByMappingOptionValue" [value]="opt.value">
+                        <div class="input-mapping-option">
+                          <strong class="input-mapping-option-name">{{ opt.label }}</strong>
+                          <span class="input-mapping-option-sep">: </span>
+                          <span class="input-mapping-option-token">{{ opt.value }}</span>
+                        </div>
+                      </mat-option>
                     </mat-optgroup>
                     <mat-optgroup *ngIf="mappingParentTaskOptions.length > 0"
                       [label]="'entity.tree.parentTaskVars' | translate">
-                      <mat-option *ngFor="let opt of mappingParentTaskOptions"
-                        [value]="opt.value">{{opt.label}}</mat-option>
+                      <mat-option *ngFor="let opt of mappingParentTaskOptions; trackBy: trackByMappingOptionValue" [value]="opt.value">
+                        <div class="input-mapping-option">
+                          <strong class="input-mapping-option-name">{{ opt.label }}</strong>
+                          <span class="input-mapping-option-sep">: </span>
+                          <span class="input-mapping-option-token">{{ opt.value }}</span>
+                        </div>
+                      </mat-option>
                     </mat-optgroup>
-                  </mat-select>
+                  </mat-autocomplete>
                 </mat-form-field>
                 <div class="field-options">
                   <mat-checkbox formControlName="calculated">{{ 'entity.tree.calculated' | translate }}</mat-checkbox>
@@ -454,54 +482,44 @@
           <mat-radio-group formControlName="selectedMappingTarget" class="output-mapping-radio-group">
           <div class="maping-form">
               <div formGroupName="output">
-                <ng-container *ngFor="let control of nodeOutputsControls; let last = last">
-                  <!-- Skip Label controls here; they'll be rendered with their corresponding button -->
-                  <ng-container *ngIf="!control.key.includes('Label') && control.views.includes(currentViewMode)">
-                    <div class="field-config-row output-param-block">
-                      <!-- Button input + radio -->
-                      <div [formGroupName]="control.key">
-                        <div class="field-row field-row-radio-right">
-                          <mat-form-field appearance="outline" class="field-row-input">
-                            <mat-label>{{control.label | translate}}</mat-label>
-                            <input matInput type="text" formControlName="value">
-                          </mat-form-field>
-                          <mat-radio-button [value]="control.key" [id]="control.key + '-mapping'"
-                            color="primary"
-                            class="mapping-radio"
-                            [matTooltip]="'entity.tree.applyPathFromTree' | translate"
-                            [attr.aria-label]="'entity.tree.applyPathFromTree' | translate">
-                          </mat-radio-button>
-                        </div>
-                      </div>
-                      
-                      <!-- Corresponding Label dropdown (if it exists in current view mode) -->
-                      <ng-container *ngFor="let labelControl of nodeOutputsControls">
-                        <div *ngIf="labelControl.key === control.key + 'Label' && labelControl.views.includes(currentViewMode)" 
-                             [formGroupName]="labelControl.key" class="output-label-cell-below-button">
-                          <mat-form-field [id]="labelControl.key" appearance="outline" class="output-label-field">
-                            <mat-label>{{labelControl.label | translate}}</mat-label>
-                            <mat-select formControlName="value">
-                              <mat-option [value]="labelview.value" *ngFor="let labelview of mappingbtnLabelOptions">
-                                <span *ngIf="shouldTranslateLabel(labelview.label); else literalLabel">
-                                  {{ labelview.label | translate }}
-                                </span>
-                                <ng-template #literalLabel>
-                                  {{ labelview.label }}
-                                </ng-template>
-                              </mat-option>
-                            </mat-select>
-                          </mat-form-field>
-                        </div>
-                      </ng-container>
-                      
-                      <!-- Checkboxes at the bottom -->
-                      <div [formGroupName]="control.key" class="field-options field-options-row">
-                        <mat-checkbox formControlName="calculated">{{ 'entity.tree.calculated' | translate }}</mat-checkbox>
-                        <mat-checkbox formControlName="multilanguage">{{ 'entity.tree.multilanguage' | translate }}</mat-checkbox>
+                <ng-container *ngFor="let control of visibleOutputControls; let last = last; trackBy: trackByControlKey">
+                  <div class="field-config-row output-param-block">
+                    <div [formGroupName]="control.key">
+                      <div class="field-row field-row-radio-right">
+                        <mat-form-field appearance="outline" class="field-row-input">
+                          <mat-label>{{control.label | translate}}</mat-label>
+                          <input matInput type="text" formControlName="value">
+                        </mat-form-field>
+                        <mat-radio-button [value]="control.key" [id]="control.key + '-mapping'"
+                          color="primary" class="mapping-radio"
+                          [matTooltip]="'entity.tree.applyPathFromTree' | translate"
+                          [attr.aria-label]="'entity.tree.applyPathFromTree' | translate">
+                        </mat-radio-button>
                       </div>
                     </div>
-                    <mat-divider class="output-param-divider" *ngIf="!last"></mat-divider>
-                  </ng-container>
+
+                    <ng-container *ngIf="getLabelControlForOutput(control.key) as labelControl">
+                      <div [formGroupName]="labelControl.key" class="output-label-cell-below-button">
+                        <mat-form-field [id]="labelControl.key" appearance="outline" class="output-label-field">
+                          <mat-label>{{labelControl.label | translate}}</mat-label>
+                          <mat-select formControlName="value">
+                            <mat-option [value]="labelview.value" *ngFor="let labelview of mappingbtnLabelOptions">
+                              <span *ngIf="shouldTranslateLabel(labelview.label); else literalLabel">
+                                {{ labelview.label | translate }}
+                              </span>
+                              <ng-template #literalLabel>{{ labelview.label }}</ng-template>
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                    </ng-container>
+
+                    <div [formGroupName]="control.key" class="field-options field-options-row">
+                      <mat-checkbox formControlName="calculated">{{ 'entity.tree.calculated' | translate }}</mat-checkbox>
+                      <mat-checkbox formControlName="multilanguage">{{ 'entity.tree.multilanguage' | translate }}</mat-checkbox>
+                    </div>
+                  </div>
+                  <mat-divider class="output-param-divider" *ngIf="!last"></mat-divider>
                 </ng-container>
               </div>
             </div>

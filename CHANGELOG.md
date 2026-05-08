@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-05-08
+
+### Added
+
+- Functional route guard (`authGuard`, `CanActivateFn`) on the authenticated layout so access to the shell waits on a resolved identity from `Principal`.
+- `LoginService` for credential login (`firstValueFrom` + `Principal.identity`), OIDC initiation (`initOidcLogin` with `client_type=admin`), `getEnabledAuthMethods`, and coordinated logout shared by the login page, toolbar, `AppComponent`, and `AuthExpiredInterceptor`.
+- Jest coverage for `CallbackComponent` and expanded specs around login/auth where they ship with this change.
+
+### Changed
+
+- ngx-translate keys `callback.processing` and `callback.redirect` added across ca, en, es, fr, and oc-aranes for the post-OIDC callback screen.
+- HttpClient cookie sessions: `AuthInterceptor` clones requests with `withCredentials: true`; `AuthService` authenticate and logout use `observe: 'response'` with the same flag.
+- `AuthExpiredInterceptor` clears authentication through `LoginService` on 401/403 outside `authenticate` and the login route, with a redirect guard to avoid repeated navigation loops.
+- `CallbackComponent` implemented as a standalone component (`TranslateModule` imports); after the OIDC redirect it navigates to the dashboard when identity exists, otherwise shows localized error feedback via `NotificationService`.
+- GitHub Actions CI uses Node.js 20.19 (aligned with `package.json` engines and `.nvmrc`), runs ESLint before unit tests, and builds with the `production` Angular configuration and `/admin-app/` base href (the previous `testdeployment` profile is not defined in `angular.json`).
+- `.npmrc` sets `legacy-peer-deps=true` so `npm ci` stays reproducible on npm 10 while the lockfile carries compatible-but-strict peer skew across `@angular/*` patch lines.
+
+### Fixed
+
+- ESLint `import/order` in `tree-node.service.spec.ts` and an unused spy binding in `data-tree.component.spec.ts` so `ng lint` passes in CI.
+- Tree duplication: Save stays consistent when switching tabs (`canSave` matches `canSaveEntity`); Save is not enabled solely because the form is a duplicate—it follows real edits (form, grids, translations, or tree node pending changes). Saving from any tab still persists header and structure together (sitmun-admin-app#392).
+- Task forms: align parameter modals and fix duplicate columns in task-edit grid.
+
 ## [1.2.5] - 2026-03-11
 
 ### Added
@@ -238,11 +261,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Various bug fixes and improvements from development phase
 
-[Unreleased]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.5...HEAD
+[Unreleased]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.6...HEAD
+[1.2.6]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.5...sitmun-admin-app/1.2.6
 [1.2.5]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.4...sitmun-admin-app/1.2.5
 [1.2.4]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.3...sitmun-admin-app/1.2.4
 [1.2.3]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.2...sitmun-admin-app/1.2.3
 [1.2.2]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.1...sitmun-admin-app/1.2.2
+[1.2.1]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.0...sitmun-admin-app/1.2.1
 [1.2.0]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.1.1...sitmun-admin-app/1.2.0
 [1.1.1]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.1.0...sitmun-admin-app/1.1.1
 [1.1.0]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.0.0...sitmun-admin-app/1.1.0

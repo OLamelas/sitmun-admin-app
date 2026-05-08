@@ -7,7 +7,9 @@ const codeValue = {
   queryTaskScope: {
     sqlQuery: 'sql-query',
     webApiQuery: 'web-api-query',
-    cartographyQuery: 'cartography-query'
+    webApiQueryNoProxy: 'web-api-query-no-proxy',
+    cartographyQuery: 'cartography-query',
+    urlQuery: 'external-link'
   },
   editionTaskScope: {
     dbEdition: 'db-edit',

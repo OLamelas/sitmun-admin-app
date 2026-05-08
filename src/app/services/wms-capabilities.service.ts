@@ -290,7 +290,10 @@ export class WMSCapabilitiesService {
       }
     }
 
-    const metadataURL = Array.isArray(layer.MetadataURL) ? layer.MetadataURL[0] : layer.MetadataURL;
+    // Single string fields on cartography: keep first entry only when OGC repeats MetadataURL/DataURL.
+    const metadataURL = Array.isArray(layer.MetadataURL)
+      ? layer.MetadataURL[0]
+      : layer.MetadataURL;
     cartography.metadataURL = metadataURL?.OnlineResource?.['xlink:href'];
 
     const dataURL = Array.isArray(layer.DataURL) ? layer.DataURL[0] : layer.DataURL;

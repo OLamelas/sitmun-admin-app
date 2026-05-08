@@ -39,7 +39,7 @@
             <mat-label>{{ 'common.form.type' | translate }}</mat-label>
             <mat-select formControlName="scope" class="form-control" (selectionChange)="onTypeChange($event)" required>
               <mat-option [value]="serviceType.value" *ngFor="let serviceType of this.codeList('queryTask.scope')">
-                {{ serviceType.description }}
+                {{ serviceType.description}}
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -102,6 +102,12 @@
             <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="4"></textarea>
             <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
           </mat-form-field>
+          <div style="margin: 12px 0; padding: 8px; background-color: #e3f2fd; border-radius: 4px; font-size: 0.9em; color: #1976d2;">
+            <div>{{ 'entity.task.query.backendVariables.hint' | translate }}</div>
+            <div style="margin-top: 4px;"><strong>{{ 'entity.task.query.backendVariables.example' | translate }}</strong></div>
+            <div style="margin-top: 8px;"><strong>{{ 'entity.task.parameters.systemVariablesLabel' | translate }}</strong></div>
+            <div style="margin-top: 4px;">{{ getSystemVariablesHelp() }}</div>
+          </div>
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"
@@ -112,6 +118,113 @@
             <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="4"></textarea>
             <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
           </mat-form-field>
+          <div style="margin: 12px 0; padding: 8px; background-color: #e3f2fd; border-radius: 4px; font-size: 0.9em; color: #1976d2;">
+            <div>{{ 'entity.task.query.backendVariables.hint' | translate }}</div>
+            <div style="margin-top: 4px;"><strong>{{ 'entity.task.query.backendVariables.example' | translate }}</strong></div>
+            <div style="margin-top: 8px;"><strong>{{ 'entity.task.parameters.systemVariablesLabel' | translate }}</strong></div>
+            <div style="margin-top: 4px;">{{ getSystemVariablesHelp() }}</div>
+          </div>
+          <div class="break"></div>
+          <mat-form-field appearance="outline" class="quarter">
+            <mat-label>{{ 'entity.service.authenticationMode' | translate }}</mat-label>
+            <mat-select formControlName="authenticationMode" [placeholder]="'common.form.none' | translate">
+              <mat-option [value]="mode.value" *ngFor="let mode of this.codeList('service.authenticationMode')">
+                {{ mode.value === 'None' ? ('common.form.none' | translate) : mode.description }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <div class="break"></div>
+          <ng-container *ngIf="entityForm.get('authenticationMode')?.value === 'HTTP Basic authentication'">
+            <mat-form-field appearance="outline" class="half add-gap">
+              <mat-label>{{ 'entity.service.user' | translate }}</mat-label>
+              <input matInput type="text" formControlName="user" [maxlength]="50">
+              <mat-hint align="end">{{ entityForm.get('user') | characterCount }}</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="half">
+              <mat-label>{{ 'entity.service.password' | translate }}</mat-label>
+              <input matInput type="text" formControlName="password" [maxlength]="50">
+              <mat-hint align="end">{{ entityForm.get('password') | characterCount }}</mat-hint>
+            </mat-form-field>
+            <div class="break"></div>
+          </ng-container>
+          <ng-container *ngIf="entityForm.get('authenticationMode')?.value === 'API key'">
+            <mat-form-field appearance="outline" class="quarter add-gap">
+              <mat-label>{{ 'entity.task.query.apiKeyHeaderName' | translate }}</mat-label>
+              <mat-select formControlName="apiKeyType">
+                <mat-option value="X-API-Key">{{ 'entity.task.query.apiKeyTypeHeader' | translate }}</mat-option>
+                <mat-option value="Cookie">Cookie</mat-option>
+                <mat-option value="QueryParam">{{ 'entity.task.query.apiKeyQueryParam' | translate }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="quarter add-gap">
+              <mat-label>{{ 'entity.task.query.apiKeyKeyName' | translate }}</mat-label>
+              <mat-select formControlName="apiKeyKeyName">
+                <mat-option [value]="keyOption.value" *ngFor="let keyOption of currentApiKeyCodeList">
+                  {{ keyOption.description }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="quarter">
+              <mat-label>{{ 'entity.task.query.apiKeyHeaderValue' | translate }}</mat-label>
+              <input matInput type="text" formControlName="apiKeyHeaderValue">
+            </mat-form-field>
+            <div class="break"></div>
+          </ng-container>
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.query.mimeType' | translate }}</mat-label>
+            <mat-select formControlName="mimeType">
+              <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
+              <mat-option [value]="mimeTypeOption.value" *ngFor="let mimeTypeOption of codeList('queryTask.mimeType')">
+                {{ mimeTypeOption.description }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="half">
+            <mat-label>{{ 'entity.task.query.filename' | translate }}</mat-label>
+            <input matInput type="text" formControlName="filename" [maxlength]="255">
+            <mat-hint align="end">{{ entityForm.get('filename') | characterCount }}</mat-hint>
+          </mat-form-field>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="sitmun-mat-card-margin" appearance="outlined"
+        *ngIf="isWebApiQueryNoProxyScope()">
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>{{ 'entity.task.query.webapi' | translate }}</mat-label>
+            <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="4"></textarea>
+            <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.query.mimeType' | translate }}</mat-label>
+            <mat-select formControlName="mimeType">
+              <mat-option [value]="null">{{ 'common.form.none' | translate }}</mat-option>
+              <mat-option [value]="mimeTypeOption.value" *ngFor="let mimeTypeOption of codeList('queryTask.mimeType')">
+                {{ mimeTypeOption.description }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="half">
+            <mat-label>{{ 'entity.task.query.filename' | translate }}</mat-label>
+            <input matInput type="text" formControlName="filename" [maxlength]="255">
+            <mat-hint align="end">{{ entityForm.get('filename') | characterCount }}</mat-hint>
+          </mat-form-field>
+          <div style="margin: 12px 0; padding: 8px; background-color: #fff3e0; border-radius: 4px; font-size: 0.9em; color: #e65100;">
+            <div>{{ 'entity.task.query.urlHint' | translate }}</div>
+            <div style="margin-top: 8px; font-weight: 500;">{{ 'entity.task.query.mimeTypeConsequence' | translate }}</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="sitmun-mat-card-margin" appearance="outlined"
+        *ngIf="isUrlQueryScope()">
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>{{ 'entity.task.query.url' | translate }}</mat-label>
+            <textarea matInput type="text" formControlName="command" required [maxlength]="4000" rows="4"></textarea>
+            <mat-hint align="end">{{entityForm.get('command') | characterCount}}</mat-hint>
+          </mat-form-field>
+          <div style="margin: 12px 0; padding: 8px; background-color: #fff3e0; border-radius: 4px; font-size: 0.9em; color: #e65100;">
+            <div>{{ 'entity.task.query.urlHint' | translate }}</div>
+          </div>
         </mat-card-content>
       </mat-card>
       <mat-card class="sitmun-mat-card-margin" appearance="outlined"
@@ -240,12 +353,14 @@
           <mat-label>{{ 'common.form.required' | translate }}</mat-label>
           <mat-checkbox formControlName="required">
           </mat-checkbox>
+          <br/>
+          <mat-label>{{ 'entity.task.parameters.provided' | translate }}</mat-label>
+          <mat-checkbox formControlName="provided" [disabled]="!canHaveProvidedParameters()">
+          </mat-checkbox>
+          <div *ngIf="!canHaveProvidedParameters()" style="margin-top: 4px; font-size: 0.85em; color: #999;">
+            {{ 'entity.task.parameters.providedHint' | translate }}
+          </div>
         </ng-container>
-        <br/>
-        <mat-label>{{ 'entity.task.parameters.provided' | translate }}</mat-label>
-        <mat-checkbox formControlName="provided">
-        </mat-checkbox>
-        <mat-hint>{{ 'entity.task.parameters.provided.hint' | translate }}</mat-hint>
       </mat-card-content>
     </mat-card>
   </form>

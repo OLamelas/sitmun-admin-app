@@ -17,7 +17,7 @@ import {CodeListService, TaskGroupService, TaskService, TranslationService} from
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
 import {LoggerService} from '@app/services/logger.service';
-import {configureLoggerForTests} from '@app/testing/test-helpers';
+import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing/test-helpers';
 
 import { TaskGroupFormComponent } from './task-group-form.component';
 
@@ -46,7 +46,7 @@ describe('TaskGroupFormComponent', () => {
           })
         }
       })],
-      providers: [TaskGroupService, TaskService, CodeListService,TranslationService,ResourceService,ExternalService,
+      providers: [provideErrorHandlerForTests(), TaskGroupService, TaskService, CodeListService,TranslationService,ResourceService,ExternalService,
         { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }, ]
     })
     .compileComponents();

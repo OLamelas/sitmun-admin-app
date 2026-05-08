@@ -992,3 +992,44 @@ mat-card-content {
   opacity: 0.7;
   color: #007bff;
 }
+
+// Tree node field-config: input mapping autocomplete (CDK overlay — global). Same row as task selector: name - value
+.input-mapping-suggestions-panel {
+  min-width: 280px;
+
+  .mat-mdc-option {
+    min-height: 40px;
+    height: auto;
+    white-space: normal;
+    line-height: 1.35;
+
+    .mdc-list-item__primary-text {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
+  }
+
+  .input-mapping-option {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    padding: 4px 0;
+  }
+
+  .input-mapping-option-name {
+    font-weight: 500;
+  }
+
+  .input-mapping-option-sep {
+    color: rgba(0, 0, 0, 0.45);
+    flex-shrink: 0;
+  }
+
+  .input-mapping-option-token {
+    font-family: monospace;
+    font-size: 0.9em;
+    color: rgba(0, 0, 0, 0.6);
+    word-break: break-all;
+  }
+}

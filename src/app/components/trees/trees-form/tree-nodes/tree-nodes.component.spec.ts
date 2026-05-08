@@ -5,16 +5,15 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { EMPTY, firstValueFrom, of } from 'rxjs';
 
 import { ExternalConfigurationService } from '@app/core/config/external-configuration.service';
-import { constants } from '@environments/constants';
 import { ExternalService, ResourceService } from '@app/core/hal';
 import {
   CapabilitiesService,
@@ -30,6 +29,8 @@ import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
 import { UtilsService } from '@app/services/utils.service';
+import { config } from '@config';
+import { constants } from '@environments/constants';
 
 import { TreeNodesComponent } from './tree-nodes.component';
 
@@ -435,6 +436,25 @@ describe('TreeNodesComponent', () => {
       expect(component.taskInputParameterLabels).toEqual(['First param', 'param2']);
     });
 
+    it('enables task selection when guidance comes from currentNodeTask but task control is not hydrated', () => {
+      component.treeNodeForm.patchValue({
+        nodeType: 'task',
+        task: null,
+        taskId: 42,
+        taskName: 'Layer query',
+      });
+      component['currentNodeTask'] = {
+        id: 42,
+        name: 'Layer query',
+        properties: {
+          parameters: [{ name: 'layer', label: 'layer' }],
+        },
+      } as any;
+
+      expect(component.taskInputParameterLabels).toContain('layer');
+      expect(component.hasTaskSelected).toBe(true);
+    });
+
     it('taskOutputParametersForCurrentMode returns empty when no view mode', () => {
       component.currentViewMode = '';
       expect(component.taskOutputParametersForCurrentMode).toEqual([]);
@@ -659,6 +679,118 @@ describe('TreeNodesComponent', () => {
       (component as any).normalizeSiblingOrderForSave(siblings);
 
       expect(siblings.map((n) => n.order)).toEqual([0, 1, 2]);
+    });
+  });
+
+  describe('Input mapping field configuration', () => {
+    it('formatTaskParameterDefaultForInput returns empty for null and undefined', () => {
+      expect(component.formatTaskParameterDefaultForInput(null)).toBe('');
+      expect(component.formatTaskParameterDefaultForInput(undefined)).toBe('');
+    });
+
+    it('formatTaskParameterDefaultForInput stringifies primitives and JSON', () => {
+      expect(component.formatTaskParameterDefaultForInput('x')).toBe('x');
+      expect(component.formatTaskParameterDefaultForInput(42)).toBe('42');
+      expect(component.formatTaskParameterDefaultForInput(false)).toBe('false');
+      expect(component.formatTaskParameterDefaultForInput({ a: 1 })).toBe('{"a":1}');
+    });
+
+    it('openFieldsConfigDialog prefills input from task parameter default when mapping key is absent', async () => {
+      component.currentTreeType = 'testTree';
+      component.currentViewMode = 'dl';
+      component.treeNodeForm.patchValue({
+        taskId: 99,
+        mapping: { output: {}, input: {} }
+      });
+      const taskService = TestBed.inject(TaskService);
+      jest.spyOn(taskService, 'get').mockReturnValue(
+        of({
+          id: 99,
+          properties: {
+            parameters: [{ name: 'width', label: 'Width', value: '256' }]
+          }
+        } as any)
+      );
+      const matDialog = TestBed.inject(MatDialog);
+      jest.spyOn(matDialog, 'open').mockReturnValue({
+        afterClosed: () => EMPTY,
+        componentInstance: {}
+      } as any);
+
+      await component.openFieldsConfigDialog();
+
+      expect(component.fieldsConfigForm.get('input.width')?.get('value')?.value).toBe('256');
+    });
+
+    it('openFieldsConfigDialog does not prefill when saved mapping has explicit key with null value', async () => {
+      component.currentTreeType = 'testTree';
+      component.currentViewMode = 'dl';
+      component.treeNodeForm.patchValue({
+        taskId: 99,
+        mapping: {
+          output: {},
+          input: {
+            width: { value: null, calculated: false }
+          }
+        }
+      });
+      const taskService = TestBed.inject(TaskService);
+      jest.spyOn(taskService, 'get').mockReturnValue(
+        of({
+          id: 99,
+          properties: {
+            parameters: [{ name: 'width', label: 'Width', value: '256' }]
+          }
+        } as any)
+      );
+      const matDialog = TestBed.inject(MatDialog);
+      jest.spyOn(matDialog, 'open').mockReturnValue({
+        afterClosed: () => EMPTY,
+        componentInstance: {}
+      } as any);
+
+      await component.openFieldsConfigDialog();
+
+      expect(component.fieldsConfigForm.get('input.width')?.get('value')?.value).toBe('');
+    });
+  });
+
+  describe('Tree node task type filtering (query + edit)', () => {
+    it('getAllTasks merges query and edit lists from two getAll calls and dedupes by id', async () => {
+      const taskService: TaskService = TestBed.inject(TaskService);
+      jest.spyOn(taskService, 'getAll').mockImplementation((opts: { params?: { key: string; value: number }[] }) => {
+        const typeId = opts?.params?.find((p) => p.key === 'type.id')?.value;
+        if (typeId === config.tasksTypes.query) {
+          return of([{ id: 1, name: 'Query task', typeId: config.tasksTypes.query }]);
+        }
+        if (typeId === config.tasksTypes.edit) {
+          return of([
+            { id: 2, name: 'Edit task', typeId: config.tasksTypes.edit },
+            { id: 1, name: 'Duplicate id', typeId: config.tasksTypes.edit }
+          ]);
+        }
+        return of([]);
+      });
+
+      const merged = await firstValueFrom(component.getAllTasks());
+
+      expect(taskService.getAll).toHaveBeenCalledTimes(2);
+      expect(merged.map((t: { id: number }) => t.id)).toEqual([1, 2]);
+    });
+
+    it('isAllowedTreeNodeTaskType allows query, edit, listed allTasks ids, and nested type.id', () => {
+      component.allTasks = [{ id: 10, name: 'Listed', typeId: config.tasksTypes.query }];
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 10, typeId: config.tasksTypes.basic })).toBe(true);
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 99, typeId: config.tasksTypes.query })).toBe(true);
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 100, typeId: config.tasksTypes.edit })).toBe(true);
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 101, typeId: config.tasksTypes.basic })).toBe(false);
+      expect((component as any).isAllowedTreeNodeTaskType({ id: 102, type: { id: config.tasksTypes.query } })).toBe(true);
+    });
+
+    it('resolveTaskTypeId reads typeId and nested type.id', () => {
+      expect((component as any).resolveTaskTypeId({ typeId: 5 })).toBe(5);
+      expect((component as any).resolveTaskTypeId({ type: { id: 0 } })).toBe(0);
+      expect((component as any).resolveTaskTypeId({})).toBeNull();
     });
   });
 

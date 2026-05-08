@@ -14,18 +14,14 @@ export class TaskMoreInfoParameter {
   /** description */
   public description?: string;
 
-  /** provided - backend-only secret variable (not sent to client) */
-  public provided?: boolean;
-
   /**
    * Constructor for TaskMoreInfoParameter
    */
-  constructor(label?: string, order?: number | null, value?: string, description?: string, provided?: boolean) {
+  constructor(label?: string, order?: number | null, value?: string, description?: string) {
     this.label = label;
     this.order = order ?? null;
     this.value = value;
     this.description = description;
-    this.provided = provided;
   }
 
   /**
@@ -36,7 +32,7 @@ export class TaskMoreInfoParameter {
   public static fromObject(source: any): TaskMoreInfoParameter {
     const parameter = new TaskMoreInfoParameter();
     const propertiesToCopy = [
-      'label', 'order', 'value', 'description', 'provided'
+      'label', 'order', 'value', 'description'
     ];
     propertiesToCopy.forEach(prop => {
       if (source[prop] !== undefined) {

@@ -19,12 +19,13 @@
   [dynamicHeight]="true"
   preserveContent="true">
   <mat-tab label="{{ 'common.form.details' | translate }}">
-    <form [formGroup]='entityForm' *ngIf="dataLoaded">
+    <form [formGroup]='entityForm' *ngIf="dataLoaded" class="sitmun-service-form-entity">
       <mat-card class="sitmun-mat-card-margin" appearance="outlined">
-        <mat-card-content>
+        <mat-card-content class="sitmun-service-form-stack">
           <mat-form-field appearance="outline" class="full">
             <mat-label>{{ 'common.form.name' | translate }} ({{ defaultLang }})</mat-label>
             <input matInput type="text" formControlName="name" [maxlength]="60" required>
+            <mat-hint align="start">{{ 'entity.service.hint.name' | translate }}</mat-hint>
             <mat-hint align="end" [class.text-warning]="entityForm.get('name')?.value?.length > 60">
               {{ entityForm.get('name') | characterCount }}
               <mat-icon *ngIf="entityForm.get('name')?.value?.length > 60" fontIcon="warning"
@@ -37,6 +38,7 @@
           <mat-form-field appearance="outline" class="full">
             <mat-label>{{ 'common.form.description' | translate }} ({{ defaultLang }})</mat-label>
             <textarea matInput type="text" formControlName="description" [maxlength]="4000"> </textarea>
+            <mat-hint align="start">{{ 'entity.service.hint.description' | translate }}</mat-hint>
             <mat-hint align="end">{{ entityForm.get('description') | characterCount }}</mat-hint>
             <mat-icon matSuffix class="iconTranslate"
                       (click)="onTranslated('description')"
@@ -49,7 +51,7 @@
       </mat-card>
 
       <mat-card class="sitmun-mat-card-margin" appearance="outlined">
-        <mat-card-content>
+        <mat-card-content class="sitmun-service-form-stack">
           <mat-form-field appearance="outline" class="quarter add-gap">
             <mat-label>{{ 'entity.service.type' | translate }}</mat-label>
             <mat-select formControlName="type" class="form-control" (selectionChange)="onTypeChange($event)" required>
@@ -58,47 +60,58 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>{{ 'entity.service.endpoint' | translate }}</mat-label>
+            <input [maxlength]="4000" appUrlInput formControlName="serviceURL" matInput required type="text">
+            <mat-hint align="start">{{ 'entity.service.hint.serviceURL' | translate }}</mat-hint>
+            <mat-hint align="end">{{ entityForm.get('serviceURL') | characterCount }}</mat-hint>
+          </mat-form-field>
           <button
             mat-raised-button
             color="primary"
             type="button"
+            class="sitmun-service-form-metadata-button"
             *ngIf="isWMS()"
             (click)="onUpdateServiceMetadata()"
           >
             {{ (isNewOrDuplicated() ? 'entity.service.button.getMetadata' : 'entity.service.button.updateMetadata') | translate }}
           </button>
-
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>{{ 'entity.service.endpoint' | translate }}</mat-label>
-            <input [maxlength]="4000" appUrlInput formControlName="serviceURL" matInput required type="text">
-            <mat-hint align="end">{{ entityForm.get('serviceURL') | characterCount }}</mat-hint>
-          </mat-form-field>
           <mat-form-field appearance="outline" class="full">
             <mat-label>{{ 'entity.service.metadataURL' | translate }}</mat-label>
             <input [maxlength]="4000" appUrlInput formControlName="getInformationURL" matInput type="text">
+            <mat-hint align="start">{{ 'entity.service.hint.metadataURL' | translate }}</mat-hint>
             <mat-hint align="end">{{ entityForm.get('getInformationURL') | characterCount }}</mat-hint>
           </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>{{ 'entity.service.projections' | translate }}</mat-label>
-            <mat-chip-grid #chipList formControlName="supportedSRS">
-              <mat-chip-row
-                *ngFor="let srs of this.entityForm.get('supportedSRS')?.value"
-                [removable]="canRemoveProjections"
-                (removed)="removeProjection(srs)">
-                {{ srs }}
-                <button matChipRemove>
-                  <mat-icon>cancel</mat-icon>
-                </button>
-              </mat-chip-row>
-              <input
-                [matChipInputFor]="chipList"
-                [matChipInputSeparatorKeyCodes]="separatorKeysCodesForProjections"
-                [matChipInputAddOnBlur]="addProjectionsOnBlur"
-                (matChipInputTokenEnd)="addProjection($event)"
-              />
-            </mat-chip-grid>
-            <mat-hint align="end">{{ entityForm.get('supportedSRS') | characterCount:250 }}</mat-hint>
-          </mat-form-field>
+          <ng-container *appFeatureFlag="'SERVICES_CRS_LIST'">
+            <mat-form-field appearance="outline" class="full">
+              <mat-label>
+                <app-feature-flag
+                  [text]="'entity.service.projections' | translate"
+                  [flag]="'SERVICES_CRS_LIST'"
+                ></app-feature-flag>
+              </mat-label>
+              <mat-chip-grid #chipList formControlName="supportedSRS">
+                <mat-chip-row
+                  *ngFor="let srs of this.entityForm.get('supportedSRS')?.value"
+                  [removable]="canRemoveProjections"
+                  (removed)="removeProjection(srs)">
+                  {{ srs }}
+                  <button matChipRemove>
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </mat-chip-row>
+                <input
+                  [matChipInputFor]="chipList"
+                  [matChipInputSeparatorKeyCodes]="separatorKeysCodesForProjections"
+                  [matChipInputAddOnBlur]="addProjectionsOnBlur"
+                  (matChipInputTokenEnd)="addProjection($event)"
+                />
+              </mat-chip-grid>
+              <mat-hint align="start">{{ 'entity.service.hint.supportedSRS' | translate }}</mat-hint>
+              <mat-hint align="end">{{ entityForm.get('supportedSRS') | characterCount:250 }}</mat-hint>
+            </mat-form-field>
+          </ng-container>
           <mat-checkbox formControlName="isProxied">
             {{ 'entity.service.proxied' | translate }}
           </mat-checkbox>
@@ -106,32 +119,32 @@
       </mat-card>
 
       <mat-card class="sitmun-mat-card-margin" appearance="outlined">
-        <mat-card-content>
+        <mat-card-content class="sitmun-service-form-stack">
           <mat-form-field appearance="outline" class="quarter">
             <mat-label>{{ 'entity.service.authenticationMode' | translate }}</mat-label>
             <mat-select formControlName="authenticationMode" [placeholder]="'common.form.none' | translate">
-              <mat-option [value]="mode.value" *ngFor="let mode of this.codeList('service.authenticationMode')">
+              <mat-option [value]="mode.value" *ngFor="let mode of serviceAuthenticationModes">
                 {{ mode.description }}
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <div class="break"></div>
-          <mat-form-field appearance="outline"
-                          *ngIf="entityForm.get('authenticationMode').value !== 'None'"
-                          class="half add-gap"
+          <div
+            class="sitmun-service-form-auth-credentials"
+            *ngIf="entityForm.get('authenticationMode').value !== 'None'"
           >
-            <mat-label>{{ 'entity.service.user' | translate }}</mat-label>
-            <input matInput type="text" formControlName="user" [maxlength]="50">
-            <mat-hint align="end">{{ entityForm.get('user') | characterCount }}</mat-hint>
-          </mat-form-field>
-          <mat-form-field appearance="outline"
-                          *ngIf="entityForm.get('authenticationMode').value !== 'None'"
-                          class="half"
-          >
-            <mat-label>{{ 'entity.service.password' | translate }}</mat-label>
-            <input matInput [type]="'text'" formControlName="password" [maxlength]="50">
-            <mat-hint align="end">{{ entityForm.get('password') | characterCount }}</mat-hint>
-          </mat-form-field>
+            <mat-form-field appearance="outline" class="half">
+              <mat-label>{{ 'entity.service.user' | translate }}</mat-label>
+              <input matInput type="text" formControlName="user" [maxlength]="50">
+              <mat-hint align="start">{{ 'entity.service.hint.user' | translate }}</mat-hint>
+              <mat-hint align="end">{{ entityForm.get('user') | characterCount }}</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="half">
+              <mat-label>{{ 'entity.service.password' | translate }}</mat-label>
+              <input matInput [type]="'text'" formControlName="password" [maxlength]="50">
+              <mat-hint align="start">{{ 'entity.service.hint.password' | translate }}</mat-hint>
+              <mat-hint align="end">{{ entityForm.get('password') | characterCount }}</mat-hint>
+            </mat-form-field>
+          </div>
         </mat-card-content>
       </mat-card>
     </form>
@@ -177,31 +190,51 @@
       </mat-card-content>
     </mat-card>
   </mat-tab>
-  <mat-tab label="{{ 'entity.service.parameters.header' | translate }}">
-    <mat-card appearance="outlined">
-      <mat-card-content>
-        <app-data-grid [changeHeightButton]="true"
-                       [allNewElements]="isNewOrDuplicated()"
-                       [columnDefs]="parametersTable.relationsColumnsDefs"
-                       [getAll]='parametersTable.relationsFetchFn'
-                       [eventAddItemsSubscription]='parametersTable.addCommandEvent$.asObservable()'
-                       [eventGetAllRowsSubscription]='parametersTable.saveCommandEvent$.asObservable()'
-                       [eventRefreshSubscription]='parametersTable.refreshCommandEvent$.asObservable()'
-                       [actionButton]=true
-                       [discardChangesButton]=true
-                       [redoButton]=true
-                       [undoButton]=true
-                       [deleteButton]=true
-                       [newButton]=true
-                       [defaultColumnSorting]='parametersTable.defaultRelationsSorting()'
-                       (getAllRows)="parametersTable.handleSaveRelations($event)"
-                       (new)="parametersTable.openTemplateDialog('newParameterDialog')"
-                       (duplicate)='duplicateParameters($event)'
-                       *ngIf="dataLoaded">
-        </app-data-grid>
-      </mat-card-content>
-    </mat-card>
-  </mat-tab>
+  <ng-container *appFeatureFlag="'SERVICES_PARAMETERS_FEATURE'">
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <app-feature-flag
+          [text]="'entity.service.parameters.header' | translate"
+          [flag]="'SERVICES_PARAMETERS_FEATURE'"
+        ></app-feature-flag>
+      </ng-template>
+      <mat-card appearance="outlined" class="sitmun-service-form-parameters-card">
+        <mat-card-header>
+          <mat-card-subtitle class="sitmun-service-form-parameters-lead">
+            <span>
+              <strong>{{ 'entity.service.card.parametersLead.viewerPrefix' | translate }}</strong>
+              <span [innerHTML]="'entity.service.card.parametersLead.viewer' | translate"></span>
+            </span>
+            <span>
+              <strong>{{ 'entity.service.card.parametersLead.proxyPrefix' | translate }}</strong>
+              <span [innerHTML]="'entity.service.card.parametersLead.proxy' | translate"></span>
+            </span>
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <app-data-grid [changeHeightButton]="true"
+                         [allNewElements]="isNewOrDuplicated()"
+                         [columnDefs]="parametersTable.relationsColumnsDefs"
+                         [getAll]='parametersTable.relationsFetchFn'
+                         [eventAddItemsSubscription]='parametersTable.addCommandEvent$.asObservable()'
+                         [eventGetAllRowsSubscription]='parametersTable.saveCommandEvent$.asObservable()'
+                         [eventRefreshSubscription]='parametersTable.refreshCommandEvent$.asObservable()'
+                         [actionButton]=true
+                         [discardChangesButton]=true
+                         [redoButton]=true
+                         [undoButton]=true
+                         [deleteButton]=true
+                         [newButton]=true
+                         [defaultColumnSorting]='parametersTable.defaultRelationsSorting()'
+                         (getAllRows)="parametersTable.handleSaveRelations($event)"
+                         (new)="parametersTable.openTemplateDialog('newParameterDialog')"
+                         (duplicate)='duplicateParameters($event)'
+                         *ngIf="dataLoaded">
+          </app-data-grid>
+        </mat-card-content>
+      </mat-card>
+    </mat-tab>
+  </ng-container>
 </mat-tab-group>
 
 <ng-template #newParameterDialog>
@@ -219,14 +252,14 @@
           <mat-label>{{ 'common.form.type' | translate }}</mat-label>
           <mat-select formControlName="type" class="form-control" required>
             <mat-option [value]="parameterType.value"
-                        *ngFor="let parameterType of this.codeList('serviceParameter.type')">
-              {{ parameterType.description }}
+                        *ngFor="let parameterType of newParameterDialogParameterTypes()">
+              {{ serviceParameterTypeDescription(parameterType.value) }}
             </mat-option>
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline" class="full">
           <mat-label>{{ 'common.form.value' | translate }}</mat-label>
-          <input matInput type="text" formControlName="value" required [maxlength]="250">
+          <input matInput type="text" formControlName="value" [maxlength]="250">
           <mat-hint
             align="end">{{ parametersTable.templateDialog('newParameterDialog').form.get('value') | characterCount }}
           </mat-hint>
