@@ -27,7 +27,11 @@ export class TaskPropertiesBuilder {
   private _authenticationMode: string | null = null;
   private _user: string | null = null;
   private _password: string | null = null;
+  private _apiKeyType: string | null = null;
   private _headers: Record<string, string> | null = null;
+  private _queryParams: Record<string, string> | null = null;
+  private _mimeType: string | null = null;
+  private _filename: string | null = null;
 
   /**
    * Creates a new TaskPropertiesBuilder
@@ -54,10 +58,14 @@ export class TaskPropertiesBuilder {
       .withPath(asString(p.path))
       .withParameters(TaskPropertiesContract.getParameters(properties))
       .withFields(TaskPropertiesContract.getFields(properties))
-      .withAuthenticationMode(asString(p.authenticationMode))
-      .withUser(asString(p.user))
-      .withPassword(asString(p.password))
-      .withHeaders(asHeaders(p.headers));
+      .withAuthenticationMode(TaskPropertiesContract.getAuthenticationMode(properties))
+      .withUser(TaskPropertiesContract.getUser(properties))
+      .withPassword(TaskPropertiesContract.getPassword(properties))
+      .withApiKeyType(TaskPropertiesContract.getApiKeyType(properties))
+      .withHeaders(asHeaders(p.headers))
+      .withQueryParams(asHeaders(p.queryParams))
+      .withMimeType(TaskPropertiesContract.getMimeType(properties))
+      .withFilename(TaskPropertiesContract.getFilename(properties));
   }
 
   /**
@@ -151,12 +159,52 @@ export class TaskPropertiesBuilder {
   }
 
   /**
+   * Sets the API key type ('X-API-Key', 'Cookie' or 'QueryParam')
+   * @param apiKeyType The API key type value
+   * @returns This builder for chaining
+   */
+  public withApiKeyType(apiKeyType: string | null): TaskPropertiesBuilder {
+    this._apiKeyType = apiKeyType;
+    return this;
+  }
+
+  /**
    * Sets the HTTP headers
    * @param headers The headers map
    * @returns This builder for chaining
    */
   public withHeaders(headers: Record<string, string> | null): TaskPropertiesBuilder {
     this._headers = headers;
+    return this;
+  }
+
+  /**
+   * Sets the query parameters map
+   * @param queryParams The query parameters map
+   * @returns This builder for chaining
+   */
+  public withQueryParams(queryParams: Record<string, string> | null): TaskPropertiesBuilder {
+    this._queryParams = queryParams;
+    return this;
+  }
+
+  /**
+   * Sets the response MIME type
+   * @param mimeType The MIME type value
+   * @returns This builder for chaining
+   */
+  public withMimeType(mimeType: string | null): TaskPropertiesBuilder {
+    this._mimeType = mimeType;
+    return this;
+  }
+
+  /**
+   * Sets the resource filename
+   * @param filename The filename value
+   * @returns This builder for chaining
+   */
+  public withFilename(filename: string | null): TaskPropertiesBuilder {
+    this._filename = filename;
     return this;
   }
 
@@ -197,8 +245,24 @@ export class TaskPropertiesBuilder {
       password: this._password,
     };
 
+    if (this._apiKeyType) {
+      properties.apiKeyType = this._apiKeyType;
+    }
+
+    if (this._mimeType) {
+      properties.mimeType = this._mimeType;
+    }
+
+    if (this._filename) {
+      properties.filename = this._filename;
+    }
+
     if (this._headers && Object.keys(this._headers).length > 0) {
       properties.headers = {...this._headers};
+    }
+
+    if (this._queryParams && Object.keys(this._queryParams).length > 0) {
+      properties.queryParams = {...this._queryParams};
     }
 
     return properties;

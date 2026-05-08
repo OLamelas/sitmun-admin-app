@@ -16,7 +16,7 @@ import { GetInfoService } from '@app/domain/getInfo';
 import { MapConfigurationManagerService } from '@app/domain/map';
 import { RoleService } from '@app/domain/role';
 import { ServiceParameterService , ServiceService } from '@app/domain/service';
-import { TaskAvailabilityService , TaskGroupService , TaskTypeService , TaskUIService , TaskService } from '@app/domain/task';
+import { TaskAvailabilityService , TaskGroupService , TaskRelationService , TaskTypeService , TaskUIService , TaskService } from '@app/domain/task';
 import { TerritoryGroupTypeService , TerritoryTypeService , TerritoryService } from '@app/domain/territory';
 import { LanguageService , TranslationService } from '@app/domain/translation';
 import { TreeNodeService , TreeService } from '@app/domain/tree';
@@ -49,6 +49,7 @@ export class DomainModule {
         UserService,
         ConnectionService,
         TaskService,
+        TaskRelationService,
         TaskTypeService,
         TaskUIService,
         TaskGroupService,

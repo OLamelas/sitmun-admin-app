@@ -43,11 +43,12 @@ describe('TaskMoreInfoFormComponent', () => {
       createSpyObj(['getAllByName']) as any,
       createSpyObj(['error', 'warn', 'debug', 'info']) as any,
       createSpyObj(['handleError']) as any,
-      {params: new FormControl({})} as any,
+      { params: new FormControl({}) } as any,
       createSpyObj(['navigate']) as any,
       createSpyObj(['show', 'hide']) as any,
       createSpyObj(['enable', 'disable']) as any,
       createSpyObj(['create', 'update', 'getProjection', 'createProxy']) as any,
+      createSpyObj(['getAllEx', 'create', 'update', 'delete', 'createProxy']) as any,
       createSpyObj(['getAllEx']) as any,
       createSpyObj(['getAllEx', 'createProxy']) as any,
       createSpyObj(['getAll', 'createProxy']) as any,
@@ -55,154 +56,53 @@ describe('TaskMoreInfoFormComponent', () => {
       utilsService as any,
       createSpyObj(['getAll']) as any,
       createSpyObj(['getAllProjection', 'createProxy']) as any,
-      createSpyObj(['create', 'delete', 'createProxy']) as any,
-      createSpyObj(['getAll', 'createProxy']) as any,
       createSpyObj(['get']) as any
     ));
 
+    (component as any).taskService.createProxy.mockImplementation((id: number) => ({ id }));
+
     (component as any).cartographies = [
-      {id: 10, name: 'Base map'},
-      {id: 11, name: 'Ortofoto'}
+      { id: 10, name: 'Base map' },
+      { id: 11, name: 'Ortofoto' }
     ];
-    (component as any).taskGroupList = [{id: 1, name: 'Group A'}];
-    (component as any).connections = [{id: 5, name: 'Main Connection'}];
+    (component as any).taskGroupList = [{ id: 1, name: 'Group A' }];
+    (component as any).queryTasks = [
+      { id: 7, name: 'SQL details', typeId: 5, properties: { scope: 'sql-query' } },
+      { id: 8, name: 'API details', typeId: 5, properties: { scope: 'web-api-query' } }
+    ];
   });
 
-  const setupForm = (properties: any = {}) => {
-    jest.spyOn(component as any, 'defaultValueOrNull').mockReturnValue({value: 'BASIC'});
+  const setupForm = (selectedQueryTaskId: number | null = 7, properties: any = {}) => {
     component.entityToEdit = {
       name: 'Task more info',
       groupId: 1,
       cartographyId: 10,
-      connectionId: 5,
       properties
     } as any;
+    (component as any).selectedQueryTaskId = selectedQueryTaskId;
 
     component.postFetchData();
   };
 
-  it('should create form with mapped legacy api scope', () => {
-    setupForm({
-      dataAccessType: 'api',
-      command: '/endpoint'
-    });
+  it('should create form with selected query task and cartography', () => {
+    setupForm();
 
-    expect(component.entityForm.get('scope')?.value).toBe('API');
-    expect(component.entityForm.get('command')?.value).toBe('/endpoint');
-    expect(component.entityForm.get('authenticationMode')?.value).toBe('BASIC');
+    expect(component.entityForm.get('queryTaskId')?.value).toBe(7);
+    expect(component.entityForm.get('cartographyId')?.value).toBe(10);
+    expect((component as any).cartographySearchControl.value).toEqual({ id: 10, name: 'Base map' });
   });
 
-  it('should initialize cartography search value from selected cartography', () => {
-    setupForm({scope: 'SQL', command: 'select * from table'});
-
-    expect((component as any).cartographySearchControl.value).toEqual({id: 10, name: 'Base map'});
-  });
-
-  it('should return names for task group and connection', () => {
+  it('should return names for task group and linked query task', () => {
     expect(component.getTaskGroupName(1)).toBe('Group A');
-    expect(component.getConnectionName(5)).toBe('Main Connection');
+    expect((component as any).getQueryTaskName(7)).toBe('SQL details');
     expect(component.getTaskGroupName(999)).toBe('');
-    expect(component.getConnectionName(999)).toBe('');
-  });
-
-  it('should detect current access type from scope', () => {
-    setupForm({scope: 'SQL', command: 'select 1'});
-    expect(component.isSqlAccessType()).toBeTruthy();
-    expect(component.isApiAccessType()).toBeFalsy();
-    expect(component.isUrlRedirectAccessType()).toBeFalsy();
-
-    component.entityForm.get('scope')?.setValue('API');
-    expect(component.isApiAccessType()).toBeTruthy();
-
-    component.entityForm.get('scope')?.setValue('URL');
-    expect(component.isUrlRedirectAccessType()).toBeTruthy();
-  });
-
-  it('should show command hint when parameter count does not match', () => {
-    setupForm({
-      scope: 'API',
-      command: '/service/${id}/${code}',
-      parameters: [{label: 'id'}]
-    });
-
-    expect((component as any).shouldShowCommandAlertHint()).toBeTruthy();
-  });
-
-  it('should hide command hint when command parameters match declaration', () => {
-    setupForm({
-      scope: 'API',
-      command: '/service/${id}/${code}',
-      parameters: [{label: 'id'}, {label: 'code'}]
-    });
-
-    expect((component as any).shouldShowCommandAlertHint()).toBeFalsy();
-  });
-
-  it('should reset api credentials when scope changes from API', () => {
-    setupForm({scope: 'API', command: '/service/${id}', authenticationMode: 'BASIC', user: 'u', password: 'p'});
-
-    component.onScopeChange({value: 'SQL'} as any);
-
-    expect(component.entityForm.get('authenticationMode')?.value).toBeNull();
-    expect(component.entityForm.get('user')?.value).toBeNull();
-    expect(component.entityForm.get('password')?.value).toBeNull();
-  });
-
-  it('should reset connection and apply default auth mode when changing to API', () => {
-    setupForm({scope: 'SQL', command: 'select * from t'});
-    component.entityForm.get('connectionId')?.setValue(5);
-    component.entityForm.get('authenticationMode')?.setValue(null);
-
-    component.onScopeChange({value: 'API'} as any);
-
-    expect(component.entityForm.get('connectionId')?.value).toBeNull();
-    expect(component.entityForm.get('authenticationMode')?.value).toBe('BASIC');
-  });
-
-  it('should initialize api key controls from headers', () => {
-    setupForm({
-      scope: 'API',
-      command: '/service',
-      headers: {
-        'X-API-Key': 'secret-key'
-      }
-    });
-
-    expect(component.entityForm.get('addApiKey')?.value).toBeTruthy();
-    expect(component.entityForm.get('apiKey')?.value).toBe('secret-key');
-  });
-
-  it('should include X-API-Key header when checkbox is checked', () => {
-    setupForm({scope: 'API', command: '/service'});
-    component.entityForm.get('addApiKey')?.setValue(true);
-    component.entityForm.get('apiKey')?.setValue('my-api-key');
-
-    const task = component.createObject();
-
-    expect(task.properties?.headers?.['X-API-Key']).toBe('my-api-key');
-  });
-
-  it('should remove X-API-Key header when checkbox is unchecked', () => {
-    setupForm({
-      scope: 'API',
-      command: '/service',
-      headers: {
-        'X-API-Key': 'old-key',
-        Authorization: 'Bearer token'
-      }
-    });
-    component.entityForm.get('addApiKey')?.setValue(false);
-
-    const task = component.createObject();
-
-    expect(task.properties?.headers?.['X-API-Key']).toBeUndefined();
-    expect((task.properties?.headers as Record<string, string>)?.['Authorization']).toBe('Bearer token');
+    expect((component as any).getQueryTaskName(999)).toBe('');
   });
 
   it('should update cartography id and search value on selection', () => {
-    setupForm({scope: 'SQL', command: 'select 1'});
+    setupForm();
 
-    const selected = {id: 11, name: 'Ortofoto'};
+    const selected = { id: 11, name: 'Ortofoto' };
     (component as any).cartographySearchControl.setValue(selected);
     component.onCartographySelected({
       option: { value: selected }
@@ -210,5 +110,37 @@ describe('TaskMoreInfoFormComponent', () => {
 
     expect(component.entityForm.get('cartographyId')?.value).toBe(11);
     expect((component as any).cartographySearchControl.value).toEqual(selected);
+  });
+
+  it('should filter selectable query tasks excluding only cartography query tasks', () => {
+    const tasks = [
+      { id: 1, typeId: 5, cartographyId: 11, properties: { scope: 'cartography-query' } },
+      { id: 2, typeId: 5, cartographyId: null, properties: { scope: 'sql-query' } },
+      { id: 3, typeId: 5, cartographyId: null, properties: { scope: 'web-api-query' } },
+      { id: 4, typeId: 5, cartographyId: null, properties: { scope: 'URL' } },
+      { id: 5, typeId: 1, cartographyId: null, properties: { scope: 'basic' } }
+    ] as any[];
+
+    const filtered = (component as any).filterSelectableQueryTasks(tasks);
+
+    expect(filtered.map((task: any) => task.id)).toEqual([2, 3, 4]);
+  });
+
+  it('should build a task relation that links more-info to the selected query task', () => {
+    const relation = (component as any).buildQueryTaskRelation(42, 7);
+
+    expect(relation.relationType).toBe('query-task');
+    expect(relation.task?.id).toBe(42);
+    expect(relation.relatedTask?.id).toBe(7);
+  });
+
+  it('should not expose provided field in more-info parameter dialog anymore', () => {
+    (component as any).newParameterDialog = {} as any;
+
+    const dialog = (component as any).parametersTable.templateDialog('newParameterDialog');
+    const fields = (component as any).parametersTable.relationsColumnsDefs.map((column: any) => column.field);
+
+    expect(dialog.form.contains('provided')).toBe(false);
+    expect(fields).not.toContain('provided');
   });
 });
