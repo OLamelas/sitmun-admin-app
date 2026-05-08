@@ -1,5 +1,5 @@
-import {Component, TemplateRef, ViewChild} from "@angular/core";
 import {HttpClient} from "@angular/common/http";
+import {Component, TemplateRef, ViewChild} from "@angular/core";
 import {FormControl, FormGroup, Validators} from "@angular/forms";
 import {MatDialog} from "@angular/material/dialog";
 import {MatSelectChange} from "@angular/material/select";
@@ -50,8 +50,8 @@ import {ErrorHandlerService} from "@app/services/error-handler.service";
 import {LoadingOverlayService} from "@app/services/loading-overlay.service";
 import {LoggerService} from "@app/services/logger.service";
 import {UtilsService} from "@app/services/utils.service";
-import {environment} from "@environments/environment";
 import {magic} from "@environments/constants";
+import {environment} from "@environments/environment";
 
 /**
  * Component for managing query tasks in the SITMUN application.
