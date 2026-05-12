@@ -20,7 +20,7 @@ import {
 import {SitmunFrontendGuiModule} from '@app/frontend-gui/src/lib/public_api';
 import {MaterialModule} from '@app/material-module';
 import {LoggerService} from '@app/services/logger.service';
-import {configureLoggerForTests} from '@app/testing/test-helpers';
+import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing/test-helpers';
 
 import {ApplicationFormComponent} from './application-form.component';
 
@@ -52,7 +52,7 @@ describe('ApplicationFormComponent', () => {
             })
           }
         })],
-      providers: [ApplicationService, ApplicationBackgroundService, RoleService, ApplicationParameterService, TreeService,
+      providers: [provideErrorHandlerForTests(), ApplicationService, ApplicationBackgroundService, RoleService, ApplicationParameterService, TreeService,
         BackgroundService, CodeListService, CartographyGroupService, TranslationService, ResourceService, ExternalService, UserService,
         {provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService},]
     })

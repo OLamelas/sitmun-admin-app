@@ -168,11 +168,11 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
     this.cartographies = cartographies;
     this.queryTasks = this.filterSelectableQueryTasks(queryTasks)
       .sort((left, right) => (left.name || '').localeCompare(right.name || ''));
-    this.moreInfoUI = uiList.find(ui => ui.name === 'sitna.moreInfo');
+    this.moreInfoUI = uiList.find(ui => ui.name === 'sitmun.moreInfo');
     if (!this.moreInfoUI) {
-      this.loggerService.error('UI control "sitna.moreInfo" not found in database - task will not be identified correctly');
+      this.loggerService.error('UI control "sitmun.moreInfo" not found in database - task will not be identified correctly');
     } else {
-      this.loggerService.info(`UI control "sitna.moreInfo" loaded with ID: ${this.moreInfoUI.id}`);
+      this.loggerService.info(`UI control "sitmun.moreInfo" loaded with ID: ${this.moreInfoUI.id}`);
     }
   }
 
@@ -496,7 +496,6 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
       }
       const scope = String(task.properties?.scope || '').toLowerCase();
       return scope !== this.codeValues.queryTaskScope.cartographyQuery
-        && scope !== this.codeValues.queryTaskScope.resource
         && !task.cartographyId;
     });
   }
@@ -536,7 +535,12 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
 
     const relations = await firstValueFrom(this.entityToEdit.getRelationArrayEx(TaskRelation, 'relations'));
     const matchingRelations = relations.filter(relation => relation.relationType === this.queryTaskRelationType);
-    const currentRelation = this.selectedQueryTaskRelation || matchingRelations[0] || null;
+
+    // Locate the current relation by ID inside the freshly-fetched list to avoid
+    // reference-equality mismatches that would cause all relations to be deleted.
+    const currentRelationId = this.selectedQueryTaskRelation?.id ?? null;
+    const matchById = currentRelationId === null ? undefined : matchingRelations.find(r => r.id === currentRelationId);
+    const currentRelation = matchById ?? matchingRelations[0] ?? null;
 
     for (const relation of matchingRelations.filter(relation => relation !== currentRelation)) {
       await firstValueFrom(this.taskRelationService.delete(relation));
@@ -547,8 +551,8 @@ export class TaskMoreInfoFormComponent extends BaseFormComponent<TaskProjection>
       return;
     }
 
-    const relatedTask = await firstValueFrom(currentRelation.getRelationEx(Task, 'relatedTask'));
-    if (relatedTask?.id === queryTaskId) {
+    // Use the stored selectedQueryTaskId to avoid an extra API round-trip.
+    if (this.selectedQueryTaskId === queryTaskId) {
       return;
     }
 

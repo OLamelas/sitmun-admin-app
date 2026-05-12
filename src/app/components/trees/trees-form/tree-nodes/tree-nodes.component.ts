@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, TemplateRef, ViewChild} from '@angular/core';
+import {ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, TemplateRef, ViewChild} from '@angular/core';
 import {FormControl, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 import {MatAutocompleteSelectedEvent} from '@angular/material/autocomplete';
 import {MatDialog} from '@angular/material/dialog';
@@ -61,7 +61,7 @@ interface TreeNodeTaskInputParameter {
     styleUrls: ['./tree-nodes.component.scss'],
     standalone: false
 })
-export class TreeNodesComponent implements OnInit, OnDestroy {
+export class TreeNodesComponent implements OnInit, OnDestroy, OnChanges {
   @Input() tree: Tree;
   @Input() entityID = -1;
   @Input() duplicateID = -1;
@@ -70,6 +70,11 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
   @Input() loadDataButton$: Observable<boolean> = of(true);
 
   @Output() saveRequested: EventEmitter<TreeNode[]> = new EventEmitter<TreeNode[]>();
+
+  /**
+   * After duplicating, cloned nodes are pendingCreation until first save; that must not enable Save until the user edits structure.
+   */
+  private duplicateStructureUserTouched = false;
 
   treeNodeForm: UntypedFormGroup;
   public fieldsConfigForm: UntypedFormGroup;
@@ -304,6 +309,35 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
         this.saveRequested.emit(nodes);
       }
     });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      (changes['duplicateID'] && !changes['duplicateID'].firstChange) ||
+      (changes['entityID'] && !changes['entityID'].firstChange)
+    ) {
+      this.duplicateStructureUserTouched = false;
+    }
+  }
+
+  /** Data-tree notifies real user mutations (edit payload, DnD, delete, etc.). */
+  onStructureMutatedFromDataTree(): void {
+    this.markDuplicateStructureUserTouched();
+  }
+
+  private markDuplicateStructureUserTouched(): void {
+    if (this.entityID === -1 && this.duplicateID !== -1) {
+      this.duplicateStructureUserTouched = true;
+    }
+  }
+
+  /**
+   * Same as {@link hasUnsavedChanges} except duplicate sessions ignore imported pendingCreation until the user mutates the tree.
+   */
+  hasUnsavedChangesForToolbar(): boolean {
+    const isDup = this.entityID === -1 && this.duplicateID !== -1;
+    const raw = this.hasUnsavedChanges();
+    return raw && (!isDup || this.duplicateStructureUserTouched);
   }
 
   /**
@@ -1684,6 +1718,7 @@ export class TreeNodesComponent implements OnInit, OnDestroy {
       newFolder.description = newFolder.description.substring(0, 249);
     }
 
+    // Tree node stores a single URL; WMS may repeat MetadataURL/DataURL — keep first only.
     if (capability.MetadataURL != undefined) {
       const metadataURL = Array.isArray(capability.MetadataURL) ? capability.MetadataURL[0] : capability.MetadataURL;
       newFolder.metadataURL = metadataURL.OnlineResource['xlink:href'];

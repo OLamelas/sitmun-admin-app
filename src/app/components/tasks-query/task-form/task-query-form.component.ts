@@ -1,5 +1,5 @@
-import {Component, TemplateRef, ViewChild} from "@angular/core";
 import {HttpClient} from "@angular/common/http";
+import {Component, TemplateRef, ViewChild} from "@angular/core";
 import {FormControl, FormGroup, Validators} from "@angular/forms";
 import {MatDialog} from "@angular/material/dialog";
 import {MatSelectChange} from "@angular/material/select";
@@ -50,8 +50,8 @@ import {ErrorHandlerService} from "@app/services/error-handler.service";
 import {LoadingOverlayService} from "@app/services/loading-overlay.service";
 import {LoggerService} from "@app/services/logger.service";
 import {UtilsService} from "@app/services/utils.service";
-import {environment} from "@environments/environment";
 import {magic} from "@environments/constants";
+import {environment} from "@environments/environment";
 
 /**
  * Component for managing query tasks in the SITMUN application.
@@ -182,6 +182,10 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
     return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.webApiQuery;
   }
 
+  isWebApiQueryNoProxyScope(): boolean {
+    return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.webApiQueryNoProxy;
+  }
+
   /**
    * Checks if the current task scope is Cartography query
    * @returns boolean indicating if scope is Cartography query
@@ -192,10 +196,6 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
 
   isUrlQueryScope(): boolean {
     return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.urlQuery;
-  }
-
-  isResourceQueryScope(): boolean {
-    return this.entityForm?.value?.scope === this.codeValues.queryTaskScope.resource;
   }
 
   /**
@@ -521,6 +521,24 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
    */
   configureForm(value: string) {
     const scope = this.codeValues?.queryTaskScope;
+
+    // Sweep and reset provided flags when changing to non-proxied scopes
+    const isDirectScope = value === scope?.webApiQueryNoProxy || value === scope?.urlQuery;
+    if (isDirectScope) {
+      const parameters = this.entityForm.get('properties')?.get('parameters')?.value;
+      if (parameters && Array.isArray(parameters)) {
+        let hadProvidedParams = false;
+        parameters.forEach((param: any) => {
+          if (param.provided === true) {
+            param.provided = false;
+            hadProvidedParams = true;
+          }
+        });
+        if (hadProvidedParams) {
+          console.warn(`Scope changed to ${value}. All provided parameters have been reset to false (direct-execution scopes do not support backend variables).`);
+        }
+      }
+    }
     if (value === scope?.sqlQuery) {
       this.entityForm.get('command').enable({ emitEvent: false });
       this.entityForm.get('connectionId').enable({ emitEvent: false });
@@ -576,10 +594,28 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('apiKeyType')?.enable({ emitEvent: false });
       this.entityForm.get('apiKeyKeyName')?.enable({ emitEvent: false });
       this.entityForm.get('apiKeyHeaderValue')?.enable({ emitEvent: false });
-      this.entityForm.get('mimeType')?.setValue(null);
-      this.entityForm.get('mimeType')?.disable({ emitEvent: false });
-      this.entityForm.get('filename')?.setValue(null);
-      this.entityForm.get('filename')?.disable({ emitEvent: false });
+      this.entityForm.get('mimeType')?.enable({ emitEvent: false });
+      this.entityForm.get('filename')?.enable({ emitEvent: false });
+    } else if (value === scope?.webApiQueryNoProxy) {
+      this.entityForm.get('command').enable({ emitEvent: false });
+      this.entityForm.get('connectionId').setValue(null);
+      this.entityForm.get('connectionId').disable({ emitEvent: false });
+      this.entityForm.get('cartographyId').setValue(null);
+      this.entityForm.get('cartographyId').disable({ emitEvent: false });
+      this.entityForm.get('authenticationMode')?.setValue(null);
+      this.entityForm.get('authenticationMode')?.disable({ emitEvent: false });
+      this.entityForm.get('user')?.setValue(null);
+      this.entityForm.get('user')?.disable({ emitEvent: false });
+      this.entityForm.get('password')?.setValue(null);
+      this.entityForm.get('password')?.disable({ emitEvent: false });
+      this.entityForm.get('apiKeyType')?.setValue(null);
+      this.entityForm.get('apiKeyType')?.disable({ emitEvent: false });
+      this.entityForm.get('apiKeyKeyName')?.setValue(null);
+      this.entityForm.get('apiKeyKeyName')?.disable({ emitEvent: false });
+      this.entityForm.get('apiKeyHeaderValue')?.setValue(null);
+      this.entityForm.get('apiKeyHeaderValue')?.disable({ emitEvent: false });
+      this.entityForm.get('mimeType')?.enable({ emitEvent: false });
+      this.entityForm.get('filename')?.enable({ emitEvent: false });
     } else if (value === scope?.urlQuery) {
       this.entityForm.get('command').enable({ emitEvent: false });
       this.entityForm.get('connectionId').setValue(null);
@@ -602,27 +638,8 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
       this.entityForm.get('mimeType')?.disable({ emitEvent: false });
       this.entityForm.get('filename')?.setValue(null);
       this.entityForm.get('filename')?.disable({ emitEvent: false });
-    } else if (value === scope?.resource) {
-      this.entityForm.get('command').enable({ emitEvent: false });
-      this.entityForm.get('connectionId').setValue(null);
-      this.entityForm.get('connectionId').disable({ emitEvent: false });
-      this.entityForm.get('cartographyId').setValue(null);
-      this.entityForm.get('cartographyId').disable({ emitEvent: false });
-      this.entityForm.get('authenticationMode')?.setValue(null);
-      this.entityForm.get('authenticationMode')?.disable({ emitEvent: false });
-      this.entityForm.get('user')?.setValue(null);
-      this.entityForm.get('user')?.disable({ emitEvent: false });
-      this.entityForm.get('password')?.setValue(null);
-      this.entityForm.get('password')?.disable({ emitEvent: false });
-      this.entityForm.get('apiKeyType')?.setValue(null);
-      this.entityForm.get('apiKeyType')?.disable({ emitEvent: false });
-      this.entityForm.get('apiKeyKeyName')?.setValue(null);
-      this.entityForm.get('apiKeyKeyName')?.disable({ emitEvent: false });
-      this.entityForm.get('apiKeyHeaderValue')?.setValue(null);
-      this.entityForm.get('apiKeyHeaderValue')?.disable({ emitEvent: false });
-      this.entityForm.get('mimeType')?.enable({ emitEvent: false });
-      this.entityForm.get('filename')?.enable({ emitEvent: false });
     } else {
+      console.error(`Unknown task query scope type: ${value}. Expected one of: sql-query, cartography-query, web-api-query, web-api-query-no-proxy, external-link`);
       this.entityForm.get('command').setValue(null);
       this.entityForm.get('command').disable({ emitEvent: false });
       this.entityForm.get('connectionId').setValue(null);
@@ -814,6 +831,7 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
         this.utils.getNonEditableColumnDef('common.form.value', 'value'),
         this.utils.getNonEditableColumnWithCodeListDef('common.form.type', 'type', () => this.codeList('queryTask.parameterType')),
         this.utils.addConditionToColumnDef(this.utils.getBooleanColumnDef('common.form.required', 'required', true), (params) => params.data.type === TaskParameterType.QUERY),
+        this.utils.addConditionToColumnDef(this.utils.getBooleanColumnDef('entity.task.parameters.provided', 'provided', false), (params) => params.data.type === TaskParameterType.QUERY),
         this.utils.getStatusColumnDef()])
       .withRelationsOrder('name')
       .withRelationsFetcher(() => {
@@ -856,9 +874,13 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
             validators: [Validators.required],
             nonNullable: true
           }),
+          provided: new FormControl(false, {
+            validators: [],
+            nonNullable: true
+          }),
         })).withPreOpenFunction((form: FormGroup) => {
           const defaultType = this.defaultValueOrNull('queryTask.parameterType');
-          form.reset({type: defaultType?.value || null});
+          form.reset({type: defaultType?.value || null, provided: false});
         }).build())
       .withTargetToRelation((items: TaskQueryParameter[]) => items.map(item => TaskQueryParameter.fromObject(item)))
       .withRelationsDuplicate(item => TaskQueryParameter.fromObject(item))
@@ -867,5 +889,21 @@ export class TaskQueryFormComponent extends BaseFormComponent<TaskProjection> {
 
   getTaskGroupName(taskGroupId: number): string {
       return this.taskGroupList.find(group => group.id === taskGroupId)?.name || '';
+  }
+
+  /**
+   * Checks if the current task scope allows provided parameters.
+   * Provided parameters (backend-only variables) are only supported for proxied scopes.
+   * @returns true if scope is sql-query, web-api-query, or cartography-query; false otherwise
+   */
+  protected canHaveProvidedParameters(): boolean {
+    const scope = this.entityForm?.get('scope')?.value;
+    if (!scope) {
+      return false;
+    }
+    const scopeValues = this.codeValues?.queryTaskScope;
+    return scope === scopeValues?.sqlQuery
+      || scope === scopeValues?.webApiQuery
+      || scope === scopeValues?.cartographyQuery;
   }
 }

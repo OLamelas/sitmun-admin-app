@@ -196,6 +196,15 @@ export class TaskEditFormComponent extends BaseFormComponent<TaskProjection> {
   }
 
   /**
+   * Checks if the current task scope allows provided parameters.
+   * Provided parameters (backend-only variables) are supported for proxied scopes.
+   * @returns true if scope is db-edition or cartography-edition; false otherwise
+   */
+  protected canHaveProvidedParameters(): boolean {
+    return this.isDBEditionScope() || this.isCartographyEditionScope();
+  }
+
+  /**
    * Constructor for the TaskBasicFormComponent.
    * Initializes the component with necessary services and sets up the form.
    *
@@ -642,10 +651,11 @@ export class TaskEditFormComponent extends BaseFormComponent<TaskProjection> {
       .withRelationsColumns([
         this.utils.getSelCheckboxColumnDef(),
         this.utils.getEditableColumnDef('common.form.name', 'name'),
-        this.utils.getNonEditableColumnDef('common.form.type', 'type'),
+        this.utils.getEditableColumnDef('common.form.label', 'label'),
+        this.utils.getNonEditableColumnDef('common.form.value', 'value'),
         this.utils.getNonEditableColumnWithCodeListDef('common.form.type', 'type', () => this.codeList('queryTask.parameterType')),
         this.utils.addConditionToColumnDef(this.utils.getBooleanColumnDef('common.form.required', 'required', true), (params) => params.data.type === TaskParameterType.QUERY),
-        this.utils.getBooleanColumnDef('entity.task.parameters.provided', 'provided', true),
+        this.utils.addConditionToColumnDef(this.utils.getBooleanColumnDef('entity.task.parameters.provided', 'provided', false), (params) => params.data.type === TaskParameterType.QUERY),
         this.utils.getStatusColumnDef()])
       .withRelationsOrder('name')
       .withRelationsFetcher(() => {

@@ -291,6 +291,13 @@
           <mat-label>{{ 'common.form.required' | translate }}</mat-label>
           <mat-checkbox formControlName="required">
           </mat-checkbox>
+          <br/>
+          <mat-label>{{ 'entity.task.parameters.provided' | translate }}</mat-label>
+          <mat-checkbox formControlName="provided" [disabled]="!canHaveProvidedParameters()">
+          </mat-checkbox>
+          <div *ngIf="!canHaveProvidedParameters()" style="margin-top: 4px; font-size: 0.85em; color: #999;">
+            {{ 'entity.task.parameters.providedHint' | translate }}
+          </div>
         </ng-container>
       </mat-card-content>
     </mat-card>

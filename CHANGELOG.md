@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-05-08
+
 ### Added
 
 - Functional route guard (`authGuard`, `CanActivateFn`) on the authenticated layout so access to the shell waits on a resolved identity from `Principal`.
@@ -25,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - ESLint `import/order` in `tree-node.service.spec.ts` and an unused spy binding in `data-tree.component.spec.ts` so `ng lint` passes in CI.
+- Tree duplication: Save stays consistent when switching tabs (`canSave` matches `canSaveEntity`); Save is not enabled solely because the form is a duplicate—it follows real edits (form, grids, translations, or tree node pending changes). Saving from any tab still persists header and structure together (sitmun-admin-app#392).
+- Task forms: align parameter modals and fix duplicate columns in task-edit grid.
 
 ## [1.2.5] - 2026-03-11
 
@@ -257,7 +261,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Various bug fixes and improvements from development phase
 
-[Unreleased]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.5...HEAD
+[Unreleased]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.6...HEAD
+[1.2.6]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.5...sitmun-admin-app/1.2.6
 [1.2.5]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.4...sitmun-admin-app/1.2.5
 [1.2.4]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.3...sitmun-admin-app/1.2.4
 [1.2.3]: https://github.com/sitmun/sitmun-admin-app/compare/sitmun-admin-app/1.2.2...sitmun-admin-app/1.2.3

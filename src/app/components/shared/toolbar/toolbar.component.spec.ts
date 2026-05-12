@@ -5,7 +5,7 @@ import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 
 import { SystemInfoMenuComponent } from '@app/components/shared/system-info-menu/system-info-menu.component';
 import { AccountService } from '@app/core/account/account.service';
@@ -13,7 +13,8 @@ import { AuthService } from '@app/core/auth/auth.service';
 import { LoginService } from '@app/core/auth/login.service';
 import { Principal } from '@app/core/auth/principal.service';
 import { ExternalConfigurationService } from '@app/core/config/external-configuration.service';
-import {ExternalService, ResourceService} from '@app/core/hal/services';
+import { ExternalService, ResourceService } from '@app/core/hal/services';
+import { User } from '@app/domain';
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
 
@@ -30,7 +31,16 @@ describe('ToolbarComponent', () => {
   let resourceService: ResourceService;
   let externalService: ExternalService;
 
+  const mockUser = { id: 1, username: 't', firstName: 'T', lastName: 'U' } as User;
+  let authStateSubject: BehaviorSubject<unknown>;
+
   beforeEach(async () => {
+    authStateSubject = new BehaviorSubject<unknown>(null);
+    const principalStub = {
+      getAuthenticationState: jest.fn(() => authStateSubject.asObservable()),
+      identity: jest.fn(() => Promise.resolve(mockUser))
+    };
+
     await TestBed.configureTestingModule({
       declarations: [ ToolbarComponent, SystemInfoMenuComponent ],
       imports: [
@@ -52,7 +62,7 @@ describe('ToolbarComponent', () => {
       providers: [
         LoginService,
         AuthService,
-        Principal,
+        { provide: Principal, useValue: principalStub },
         AccountService,
         ResourceService,
         ExternalService,

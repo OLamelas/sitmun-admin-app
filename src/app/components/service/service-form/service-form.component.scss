@@ -1,0 +1,74 @@
+// Details tab: even vertical rhythm (avoids margin-collapse between mat-form-field,
+// raised actions, and checkboxes).
+:host form.sitmun-service-form-entity mat-card-content.sitmun-service-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+:host form.sitmun-service-form-entity mat-card-content.sitmun-service-form-stack mat-form-field {
+  margin-bottom: 0;
+}
+
+:host form.sitmun-service-form-entity mat-card-content.sitmun-service-form-stack .sitmun-service-form-metadata-button {
+  margin-top: 0;
+  margin-bottom: 0;
+  align-self: flex-start;
+}
+
+:host form.sitmun-service-form-entity mat-card-content.sitmun-service-form-stack mat-checkbox {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+// User + password on one row when credentials are shown (flex gap replaces .half add-gap).
+.sitmun-service-form-auth-credentials {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.sitmun-service-form-auth-credentials > mat-form-field.half {
+  flex: 1 1 calc(50% - 0.5rem);
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+// Parameter dialog form (no .sitmun-service-form-entity) keeps stacked field margins.
+:host form:not(.sitmun-service-form-entity) mat-form-field {
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.sitmun-form-hint {
+  display: block;
+  margin: 0.5rem 0 1rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  max-width: 72rem;
+}
+
+// Service parameters tab: two-line lead (bold Viewer / Proxy prefixes).
+.sitmun-service-form-parameters-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  line-height: 1.45;
+}
+
+.sitmun-service-form-parameters-lead span strong {
+  margin-right: 0.25em;
+}
+
+// i18n may include <em> / <code> for service parameter names and literals (innerHTML).
+.sitmun-service-form-parameters-lead em {
+  font-style: italic;
+  font-weight: 500;
+}
+
+.sitmun-service-form-parameters-lead code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}

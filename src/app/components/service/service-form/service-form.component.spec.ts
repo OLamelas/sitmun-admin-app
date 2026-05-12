@@ -24,11 +24,10 @@ import {
 } from '@app/domain';
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
-import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoggerService } from '@app/services/logger.service';
 import { UtilsService } from '@app/services/utils.service';
 import { WMSCapabilitiesService } from '@app/services/wms-capabilities.service';
-import {configureLoggerForTests} from '@app/testing/test-helpers';
+import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing/test-helpers';
 
 import { ServiceFormComponent } from './service-form.component';
 
@@ -61,6 +60,7 @@ describe('ServiceFormComponent', () => {
           }
         }), BrowserAnimationsModule],
       providers: [
+        provideErrorHandlerForTests(),
         ServiceService,
         CartographyService,
         CartographyStyleService,
@@ -72,7 +72,6 @@ describe('ServiceFormComponent', () => {
         RoleService,
         UtilsService,
         WMSCapabilitiesService,
-        ErrorHandlerService,
         LoggerService,
         { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }
       ]

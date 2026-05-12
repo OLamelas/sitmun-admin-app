@@ -56,7 +56,7 @@ import {constants} from '@environments/constants';
 @Component({
     selector: 'app-layers-form',
     templateUrl: './layers-form.component.html',
-    styles: [],
+    styleUrls: ['./layers-form.component.scss'],
     standalone: false
 })
 export class LayersFormComponent extends BaseFormComponent<CartographyProjection> {
@@ -126,7 +126,7 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
     this.dataTables.register(this.treesNodesTable).register(this.cartographyPermissionsTable)
       .register(this.territoryAvailabilitiesTable).register(this.stylesTable)
       .register(this.territorialFiltersTable).register(this.parametersTable);
-    this.initTranslations('Cartography', ['description'])
+    this.initTranslations('Cartography', ['name', 'description'])
     await this.initCodeLists([
       'cartography.geometryType', 'cartography.legendType','cartographyParameter.type',
       'cartographyFilter.type','cartographyFilter.valueType', 'cartographyParameter.format',
@@ -183,6 +183,42 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       throw new Error('Cannot initialize form: entity is undefined');
     }
 
+    const nonNegativeIntegerValidator: ValidatorFn = (
+      control: AbstractControl
+    ): ValidationErrors | null => {
+      const raw = control.value;
+      if (raw === null || raw === undefined || raw === '') {
+        return null;
+      }
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
+        return { scaleInteger: true };
+      }
+      return null;
+    };
+
+    const scaleRangeValidator: ValidatorFn = (
+      group: AbstractControl
+    ): ValidationErrors | null => {
+      if (!group) {
+        return null;
+      }
+      const minRaw = group.get('minimumScale')?.value;
+      const maxRaw = group.get('maximumScale')?.value;
+      if (minRaw == null || maxRaw == null || minRaw === '' || maxRaw === '') {
+        return null;
+      }
+      const min = Number(minRaw);
+      const max = Number(maxRaw);
+      if (!Number.isFinite(min) || !Number.isFinite(max)) {
+        return null;
+      }
+      if (min === 0 || max === 0) {
+        return null;
+      }
+      return max > min ? null : { scaleRange: true };
+    };
+
     // Custom validator to ensure queryable layers are subset of joined layers
     const queryableLayersValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
       if (!control.value) return null;
@@ -205,14 +241,19 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       return invalidLayers.length > 0 ? { invalidLayers: invalidLayers } : null;
     };
 
-    this.entityForm = new UntypedFormGroup({
+    this.entityForm = new UntypedFormGroup(
+      {
       name: new UntypedFormControl(this.entityToEdit.name, [Validators.required]),
       serviceId: new UntypedFormControl(this.entityToEdit.serviceId, [Validators.required]),
       joinedLayers: new UntypedFormControl(this.entityToEdit.layers?.join(','), [Validators.required]),
-      minimumScale: new UntypedFormControl(this.entityToEdit.minimumScale, []),
-      maximumScale: new UntypedFormControl(this.entityToEdit.maximumScale, []),
+      minimumScale: new UntypedFormControl(this.entityToEdit.minimumScale, [
+        nonNegativeIntegerValidator
+      ]),
+      maximumScale: new UntypedFormControl(this.entityToEdit.maximumScale, [
+        nonNegativeIntegerValidator
+      ]),
       order: new UntypedFormControl(this.entityToEdit.order, []),
-      transparency: new UntypedFormControl(this.entityToEdit.transparency, []),
+      transparency: new UntypedFormControl(this.entityToEdit.transparency ?? 0, [Validators.min(0), Validators.max(100)]),
       metadataURL: new UntypedFormControl(this.entityToEdit.metadataURL, []),
       legendType: new UntypedFormControl(this.entityToEdit.legendType || null, []),
       legendURL: new UntypedFormControl(this.entityToEdit.legendURL, []),
@@ -226,12 +267,20 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       queryableFeatureAvailable: new UntypedFormControl(this.entityToEdit.queryableFeatureAvailable || false, []),
       joinedQueryableLayers: new UntypedFormControl(this.entityToEdit.queryableLayers?.join(','), [queryableLayersValidator]),
       thematic: new UntypedFormControl(this.entityToEdit.thematic, []),
-      blocked: new UntypedFormControl(this.entityToEdit.blocked || true, []),
+      /** True when the layer may be used by viewers (inverse of API `blocked`). */
+      availableForClients: new UntypedFormControl(
+        this.isNewOrDuplicated()
+          ? false
+          : this.entityToEdit.blocked !== true,
+        []
+      ),
       selectableFeatureEnabled: new UntypedFormControl(this.entityToEdit.selectableFeatureEnabled, [],),
       joinedSelectableLayers: new UntypedFormControl(this.entityToEdit.selectableLayers?.join(','), []),
       spatialSelectionServiceId: new UntypedFormControl(this.entityToEdit.spatialSelectionServiceId, []),
       useAllStyles: new UntypedFormControl(this.entityToEdit.useAllStyles || false, []),
-    });
+      },
+      { validators: [scaleRangeValidator] }
+    );
 
     if (this.isNew()) {
       this.entityForm.get('spatialSelectionServiceId').setValue(null);
@@ -242,7 +291,6 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
       this.entityForm.get('joinedQueryableLayers').disable();
     } else if (!this.entityToEdit.queryableFeatureEnabled) {
       this.entityForm.get('joinedSelectableLayers').setValue(null);
-      this.entityForm.get('joinedQueryableLayers').disable();
     }
   }
 
@@ -255,17 +303,16 @@ export class LayersFormComponent extends BaseFormComponent<CartographyProjection
   createObject(id: number = null): Cartography {
     let safeToEdit = CartographyProjection.fromObject(this.entityToEdit);
     const formValues = this.entityForm.getRawValue();
-    safeToEdit = Object.assign(safeToEdit,
-      formValues,
-      {
-        id: id,
-        layers: formValues.joinedLayers ? formValues.joinedLayers.split(',') : [],
-        queryableLayers: formValues.queryableLayers ? formValues.queryableLayers.split(',') : [],
-        selectableLayers: formValues.selectableLayers ? formValues.selectableLayers.split(',') : [],
-        service: this.serviceService.createProxy(formValues.serviceId),
-      }
-    );
-    return Cartography.fromObject(safeToEdit)
+    const { availableForClients, ...formValuesWithoutAvail } = formValues;
+    safeToEdit = Object.assign(safeToEdit, formValuesWithoutAvail, {
+      id: id,
+      blocked: availableForClients !== true,
+      layers: formValues.joinedLayers ? formValues.joinedLayers.split(',') : [],
+      queryableLayers: formValues.queryableLayers ? formValues.queryableLayers.split(',') : [],
+      selectableLayers: formValues.selectableLayers ? formValues.selectableLayers.split(',') : [],
+      service: this.serviceService.createProxy(formValues.serviceId),
+    });
+    return Cartography.fromObject(safeToEdit);
   }
 
   /**

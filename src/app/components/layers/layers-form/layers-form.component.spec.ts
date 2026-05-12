@@ -12,12 +12,17 @@ import {of} from 'rxjs';
 
 import {FormToolbarComponent} from '@app/components/shared/form-toolbar/form-toolbar.component';
 import { ExternalConfigurationService } from '@app/core/config/external-configuration.service';
+import { FeatureFlagComponent } from '@app/core/features/feature-flag.component';
+import { FeatureFlagDirective } from '@app/core/features/feature-flag.directive';
+import { FeatureFlagPipe } from '@app/core/features/feature-flag.pipe';
+import { FeatureFlagService } from '@app/core/features/feature-flag.service';
 import {ExternalService, ResourceService} from '@app/core/hal';
 import {
   CartographyAvailabilityService,
   CartographyFilterService,
   CartographyGroupService,
   CartographyParameterService,
+  CartographyProjection,
   CartographyService,
   CartographySpatialSelectionParameterService,
   CartographyStyleService,
@@ -33,7 +38,7 @@ import {
 import { SitmunFrontendGuiModule } from '@app/frontend-gui/src/lib/public_api';
 import { MaterialModule } from '@app/material-module';
 import {LoggerService} from '@app/services/logger.service';
-import {configureLoggerForTests} from '@app/testing/test-helpers';
+import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing/test-helpers';
 
 import { LayersFormComponent } from './layers-form.component';
 
@@ -60,7 +65,13 @@ describe('LayersFormComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [LayersFormComponent, FormToolbarComponent],
+      declarations: [
+        LayersFormComponent,
+        FormToolbarComponent,
+        FeatureFlagDirective,
+        FeatureFlagComponent,
+        FeatureFlagPipe
+      ],
       imports: [FormsModule, ReactiveFormsModule, RouterModule.forRoot([], {}), HttpClientTestingModule, SitmunFrontendGuiModule,
         RouterTestingModule, MaterialModule, RouterModule, MatIconTestingModule, BrowserAnimationsModule,
         TranslateModule.forRoot({
@@ -71,10 +82,28 @@ describe('LayersFormComponent', () => {
             })
           }
         })],
-      providers: [CartographyService, ServiceService, ConnectionService, TerritoryTypeService,
-        TreeNodeService, GetInfoService, CartographyStyleService, TerritoryService, CartographyGroupService, CartographyAvailabilityService,
-        CartographyParameterService, CartographySpatialSelectionParameterService, CodeListService, CartographyFilterService, TranslationService, ResourceService, ExternalService,
-        { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService },]
+      providers: [
+        provideErrorHandlerForTests(),
+        FeatureFlagService,
+        CartographyService,
+        ServiceService,
+        ConnectionService,
+        TerritoryTypeService,
+        TreeNodeService,
+        GetInfoService,
+        CartographyStyleService,
+        TerritoryService,
+        CartographyGroupService,
+        CartographyAvailabilityService,
+        CartographyParameterService,
+        CartographySpatialSelectionParameterService,
+        CodeListService,
+        CartographyFilterService,
+        TranslationService,
+        ResourceService,
+        ExternalService,
+        { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService }
+      ]
     })
       .compileComponents();
   });
@@ -111,7 +140,6 @@ describe('LayersFormComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
-
 
   it('should instantiate cartographyService', () => {
     expect(cartographyService).toBeTruthy();
@@ -216,7 +244,7 @@ describe('LayersFormComponent', () => {
       queryableFeatureAvailable: true,
       joinedQueryableLayers: 'queryableLayer',
       thematic: true,
-      blocked: true,
+      availableForClients: true,
       selectableFeatureEnabled: true,
       spatialSelectionServiceId: 1,
       joinedSelectableLayers: 'layerSelected',
@@ -253,7 +281,7 @@ describe('LayersFormComponent', () => {
       queryableFeatureAvailable: true,
       joinedQueryableLayers: 'queryableLayer',
       thematic: true,
-      blocked: true,
+      availableForClients: true,
       selectableFeatureEnabled: true,
       spatialSelectionServiceId: 1,
       joinedSelectableLayers: 'layerSelected',
@@ -289,11 +317,99 @@ describe('LayersFormComponent', () => {
     expect(component.entityForm.get('queryableFeatureAvailable')).toBeTruthy();
     expect(component.entityForm.get('joinedQueryableLayers')).toBeTruthy();
     expect(component.entityForm.get('thematic')).toBeTruthy();
-    expect(component.entityForm.get('blocked')).toBeTruthy();
+    expect(component.entityForm.get('availableForClients')).toBeTruthy();
     expect(component.entityForm.get('selectableFeatureEnabled')).toBeTruthy();
     expect(component.entityForm.get('spatialSelectionServiceId')).toBeTruthy();
     expect(component.entityForm.get('joinedSelectableLayers')).toBeTruthy();
     expect(component.entityForm.get('useAllStyles')).toBeTruthy();
+  });
+
+  it('transparency defaults to 0 when not provided by the API', () => {
+    component.entityID = -1;
+    component.duplicateID = -1;
+    component.entityToEdit = component.empty();
+    component.postFetchData();
+    expect(component.entityForm.get('transparency')?.value).toBe(0);
+    expect(component.entityForm.get('transparency')?.valid).toBe(true);
+  });
+
+  it('transparency rejects values outside the 0..100 range', () => {
+    component.entityID = -1;
+    component.duplicateID = -1;
+    component.entityToEdit = component.empty();
+    component.postFetchData();
+    const transparency = component.entityForm.get('transparency');
+    transparency?.setValue(-1);
+    expect(transparency?.valid).toBe(false);
+    transparency?.setValue(101);
+    expect(transparency?.valid).toBe(false);
+    transparency?.setValue(50);
+    expect(transparency?.valid).toBe(true);
+  });
+
+  it('availableForClients is inverse of API blocked on load and save', () => {
+    component.entityID = 100;
+    component.duplicateID = -1;
+    component.entityToEdit = Object.assign(new CartographyProjection(), {
+      blocked: false,
+      name: 'layer',
+      layers: ['x'],
+      serviceId: 1
+    });
+    component.postFetchData();
+    expect(component.entityForm.get('availableForClients')?.value).toBe(true);
+
+    component.entityToEdit = Object.assign(new CartographyProjection(), {
+      blocked: true,
+      name: 'layer',
+      layers: ['x'],
+      serviceId: 1
+    });
+    component.postFetchData();
+    expect(component.entityForm.get('availableForClients')?.value).toBe(false);
+
+    component.entityForm.patchValue({
+      name: 'layer',
+      joinedLayers: 'x',
+      serviceId: 1,
+      availableForClients: true
+    });
+    const created = component.createObject(9);
+    expect(created.blocked).toBe(false);
+
+    component.entityForm.patchValue({ availableForClients: false });
+    const createdBlocked = component.createObject(9);
+    expect(createdBlocked.blocked).toBe(true);
+  });
+
+  it('new or duplicated layer defaults to blocked (not available for clients) until enabled', () => {
+    component.entityID = -1;
+    component.duplicateID = -1;
+    component.entityToEdit = component.empty();
+    component.postFetchData();
+    expect(component.entityForm.get('availableForClients')?.value).toBe(false);
+    component.entityForm.patchValue({
+      name: 'n',
+      joinedLayers: 'a',
+      serviceId: 1
+    });
+    expect(component.createObject().blocked).toBe(true);
+
+    component.duplicateID = 99;
+    component.entityToEdit = Object.assign(new CartographyProjection(), {
+      blocked: false,
+      name: 'copy me',
+      layers: ['x'],
+      serviceId: 1
+    });
+    component.postFetchData();
+    expect(component.entityForm.get('availableForClients')?.value).toBe(false);
+    component.entityForm.patchValue({
+      name: 'copy',
+      joinedLayers: 'x',
+      serviceId: 1
+    });
+    expect(component.createObject().blocked).toBe(true);
   });
 
   it('Load button disabled', () => {
@@ -702,6 +818,127 @@ describe('LayersFormComponent', () => {
     // expect(component.manageGetInfoResults(requestResult,true).length).toEqual(0);
     expect(true).toBeTruthy(); // Placeholder assertion
 
-  })
+  });
+
+  describe('scale validators', () => {
+    const patchValidBasics = () => {
+      component.entityForm.patchValue({
+        name: 'name',
+        serviceId: 1,
+        joinedLayers: 'layer',
+        order: 1,
+        transparency: '50',
+        metadataURL: 'url',
+        legendType: 1,
+        legendURL: 'url',
+        source: 'source',
+        description: 'description',
+        datasetURL: 'dataset',
+        applyFilterToGetMap: true,
+        applyFilterToGetFeatureInfo: true,
+        applyFilterToSpatialSelection: true,
+        queryableFeatureEnabled: true,
+        queryableFeatureAvailable: true,
+        joinedQueryableLayers: 'queryableLayer',
+        thematic: true,
+        availableForClients: true,
+        selectableFeatureEnabled: true,
+        spatialSelectionServiceId: 1,
+        joinedSelectableLayers: 'layerSelected',
+        useAllStyles: true
+      });
+    };
+
+    it('accepts empty min and max with otherwise valid form', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({
+        minimumScale: null,
+        maximumScale: null
+      });
+      expect(component.entityForm.get('minimumScale')?.errors?.['scaleInteger']).toBeFalsy();
+      expect(component.entityForm.errors?.['scaleRange']).toBeFalsy();
+      expect(component.entityForm.valid).toBeTruthy();
+    });
+
+    it('accepts min 0 and max 0', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 0, maximumScale: 0 });
+      expect(component.entityForm.valid).toBeTruthy();
+      expect(component.entityForm.errors?.['scaleRange']).toBeFalsy();
+    });
+
+    it('accepts min 0 and max positive', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 0, maximumScale: 50000 });
+      expect(component.entityForm.valid).toBeTruthy();
+    });
+
+    it('accepts min positive and max 0', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 200, maximumScale: 0 });
+      expect(component.entityForm.valid).toBeTruthy();
+    });
+
+    it('rejects when both positive and max equals min', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 200, maximumScale: 200 });
+      expect(component.entityForm.errors?.['scaleRange']).toBeTruthy();
+      expect(component.entityForm.valid).toBeFalsy();
+    });
+
+    it('rejects when both positive and max less than min', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 50000, maximumScale: 200 });
+      expect(component.entityForm.errors?.['scaleRange']).toBeTruthy();
+      expect(component.entityForm.valid).toBeFalsy();
+    });
+
+    it('rejects negative minimumScale', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: -1, maximumScale: 1000 });
+      expect(component.entityForm.get('minimumScale')?.errors?.['scaleInteger']).toBeTruthy();
+      expect(component.entityForm.valid).toBeFalsy();
+    });
+
+    it('rejects decimal minimumScale', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 1.5, maximumScale: 1000 });
+      expect(component.entityForm.get('minimumScale')?.errors?.['scaleInteger']).toBeTruthy();
+      expect(component.entityForm.valid).toBeFalsy();
+    });
+
+    it('invalid persisted minimumScale makes form invalid on load', () => {
+      component.entityToEdit = Object.assign(new CartographyProjection(), {
+        name: 'layer',
+        layers: ['x'],
+        serviceId: 1,
+        minimumScale: -5,
+        maximumScale: null
+      });
+      component.postFetchData();
+      expect(component.entityForm.get('minimumScale')?.errors?.['scaleInteger']).toBeTruthy();
+      expect(component.canSave()).toBeFalsy();
+    });
+
+    it('createObject passes through 0 and null scale values', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({
+        minimumScale: 0,
+        maximumScale: null
+      });
+      const created = component.createObject(1);
+      expect(created.minimumScale).toBe(0);
+      expect(created.maximumScale).toBeNull();
+    });
+
+    it('clears scaleRange when min is corrected', () => {
+      patchValidBasics();
+      component.entityForm.patchValue({ minimumScale: 200, maximumScale: 150 });
+      expect(component.entityForm.errors?.['scaleRange']).toBeTruthy();
+      component.entityForm.patchValue({ minimumScale: 100 });
+      expect(component.entityForm.errors?.['scaleRange']).toBeFalsy();
+      expect(component.entityForm.valid).toBeTruthy();
+    });
+  });
 
 });

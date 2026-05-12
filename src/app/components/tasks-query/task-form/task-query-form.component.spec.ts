@@ -103,14 +103,14 @@ describe('TaskQueryFormComponent', () => {
     expect((component as any).getSystemVariablesHelp()).toBe('#{APP_ID}, #{TERR_COD}');
   });
 
-  it('does not expose provided field in query parameter dialog anymore', () => {
+  it('includes provided on query parameter dialog form and parameters grid', () => {
     const component = createComponent();
     (component as any).newParameterDialog = {} as any;
 
     const dialog = (component as any).parametersTable.templateDialog('newParameterDialog');
     const fields = (component as any).parametersTable.relationsColumnsDefs.map((column: any) => column.field);
 
-    expect(dialog.form.contains('provided')).toBe(false);
-    expect(fields).not.toContain('provided');
+    expect(dialog.form.contains('provided')).toBe(true);
+    expect(fields).toContain('provided');
   });
 });
