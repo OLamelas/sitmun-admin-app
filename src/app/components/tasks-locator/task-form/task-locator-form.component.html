@@ -165,17 +165,6 @@
             <mat-hint class="toggle-hint">{{ 'entity.task.locator.parameters.filterByExtent.hint' | translate }}</mat-hint>
           </div>
 
-          <mat-form-field appearance="outline" class="half add-gap">
-            <mat-label>{{ 'entity.task.locator.parameters.credentials' | translate }}</mat-label>
-            <mat-select formControlName="geocoderCredentials">
-              <mat-option value="">{{ 'entity.task.locator.parameters.credentials.default' | translate }}</mat-option>
-              <mat-option value="same-origin">{{ 'entity.task.locator.parameters.credentials.sameOrigin' | translate }}</mat-option>
-              <mat-option value="include">{{ 'entity.task.locator.parameters.credentials.include' | translate }}</mat-option>
-              <mat-option value="omit">{{ 'entity.task.locator.parameters.credentials.omit' | translate }}</mat-option>
-            </mat-select>
-            <mat-hint>{{ 'entity.task.locator.parameters.credentials.hint' | translate }}</mat-hint>
-          </mat-form-field>
-
         </mat-card-content>
       </mat-card>
     </form>

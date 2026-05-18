@@ -197,7 +197,6 @@ export class TaskLocatorFormComponent extends BaseFormComponent<TaskProjection> 
       geocoderSrs:            new FormControl(this.getGeocoderParam('srs'),            {nonNullable: true}),
       geocoderLatField:       new FormControl(this.getGeocoderParam('latField'),       {nonNullable: true}),
       geocoderLonField:       new FormControl(this.getGeocoderParam('lonField'),       {nonNullable: true}),
-      geocoderCredentials:    new FormControl(this.getGeocoderParam('credentials'),    {nonNullable: true}),
       geocoderFilterByExtent: new FormControl(this.getGeocoderParam('filterByExtent') === 'true', {nonNullable: true}),
     });
 
@@ -234,7 +233,6 @@ export class TaskLocatorFormComponent extends BaseFormComponent<TaskProjection> 
     add('srs',           formValues.geocoderSrs);
     add('latField',      formValues.geocoderLatField);
     add('lonField',      formValues.geocoderLonField);
-    add('credentials',   formValues.geocoderCredentials);
     if (formValues.geocoderFilterByExtent) {
       params.push({variable: 'filterByExtent', value: 'true'});
     }
