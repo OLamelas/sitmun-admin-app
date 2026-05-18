@@ -627,7 +627,7 @@
   "entity.task.locator.parameters.bboxField.hint": "Ruta al array [W, S, E, N] del bbox del resultado. Dejar vacío si el servicio no proporciona bbox.",
   "entity.task.locator.parameters.srs": "Sistema de referencia",
   "entity.task.locator.parameters.srs.placeholder": "Ej: EPSG:4326",
-  "entity.task.locator.parameters.srs.hint": "CRS de las coordenadas devueltas por el servicio. Por defecto: EPSG:4326",
+  "entity.task.locator.parameters.srs.hint": "CRS de las coordenadas devueltas por el geocodificador (no el del mapa). El mapa siempre reprojecta a su propio sistema. Por defecto: EPSG:4326 (estándar mundial, válido para ICGC, Nominatim y la mayoría de servicios).",
   "entity.task.locator.parameters.latField": "Campo de latitud (opcional)",
   "entity.task.locator.parameters.latField.placeholder": "Ej: lat",
   "entity.task.locator.parameters.latField.hint": "Alternativa al campo de geometría: ruta al valor de latitud. Dejar vacío si se usa geometría GeoJSON.",

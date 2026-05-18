@@ -1,1 +1,14 @@
 @use "../../../variables" as *;
+
+.toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toggle-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--mat-form-field-hint-text-color, rgba(0, 0, 0, 0.6));
+  line-height: 1.4;
+}

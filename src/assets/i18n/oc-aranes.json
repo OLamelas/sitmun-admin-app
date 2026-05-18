@@ -627,7 +627,7 @@
   "entity.task.locator.parameters.bboxField.hint": "Camin a l'array [W, S, E, N] deth bbox deth resultat. Leisatz buit si eth servici non proporciona bbox.",
   "entity.task.locator.parameters.srs": "Sistèma de referéncia",
   "entity.task.locator.parameters.srs.placeholder": "Ex: EPSG:4326",
-  "entity.task.locator.parameters.srs.hint": "CRS des coordenades retornades peth servici. Per defaut: EPSG:4326",
+  "entity.task.locator.parameters.srs.hint": "CRS des coordenades retornades peth geocodificador (pas eth deth mapa). Eth mapa reprojecte adés en son propi sistèma. Per defaut: EPSG:4326 (estàndard mundial, valid entara ICGC, Nominatim e la majoria de servicis).",
   "entity.task.locator.parameters.latField": "Camp de latitud (opcional)",
   "entity.task.locator.parameters.latField.placeholder": "Ex: lat",
   "entity.task.locator.parameters.latField.hint": "Alternativa ath camp de geometria: camin ath valor de latitud. Leisatz buit si s'utiliza geometria GeoJSON.",
