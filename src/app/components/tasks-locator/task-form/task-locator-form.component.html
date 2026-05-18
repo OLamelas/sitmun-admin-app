@@ -86,6 +86,98 @@
           </mat-form-field>
         </mat-card-content>
       </mat-card>
+
+    </form>
+  </mat-tab>
+  <mat-tab label="{{ 'entity.task.locator.parameters.tab' | translate }}">
+    <form [formGroup]='entityForm' *ngIf="dataLoaded">
+      <mat-card class="sitmun-mat-card-margin" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ 'entity.task.locator.parameters.response.header' | translate }}</mat-card-title>
+          <mat-card-subtitle>{{ 'entity.task.locator.parameters.response.hint' | translate }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.locator.parameters.labelField' | translate }}</mat-label>
+            <input matInput type="text" formControlName="geocoderLabelField"
+                   [placeholder]="'entity.task.locator.parameters.labelField.placeholder' | translate">
+            <mat-hint>{{ 'entity.task.locator.parameters.labelField.hint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="half">
+            <mat-label>{{ 'entity.task.locator.parameters.resultsPath' | translate }}</mat-label>
+            <input matInput type="text" formControlName="geocoderResultsPath"
+                   [placeholder]="'entity.task.locator.parameters.resultsPath.placeholder' | translate">
+            <mat-hint>{{ 'entity.task.locator.parameters.resultsPath.hint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.locator.parameters.geometryField' | translate }}</mat-label>
+            <input matInput type="text" formControlName="geocoderGeometryField"
+                   [placeholder]="'entity.task.locator.parameters.geometryField.placeholder' | translate">
+            <mat-hint>{{ 'entity.task.locator.parameters.geometryField.hint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="half">
+            <mat-label>{{ 'entity.task.locator.parameters.bboxField' | translate }}</mat-label>
+            <input matInput type="text" formControlName="geocoderBboxField"
+                   [placeholder]="'entity.task.locator.parameters.bboxField.placeholder' | translate">
+            <mat-hint>{{ 'entity.task.locator.parameters.bboxField.hint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.locator.parameters.srs' | translate }}</mat-label>
+            <input matInput type="text" formControlName="geocoderSrs"
+                   [placeholder]="'entity.task.locator.parameters.srs.placeholder' | translate">
+            <mat-hint>{{ 'entity.task.locator.parameters.srs.hint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <div class="half"></div>
+
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.locator.parameters.latField' | translate }}</mat-label>
+            <input matInput type="text" formControlName="geocoderLatField"
+                   [placeholder]="'entity.task.locator.parameters.latField.placeholder' | translate">
+            <mat-hint>{{ 'entity.task.locator.parameters.latField.hint' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="half">
+            <mat-label>{{ 'entity.task.locator.parameters.lonField' | translate }}</mat-label>
+            <input matInput type="text" formControlName="geocoderLonField"
+                   [placeholder]="'entity.task.locator.parameters.lonField.placeholder' | translate">
+            <mat-hint>{{ 'entity.task.locator.parameters.lonField.hint' | translate }}</mat-hint>
+          </mat-form-field>
+
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="sitmun-mat-card-margin" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ 'entity.task.locator.parameters.behavior.header' | translate }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+
+          <div class="full toggle-row">
+            <mat-slide-toggle formControlName="geocoderFilterByExtent" color="primary">
+              {{ 'entity.task.locator.parameters.filterByExtent' | translate }}
+            </mat-slide-toggle>
+            <mat-hint class="toggle-hint">{{ 'entity.task.locator.parameters.filterByExtent.hint' | translate }}</mat-hint>
+          </div>
+
+          <mat-form-field appearance="outline" class="half add-gap">
+            <mat-label>{{ 'entity.task.locator.parameters.credentials' | translate }}</mat-label>
+            <mat-select formControlName="geocoderCredentials">
+              <mat-option value="">{{ 'entity.task.locator.parameters.credentials.default' | translate }}</mat-option>
+              <mat-option value="same-origin">{{ 'entity.task.locator.parameters.credentials.sameOrigin' | translate }}</mat-option>
+              <mat-option value="include">{{ 'entity.task.locator.parameters.credentials.include' | translate }}</mat-option>
+              <mat-option value="omit">{{ 'entity.task.locator.parameters.credentials.omit' | translate }}</mat-option>
+            </mat-select>
+            <mat-hint>{{ 'entity.task.locator.parameters.credentials.hint' | translate }}</mat-hint>
+          </mat-form-field>
+
+        </mat-card-content>
+      </mat-card>
     </form>
   </mat-tab>
   <mat-tab label="{{ 'entity.task.roles.header' | translate }}">
@@ -140,3 +232,4 @@
     </mat-card>
   </mat-tab>
 </mat-tab-group>
+

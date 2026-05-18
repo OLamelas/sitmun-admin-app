@@ -97,4 +97,6 @@ export class TasksLocatorComponent extends BaseListComponent<Task> {
   }
 
   override dataUpdateFn = (data: Task) => firstValueFrom(this.taskService.update(data))
+
+  override dataDeleteFn = (data: Task) => firstValueFrom(this.taskService.delete(data))
 }

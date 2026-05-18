@@ -188,7 +188,17 @@ export class TaskLocatorFormComponent extends BaseFormComponent<TaskProjection> 
       }),
       queryTaskId: new FormControl(this.selectedQueryTaskId, {
         validators: [Validators.required]
-      })
+      }),
+      // Geocoder configuration fields (saved as task parameters)
+      geocoderLabelField:     new FormControl(this.getGeocoderParam('labelField'),     {nonNullable: true}),
+      geocoderResultsPath:    new FormControl(this.getGeocoderParam('resultsPath'),    {nonNullable: true}),
+      geocoderGeometryField:  new FormControl(this.getGeocoderParam('geometryField'),  {nonNullable: true}),
+      geocoderBboxField:      new FormControl(this.getGeocoderParam('bboxField'),      {nonNullable: true}),
+      geocoderSrs:            new FormControl(this.getGeocoderParam('srs'),            {nonNullable: true}),
+      geocoderLatField:       new FormControl(this.getGeocoderParam('latField'),       {nonNullable: true}),
+      geocoderLonField:       new FormControl(this.getGeocoderParam('lonField'),       {nonNullable: true}),
+      geocoderCredentials:    new FormControl(this.getGeocoderParam('credentials'),    {nonNullable: true}),
+      geocoderFilterByExtent: new FormControl(this.getGeocoderParam('filterByExtent') === 'true', {nonNullable: true}),
     });
 
     const selectedQueryTask = this.queryTasks.find(task => task.id === this.selectedQueryTaskId);
@@ -202,13 +212,42 @@ export class TaskLocatorFormComponent extends BaseFormComponent<TaskProjection> 
     );
   }
 
+  /** Returns the stored value of a geocoder parameter, or empty string if not set. */
+  private getGeocoderParam(name: string): string {
+    const params: any[] = (this.entityToEdit?.properties as any)?.parameters ?? [];
+    const found = params.find(p => (p.variable ?? p.name) === name);
+    return found?.value ?? '';
+  }
+
+  /** Converts geocoder form values to the {variable, value}[] format stored in task properties. */
+  private buildGeocoderParams(formValues: any): {variable: string; value: string}[] {
+    const params: {variable: string; value: string}[] = [];
+    const add = (variable: string, value: string) => {
+      if (value !== null && value !== undefined && value !== '') {
+        params.push({variable, value});
+      }
+    };
+    add('labelField',    formValues.geocoderLabelField);
+    add('resultsPath',   formValues.geocoderResultsPath);
+    add('geometryField', formValues.geocoderGeometryField);
+    add('bboxField',     formValues.geocoderBboxField);
+    add('srs',           formValues.geocoderSrs);
+    add('latField',      formValues.geocoderLatField);
+    add('lonField',      formValues.geocoderLonField);
+    add('credentials',   formValues.geocoderCredentials);
+    if (formValues.geocoderFilterByExtent) {
+      params.push({variable: 'filterByExtent', value: 'true'});
+    }
+    return params;
+  }
+
   createObject(id: number = null): Task {
     let safeToEdit = TaskProjection.fromObject(this.entityToEdit);
     const formValues = this.entityForm.getRawValue();
     const existingProps: any = this.entityToEdit.properties || {};
     const properties: any = TaskPropertiesBuilder.from(existingProps)
-      .withParameters(existingProps.parameters || [])
       .withFields(existingProps.fields || [])
+      .withParameters(this.buildGeocoderParams(formValues))
       .build();
 
     safeToEdit = Object.assign(safeToEdit,
