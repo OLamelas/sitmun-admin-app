@@ -193,7 +193,6 @@ export class TaskLocatorFormComponent extends BaseFormComponent<TaskProjection> 
       geocoderLabelField:     new FormControl(this.getGeocoderParam('labelField'),     {nonNullable: true}),
       geocoderResultsPath:    new FormControl(this.getGeocoderParam('resultsPath'),    {nonNullable: true}),
       geocoderGeometryField:  new FormControl(this.getGeocoderParam('geometryField'),  {nonNullable: true}),
-      geocoderBboxField:      new FormControl(this.getGeocoderParam('bboxField'),      {nonNullable: true}),
       geocoderSrs:            new FormControl(this.getGeocoderParam('srs'),            {nonNullable: true}),
       geocoderLatField:       new FormControl(this.getGeocoderParam('latField'),       {nonNullable: true}),
       geocoderLonField:       new FormControl(this.getGeocoderParam('lonField'),       {nonNullable: true}),
@@ -229,7 +228,6 @@ export class TaskLocatorFormComponent extends BaseFormComponent<TaskProjection> 
     add('labelField',    formValues.geocoderLabelField);
     add('resultsPath',   formValues.geocoderResultsPath);
     add('geometryField', formValues.geocoderGeometryField);
-    add('bboxField',     formValues.geocoderBboxField);
     add('srs',           formValues.geocoderSrs);
     add('latField',      formValues.geocoderLatField);
     add('lonField',      formValues.geocoderLonField);
