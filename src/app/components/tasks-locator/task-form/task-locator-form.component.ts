@@ -146,9 +146,9 @@ export class TaskLocatorFormComponent extends BaseFormComponent<TaskProjection> 
       .filter(task => task.typeId === magic.taskQueryTypeId)
       .sort((left, right) => (left.name || '').localeCompare(right.name || ''));
 
-    this.locatorUI = uiList.find(ui => ui.name === 'sitmun.localizer') ?? null;
+    this.locatorUI = uiList.find(ui => ui.name === 'sitmun.locator') ?? null;
     if (!this.locatorUI) {
-      this.loggerService.warn('UI control "sitmun.localizer" not found in database');
+      this.loggerService.warn('UI control "sitmun.locator" not found in database');
     }
   }
 
