@@ -98,14 +98,14 @@
         </mat-card-header>
         <mat-card-content>
 
-          <mat-form-field appearance="outline" class="half add-gap">
+          <mat-form-field appearance="outline" class="half add-gap" subscriptSizing="dynamic">
             <mat-label>{{ 'entity.task.locator.parameters.labelField' | translate }}</mat-label>
             <input matInput type="text" formControlName="geocoderLabelField"
                    [placeholder]="'entity.task.locator.parameters.labelField.placeholder' | translate">
             <mat-hint>{{ 'entity.task.locator.parameters.labelField.hint' | translate }}</mat-hint>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="half">
+          <mat-form-field appearance="outline" class="half" subscriptSizing="dynamic">
             <mat-label>{{ 'entity.task.locator.parameters.resultsPath' | translate }}</mat-label>
             <input matInput type="text" formControlName="geocoderResultsPath"
                    [placeholder]="'entity.task.locator.parameters.resultsPath.placeholder' | translate">
@@ -121,7 +121,7 @@
 
           <div class="half"></div>
 
-          <mat-form-field appearance="outline" class="half add-gap">
+          <mat-form-field appearance="outline" class="half add-gap" subscriptSizing="dynamic">
             <mat-label>{{ 'entity.task.locator.parameters.srs' | translate }}</mat-label>
             <input matInput type="text" formControlName="geocoderSrs"
                    [placeholder]="'entity.task.locator.parameters.srs.placeholder' | translate">
