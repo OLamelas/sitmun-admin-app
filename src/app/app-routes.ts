@@ -35,6 +35,8 @@ import {TaskUIFormComponent} from '@app/components/task-ui/task-ui-form/task-ui-
 import {TaskUIComponent} from '@app/components/task-ui/task-ui.component';
 import {TaskBasicFormComponent} from "@app/components/tasks-basic/task-form/task-basic-form.component";
 import {TasksBasicComponent} from '@app/components/tasks-basic/tasks-basic.component';
+import {TaskDocumentExportFormComponent} from '@app/components/tasks-document-export/task-form/task-document-export-form.component';
+import {TasksDocumentExportComponent} from '@app/components/tasks-document-export/tasks-document-export.component';
 import {TaskEditFormComponent} from '@app/components/tasks-edit/task-form/task-edit-form.component';
 import {TasksEditComponent} from '@app/components/tasks-edit/tasks-edit.component';
 import {TaskMoreInfoFormComponent} from '@app/components/tasks-more-info/task-form/task-more-info-form.component';
@@ -86,6 +88,7 @@ export const APP_ROUTES: Routes = [
       {path: `tasks/:id/${magic.taskEditTypeId}`, component: TaskEditFormComponent},
       {path: `tasks/:id/${magic.taskBasicTypeId}`, component: TaskBasicFormComponent},
       {path: `tasks/:id/${magic.taskQueryTypeId}`, component: TaskQueryFormComponent},
+      {path: `tasks/:id/${magic.taskDocumentExportTypeId}`, component: TaskDocumentExportFormComponent},
       {path: `tasks/:id/${magic.taskTemplateTypeId}`, component: TaskTemplateFormComponent},
       {path: 'tasksEdit', component: TasksEditComponent},
       {path: 'taskEdit/:id/:type', component: TaskEditFormComponent},
@@ -102,6 +105,9 @@ export const APP_ROUTES: Routes = [
       {path: 'tasksQuery', component: TasksQueryComponent, canDeactivate: [CanDeactivateGuard]},
       {path: 'taskQuery/:id/:type', component: TaskQueryFormComponent},
       {path: 'taskQuery/:id/:type/:idDuplicate', component: TaskQueryFormComponent},
+      {path: 'tasksDocumentExport', component: TasksDocumentExportComponent, canDeactivate: [CanDeactivateGuard]},
+      {path: 'taskDocumentExport/:id/:type', component: TaskDocumentExportFormComponent},
+      {path: 'taskDocumentExport/:id/:type/:idDuplicate', component: TaskDocumentExportFormComponent},
       {path: 'tasksTemplate', component: TasksTemplateComponent, canDeactivate: [CanDeactivateGuard]},
       {path: 'taskTemplate/:id/:type', component: TaskTemplateFormComponent},
       {path: 'taskTemplate/:id/:type/:idDuplicate', component: TaskTemplateFormComponent},

@@ -58,4 +58,16 @@ describe('SideMenuComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('includes document export task entry inside tasks menu', async () => {
+    await fixture.whenStable();
+
+    const taskMenuGroup = component.menus.find((group: any[]) =>
+      group.some((item) => item.id === 'tasks')
+    );
+    const taskMenu = taskMenuGroup.find((item: any) => item.id === 'tasks');
+    const taskChildrenIds = taskMenu.children.map((item: any) => item.id);
+
+    expect(taskChildrenIds).toContain('tasksDocumentExport');
+  });
 });

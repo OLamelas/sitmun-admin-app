@@ -54,6 +54,8 @@ import {TaskUIFormComponent} from '@app/components/task-ui/task-ui-form/task-ui-
 import {TaskUIComponent} from '@app/components/task-ui/task-ui.component';
 import {TaskBasicFormComponent} from '@app/components/tasks-basic/task-form/task-basic-form.component';
 import {TasksBasicComponent} from '@app/components/tasks-basic/tasks-basic.component';
+import {TaskDocumentExportFormComponent} from '@app/components/tasks-document-export/task-form/task-document-export-form.component';
+import {TasksDocumentExportComponent} from '@app/components/tasks-document-export/tasks-document-export.component';
 import {TaskEditFormComponent} from '@app/components/tasks-edit/task-form/task-edit-form.component';
 import {TasksEditComponent} from '@app/components/tasks-edit/tasks-edit.component';
 import {TaskMoreInfoFormComponent} from "@app/components/tasks-more-info/task-form/task-more-info-form.component";
@@ -283,6 +285,8 @@ function getDefaultLanguage(languages: any[], appConfigService?: AppConfigServic
         AuthenticatedLayoutComponent,
         TasksBasicComponent,
         TaskBasicFormComponent,
+  TasksDocumentExportComponent,
+  TaskDocumentExportFormComponent,
 	TaskMoreInfoFormComponent,
   TaskMoreInfoAdvancedFormComponent,
 	TasksMoreInfoComponent,

@@ -317,6 +317,22 @@ export class Configuration {
   };
 
   /**
+   * Document export tasks configuration
+   */
+  static readonly TASK_DOCUMENT_EXPORT: FormConfiguration = {
+    id: 'tasksDocumentExport',
+    labelSingular: 'entity.task.documentExport.label',
+    labelPlural: 'entity.task.documentExport.label',
+    icon: 'picture_as_pdf',
+    font: 'material-icons-round',
+    route: 'tasks/documentExport',
+    formRoute: ':id/taskForm',
+    duplicateRoute: ':id/taskForm/:idDuplicate',
+    component: 'TasksDocumentExportComponent',
+    formComponent: 'TaskDocumentExportFormComponent'
+  };
+
+  /**
    * Advanced More Info tasks configuration
    */
   static readonly TASK_MORE_INFO_ADVANCED: FormConfiguration = {
@@ -432,6 +448,7 @@ export class Configuration {
       Configuration.TASK,
       Configuration.TASK_BASIC,
       Configuration.TASK_QUERY,
+      Configuration.TASK_DOCUMENT_EXPORT,
       Configuration.TASK_TEMPLATE,
       Configuration.TASK_MORE_INFO,
       Configuration.TASK_MORE_INFO_ADVANCED,
@@ -491,6 +508,7 @@ export class Configuration {
           children: [
             Configuration.toMenuItem(Configuration.TASK_BASIC),
             Configuration.toMenuItem(Configuration.TASK_QUERY),
+            Configuration.toMenuItem(Configuration.TASK_DOCUMENT_EXPORT),
             Configuration.toMenuItem(Configuration.TASK_TEMPLATE),
             Configuration.toMenuItem(Configuration.TASK_EDIT),
             Configuration.toMenuItem(Configuration.TASK_MORE_INFO),
