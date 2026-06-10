@@ -49,6 +49,7 @@ interface DocumentExportTaskProperties {
 })
 export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProjection> {
   readonly config = Configuration.TASK_DOCUMENT_EXPORT;
+  private static readonly XML_OUTPUT = 'xml';
 
   public override entityForm: FormGroup;
 
@@ -166,6 +167,9 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
         nonNullable: true,
       }),
     });
+
+    this.updateSourcePathValidator(this.entityForm.get('output')?.value);
+    this.entityForm.get('output')?.valueChanges.subscribe((output) => this.updateSourcePathValidator(output));
   }
 
   override async createEntity(): Promise<number> {
@@ -232,6 +236,20 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
     }
     const trimmedValue = value.trim();
     return trimmedValue.length > 0 ? trimmedValue : undefined;
+  }
+
+  private updateSourcePathValidator(output: unknown): void {
+    const sourcePathControl = this.entityForm.get('sourcePath');
+    if (!sourcePathControl) {
+      return;
+    }
+
+    if (output === TaskDocumentExportFormComponent.XML_OUTPUT) {
+      sourcePathControl.setValidators([Validators.required]);
+    } else {
+      sourcePathControl.clearValidators();
+    }
+    sourcePathControl.updateValueAndValidity({ emitEvent: false });
   }
 
   private defineRolesTable(): DataTableDefinition<Role, Role> {

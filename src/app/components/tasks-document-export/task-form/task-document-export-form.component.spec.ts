@@ -58,14 +58,14 @@ describe('TaskDocumentExportFormComponent', () => {
     });
   });
 
-  it('createObject omits blank optional sourcePath', () => {
+  it('createObject omits blank optional sourcePath for pdf output', () => {
     const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
     component.entityToEdit = TaskProjection.fromObject({ id: 13, name: 'Export', properties: null });
     component.entityForm = new FormGroup({
       name: new FormControl('Export'),
       taskGroupId: new FormControl(3),
       exportEngine: new FormControl('openhtmltopdf'),
-      output: new FormControl('xml'),
+      output: new FormControl('pdf'),
       sourcePath: new FormControl('   '),
     });
 
@@ -73,8 +73,95 @@ describe('TaskDocumentExportFormComponent', () => {
 
     expect(result.properties).toEqual({
       exportEngine: 'openhtmltopdf',
-      downloadFormat: 'xml',
+      downloadFormat: 'pdf',
     });
+  });
+
+  it('keeps sourcePath optional for pdf output', () => {
+    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
+    component.entityToEdit = TaskProjection.fromObject({
+      id: 14,
+      name: 'PDF export',
+      groupId: 3,
+      properties: {
+        exportEngine: 'openhtmltopdf',
+        downloadFormat: 'pdf',
+      },
+    });
+
+    component.postFetchData();
+
+    const sourcePathControl = component.entityForm.get('sourcePath');
+    expect(sourcePathControl?.hasError('required')).toBe(false);
+    sourcePathControl?.setValue('');
+    expect(sourcePathControl?.valid).toBe(true);
+  });
+
+  it('requires sourcePath for xml output', () => {
+    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
+    component.entityToEdit = TaskProjection.fromObject({
+      id: 15,
+      name: 'XML export',
+      groupId: 3,
+      properties: {
+        exportEngine: 'openhtmltopdf',
+        downloadFormat: 'xml',
+      },
+    });
+
+    component.postFetchData();
+
+    const sourcePathControl = component.entityForm.get('sourcePath');
+    sourcePathControl?.setValue('');
+    expect(sourcePathControl?.hasError('required')).toBe(true);
+    sourcePathControl?.setValue('reports/export.jrxml');
+    expect(sourcePathControl?.valid).toBe(true);
+  });
+
+  it('marks form invalid for xml output until sourcePath is provided', () => {
+    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
+    component.entityToEdit = TaskProjection.fromObject({
+      id: 17,
+      name: 'XML export',
+      groupId: 3,
+      properties: {
+        exportEngine: 'openhtmltopdf',
+        downloadFormat: 'xml',
+      },
+    });
+
+    component.postFetchData();
+
+    expect(component.entityForm.valid).toBe(false);
+    component.entityForm.get('sourcePath')?.setValue('reports/export.jrxml');
+    expect(component.entityForm.valid).toBe(true);
+  });
+
+  it('toggles sourcePath required validator when output changes', () => {
+    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
+    component.entityToEdit = TaskProjection.fromObject({
+      id: 16,
+      name: 'Switch export',
+      groupId: 3,
+      properties: {
+        exportEngine: 'openhtmltopdf',
+        downloadFormat: 'pdf',
+      },
+    });
+
+    component.postFetchData();
+
+    const outputControl = component.entityForm.get('output');
+    const sourcePathControl = component.entityForm.get('sourcePath');
+    sourcePathControl?.setValue('');
+    expect(sourcePathControl?.valid).toBe(true);
+
+    outputControl?.setValue('xml');
+    expect(sourcePathControl?.hasError('required')).toBe(true);
+
+    outputControl?.setValue('pdf');
+    expect(sourcePathControl?.hasError('required')).toBe(false);
+    expect(sourcePathControl?.valid).toBe(true);
   });
 
   it('fetchCopy prefixes translated copy marker', async () => {
