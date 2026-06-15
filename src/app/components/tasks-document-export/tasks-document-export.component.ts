@@ -31,7 +31,7 @@ export class TasksDocumentExportComponent extends BaseListComponent<Task> {
     dataFetchFn: () => {
       const params: HalParam[] = [{ key: 'type.id', value: magic.taskDocumentExportTypeId }];
       const query: HalOptions = { params };
-      return this.taskService.getAll(query, undefined, 'tasks');
+      return this.taskService.fetchAllItems(query, undefined, 'tasks');
     },
     defaultColumnSorting: ['name'],
     gridOptions: {
@@ -94,7 +94,7 @@ export class TasksDocumentExportComponent extends BaseListComponent<Task> {
     await this.router.navigate(['taskDocumentExport', -1, magic.taskDocumentExportTypeId, id]);
   }
 
-  override dataFetchFn = () => this.taskService.getAll();
+  override dataFetchFn = () => this.taskService.fetchAllItems();
 
   override dataUpdateFn = (data: Task) => firstValueFrom(this.taskService.update(data));
 

@@ -165,11 +165,11 @@ describe('TaskDocumentExportFormComponent', () => {
   });
 
   it('fetchCopy prefixes translated copy marker', async () => {
-    const getProjection = jest.fn().mockReturnValue(
+    const fetchProjectionById = jest.fn().mockReturnValue(
       of(TaskProjection.fromObject({ id: 22, name: 'Original export' })),
     );
     const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
-    (component as any).taskService = { getProjection };
+    (component as any).taskService = { fetchProjectionById };
     (component as any).translateService = { instant: jest.fn().mockReturnValue('copy_') };
     component.duplicateID = 22;
 

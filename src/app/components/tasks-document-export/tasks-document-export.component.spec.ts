@@ -23,18 +23,18 @@ describe('TasksDocumentExportComponent', () => {
       } as any,
       { navigate: jest.fn() } as any,
       {} as any,
-      { getAll: jest.fn(), update: jest.fn(), delete: jest.fn() } as any,
+      { fetchAllItems: jest.fn(), update: jest.fn(), delete: jest.fn() } as any,
     ));
   };
 
   it('filters list requests by document export type id', () => {
     const component = createComponent();
-    const getAll = jest.fn().mockReturnValue(of([]));
-    (component as any).taskService.getAll = getAll;
+    const fetchAllItems = jest.fn().mockReturnValue(of([]));
+    (component as any).taskService.fetchAllItems = fetchAllItems;
 
     component.entityListConfig.dataFetchFn();
 
-    expect(getAll).toHaveBeenCalledWith(
+    expect(fetchAllItems).toHaveBeenCalledWith(
       { params: [{ key: 'type.id', value: magic.taskDocumentExportTypeId }] },
       undefined,
       'tasks',
