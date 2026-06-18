@@ -17,6 +17,8 @@ describe('TaskDocumentExportFormComponent', () => {
         exportEngine: 'openhtmltopdf',
         downloadFormat: 'pdf',
         downloadSource: 'reports/export.jrxml',
+        pageSize: 'A3',
+        pageOrientation: 'landscape',
       },
     });
 
@@ -27,6 +29,8 @@ describe('TaskDocumentExportFormComponent', () => {
     expect(component.entityForm.get('exportEngine')?.value).toBe('openhtmltopdf');
     expect(component.entityForm.get('output')?.value).toBe('pdf');
     expect(component.entityForm.get('sourcePath')?.value).toBe('reports/export.jrxml');
+    expect(component.entityForm.get('pageSize')?.value).toBe('A3');
+    expect(component.entityForm.get('pageOrientation')?.value).toBe('landscape');
     expect(component.entityForm.get('name')?.hasError('required')).toBe(false);
     component.entityForm.get('name')?.setValue('');
     expect(component.entityForm.get('name')?.hasError('required')).toBe(true);
@@ -45,6 +49,8 @@ describe('TaskDocumentExportFormComponent', () => {
       exportEngine: new FormControl('openhtmltopdf'),
       output: new FormControl('pdf'),
       sourcePath: new FormControl(' reports/export.jrxml '),
+      pageSize: new FormControl('A3'),
+      pageOrientation: new FormControl('landscape'),
     });
 
     const result = component.createObject(12);
@@ -55,6 +61,8 @@ describe('TaskDocumentExportFormComponent', () => {
       exportEngine: 'openhtmltopdf',
       downloadFormat: 'pdf',
       downloadSource: 'reports/export.jrxml',
+      pageSize: 'A3',
+      pageOrientation: 'landscape',
     });
   });
 
@@ -67,6 +75,8 @@ describe('TaskDocumentExportFormComponent', () => {
       exportEngine: new FormControl('openhtmltopdf'),
       output: new FormControl('pdf'),
       sourcePath: new FormControl('   '),
+      pageSize: new FormControl('A4'),
+      pageOrientation: new FormControl('portrait'),
     });
 
     const result = component.createObject(13);
@@ -74,6 +84,8 @@ describe('TaskDocumentExportFormComponent', () => {
     expect(result.properties).toEqual({
       exportEngine: 'openhtmltopdf',
       downloadFormat: 'pdf',
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
     });
   });
 
@@ -86,15 +98,21 @@ describe('TaskDocumentExportFormComponent', () => {
       properties: {
         exportEngine: 'openhtmltopdf',
         downloadFormat: 'pdf',
+        pageSize: 'A4',
+        pageOrientation: 'portrait',
       },
     });
 
     component.postFetchData();
 
     const sourcePathControl = component.entityForm.get('sourcePath');
+    const pageSizeControl = component.entityForm.get('pageSize');
+    const pageOrientationControl = component.entityForm.get('pageOrientation');
     expect(sourcePathControl?.hasError('required')).toBe(false);
     sourcePathControl?.setValue('');
     expect(sourcePathControl?.valid).toBe(true);
+    expect(pageSizeControl?.disabled).toBe(false);
+    expect(pageOrientationControl?.disabled).toBe(false);
   });
 
   it('requires sourcePath for xml output', () => {
@@ -112,6 +130,8 @@ describe('TaskDocumentExportFormComponent', () => {
     component.postFetchData();
 
     const sourcePathControl = component.entityForm.get('sourcePath');
+    expect(component.entityForm.get('pageSize')?.disabled).toBe(true);
+    expect(component.entityForm.get('pageOrientation')?.disabled).toBe(true);
     sourcePathControl?.setValue('');
     expect(sourcePathControl?.hasError('required')).toBe(true);
     sourcePathControl?.setValue('reports/export.jrxml');
@@ -153,15 +173,23 @@ describe('TaskDocumentExportFormComponent', () => {
 
     const outputControl = component.entityForm.get('output');
     const sourcePathControl = component.entityForm.get('sourcePath');
+    const pageSizeControl = component.entityForm.get('pageSize');
+    const pageOrientationControl = component.entityForm.get('pageOrientation');
     sourcePathControl?.setValue('');
     expect(sourcePathControl?.valid).toBe(true);
+    expect(pageSizeControl?.disabled).toBe(false);
+    expect(pageOrientationControl?.disabled).toBe(false);
 
     outputControl?.setValue('xml');
     expect(sourcePathControl?.hasError('required')).toBe(true);
+    expect(pageSizeControl?.disabled).toBe(true);
+    expect(pageOrientationControl?.disabled).toBe(true);
 
     outputControl?.setValue('pdf');
     expect(sourcePathControl?.hasError('required')).toBe(false);
     expect(sourcePathControl?.valid).toBe(true);
+    expect(pageSizeControl?.disabled).toBe(false);
+    expect(pageOrientationControl?.disabled).toBe(false);
   });
 
   it('fetchCopy prefixes translated copy marker', async () => {
@@ -194,6 +222,8 @@ describe('TaskDocumentExportFormComponent', () => {
       exportEngine: new FormControl('openhtmltopdf'),
       output: new FormControl('pdf'),
       sourcePath: new FormControl(''),
+      pageSize: new FormControl('A4'),
+      pageOrientation: new FormControl('portrait'),
     });
     (component as any).taskService = { create };
     (component as any).taskGroupService = { createProxy };
@@ -222,6 +252,8 @@ describe('TaskDocumentExportFormComponent', () => {
       exportEngine: new FormControl('openhtmltopdf'),
       output: new FormControl('xml'),
       sourcePath: new FormControl('reports/export.jrxml'),
+      pageSize: new FormControl('A4'),
+      pageOrientation: new FormControl('portrait'),
     });
     (component as any).taskService = { update };
     (component as any).taskGroupService = { createProxy };

@@ -39,19 +39,27 @@ interface DocumentExportTaskProperties {
   exportEngine?: string;
   downloadFormat?: string;
   downloadSource?: string;
+  pageSize?: string;
+  pageOrientation?: string;
 }
 
 @Component({
   selector: 'app-task-document-export-form',
   templateUrl: './task-document-export-form.component.html',
-  styles: [],
+  styles: ['.pdf-config-row { margin-top: 16px; }'],
   standalone: false,
 })
 export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProjection> {
   readonly config = Configuration.TASK_DOCUMENT_EXPORT;
   private static readonly XML_OUTPUT = 'xml';
+  private static readonly PDF_OUTPUT = 'pdf';
+  private static readonly DEFAULT_PAGE_SIZE = 'A4';
+  private static readonly DEFAULT_PAGE_ORIENTATION = 'portrait';
 
   public override entityForm: FormGroup;
+
+  protected readonly pdfPageSizes = ['A4', 'A3'];
+  protected readonly pdfPageOrientations = ['portrait', 'landscape'];
 
   protected readonly rolesTable: DataTableDefinition<Role, Role>;
   protected readonly availabilitiesTable: DataTableDefinition<TaskAvailabilityProjection, TerritoryProjection>;
@@ -64,6 +72,8 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
     exportEngine: 'entity.task.documentExport.engine',
     output: 'entity.task.documentExport.output',
     sourcePath: 'entity.task.documentExport.sourcePath',
+    pageSize: 'entity.task.documentExport.pageSize',
+    pageOrientation: 'entity.task.documentExport.pageOrientation',
   };
 
   private taskType: TaskType = null;
@@ -166,10 +176,23 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
       sourcePath: new FormControl(properties.downloadSource ?? '', {
         nonNullable: true,
       }),
+      pageSize: new FormControl(properties.pageSize ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_SIZE, {
+        nonNullable: true,
+      }),
+      pageOrientation: new FormControl(
+        properties.pageOrientation ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_ORIENTATION,
+        {
+          nonNullable: true,
+        },
+      ),
     });
 
     this.updateSourcePathValidator(this.entityForm.get('output')?.value);
-    this.entityForm.get('output')?.valueChanges.subscribe((output) => this.updateSourcePathValidator(output));
+    this.updatePdfConfigState(this.entityForm.get('output')?.value);
+    this.entityForm.get('output')?.valueChanges.subscribe((output) => {
+      this.updateSourcePathValidator(output);
+      this.updatePdfConfigState(output);
+    });
   }
 
   override async createEntity(): Promise<number> {
@@ -213,6 +236,11 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
     if (normalizedSourcePath) {
       properties.downloadSource = normalizedSourcePath;
     }
+    if (values.output === TaskDocumentExportFormComponent.PDF_OUTPUT) {
+      properties.pageSize = values.pageSize ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_SIZE;
+      properties.pageOrientation =
+        values.pageOrientation ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_ORIENTATION;
+    }
 
     safeToEdit = Object.assign(safeToEdit, {
       id,
@@ -250,6 +278,23 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
       sourcePathControl.clearValidators();
     }
     sourcePathControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private updatePdfConfigState(output: unknown): void {
+    const pageSizeControl = this.entityForm.get('pageSize');
+    const pageOrientationControl = this.entityForm.get('pageOrientation');
+    if (!pageSizeControl || !pageOrientationControl) {
+      return;
+    }
+
+    if (output === TaskDocumentExportFormComponent.PDF_OUTPUT) {
+      pageSizeControl.enable({ emitEvent: false });
+      pageOrientationControl.enable({ emitEvent: false });
+      return;
+    }
+
+    pageSizeControl.disable({ emitEvent: false });
+    pageOrientationControl.disable({ emitEvent: false });
   }
 
   private defineRolesTable(): DataTableDefinition<Role, Role> {

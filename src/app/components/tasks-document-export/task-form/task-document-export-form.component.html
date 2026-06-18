@@ -64,6 +64,28 @@
             <input matInput type="text" formControlName="sourcePath" [maxlength]="512">
             <mat-hint>{{ 'entity.task.documentExport.sourcePath.hint' | translate }}</mat-hint>
           </mat-form-field>
+
+          <div class="row-fields pdf-config-row">
+            <mat-form-field appearance="outline" class="half add-gap">
+              <mat-label>{{ 'entity.task.documentExport.pageSize' | translate }}</mat-label>
+              <mat-select formControlName="pageSize">
+                <mat-option *ngFor="let pageSize of pdfPageSizes" [value]="pageSize">
+                  {{ pageSize }}
+                </mat-option>
+              </mat-select>
+              <mat-hint>{{ 'entity.task.documentExport.pageSize.hint' | translate }}</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half">
+              <mat-label>{{ 'entity.task.documentExport.pageOrientation' | translate }}</mat-label>
+              <mat-select formControlName="pageOrientation">
+                <mat-option *ngFor="let pageOrientation of pdfPageOrientations" [value]="pageOrientation">
+                  {{ ('common.orientation.' + pageOrientation) | translate }}
+                </mat-option>
+              </mat-select>
+              <mat-hint>{{ 'entity.task.documentExport.pageOrientation.hint' | translate }}</mat-hint>
+            </mat-form-field>
+          </div>
         </mat-card-content>
       </mat-card>
     </form>
