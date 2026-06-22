@@ -648,11 +648,10 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
     mappings
       .filter(m => m.miaParam && m.childParam)
       .forEach(m => {
-        const miaParamObj = miaParams.find((p: any) => p.label === m.miaParam) as any;
-        if (!miaParamObj) {
+        const featureField = this.resolveMiaParamFeatureField(m.miaParam, miaParams);
+        if (!featureField) {
           return;
         }
-        const featureField = miaParamObj?.value || m.miaParam;
         map[m.childParam] = featureField;
       });
     return map;
@@ -661,8 +660,7 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
   private deserializeMappings(mappingObj: Record<string, unknown>, miaParams: any[]): ChildParamMapping[] {
     return Object.entries(mappingObj)
       .map(([childParam, featureField]) => {
-        const miaParamObj = miaParams.find(p => p.value === featureField);
-        const miaParam = miaParamObj?.label || String(featureField);
+        const miaParam = this.resolveMiaParamLabel(String(featureField), miaParams);
         return {miaParam, childParam};
       });
   }
@@ -729,9 +727,12 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
   }
 
   private getDeclaredFeatureFields(parametersToSave: TaskMoreInfoParameter[]): Set<string> {
-    return new Set(parametersToSave
-      .map(parameter => parameter.value || parameter.label)
-      .filter((value): value is string => typeof value === 'string' && value.length > 0));
+    return new Set([
+      ...parametersToSave
+        .map(parameter => parameter.value || parameter.label)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0),
+      ...this.getViewerContextParameters().map(parameter => parameter.value)
+    ]);
   }
 
   private async loadTemplateChildTasks(candidateTasks: TaskProjection[]): Promise<void> {
@@ -953,7 +954,35 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
 
   private readMiaParameters(): TaskMoreInfoParameter[] {
     const raw = this.entityToEdit?.properties?.parameters;
-    return Array.isArray(raw) ? raw as TaskMoreInfoParameter[] : [];
+    const merged = [
+      ...(Array.isArray(raw) ? raw as TaskMoreInfoParameter[] : []),
+      ...this.getViewerContextParameters()
+    ];
+    return merged.filter((parameter, index, array) => array.findIndex((item) => item.label === parameter.label) === index);
+  }
+
+  private getViewerContextParameters(): TaskMoreInfoParameter[] {
+    return [
+      new TaskMoreInfoParameter('bboxMinX', 9001, 'bboxMinX'),
+      new TaskMoreInfoParameter('bboxMinY', 9002, 'bboxMinY'),
+      new TaskMoreInfoParameter('bboxMaxX', 9003, 'bboxMaxX'),
+      new TaskMoreInfoParameter('bboxMaxY', 9004, 'bboxMaxY'),
+      new TaskMoreInfoParameter('queriedLayer', 9005, 'queriedLayer'),
+      new TaskMoreInfoParameter('queriedLayerId', 9006, 'queriedLayerId'),
+      new TaskMoreInfoParameter('queriedService', 9007, 'queriedService')
+    ];
+  }
+
+  private resolveMiaParamFeatureField(miaParamLabel: string, miaParams: unknown[]): string | null {
+    const allParams = [...(Array.isArray(miaParams) ? miaParams : []), ...this.getViewerContextParameters()];
+    const miaParamObj = allParams.find((p: any) => p.label === miaParamLabel || p.value === miaParamLabel) as any;
+    return miaParamObj?.value || null;
+  }
+
+  private resolveMiaParamLabel(featureField: string, miaParams: any[]): string {
+    const allParams = [...(Array.isArray(miaParams) ? miaParams : []), ...this.getViewerContextParameters()];
+    const miaParamObj = allParams.find(p => p.value === featureField || p.label === featureField);
+    return miaParamObj?.label || String(featureField);
   }
 
   private normalizeChildParameter(raw: unknown): TaskMoreInfoParameter | null {

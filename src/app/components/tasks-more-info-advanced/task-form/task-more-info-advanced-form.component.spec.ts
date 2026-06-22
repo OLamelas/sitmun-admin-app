@@ -264,6 +264,17 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
     ]);
   });
 
+  it('includes queriedService in reserved viewer MIA parameters', () => {
+    setupForm({childTaskOrderIds: [queryTask.id]});
+
+    expect((component as any).miaParameters.map((parameter: any) => parameter.label)).toEqual(
+      expect.arrayContaining(['bboxMinX', 'bboxMinY', 'bboxMaxX', 'bboxMaxY', 'queriedLayer', 'queriedLayerId', 'queriedService'])
+    );
+    expect((component as any).getAvailableMiaParams(queryTask.id, 0).map((parameter: any) => parameter.label)).toEqual(
+      expect.arrayContaining(['queriedService'])
+    );
+  });
+
   it('builds recursive template mapping views for nested templates', () => {
     setupForm({childTaskOrderIds: [templateTask.id]});
 
