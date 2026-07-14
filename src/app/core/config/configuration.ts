@@ -349,6 +349,22 @@ export class Configuration {
   };
 
   /**
+   * Map image tasks configuration
+   */
+  static readonly TASK_MAP_IMAGE: FormConfiguration = {
+    id: 'tasksMapImage',
+    labelSingular: 'entity.task.mapImage.label',
+    labelPlural: 'entity.task.mapImage.label',
+    icon: 'map',
+    font: 'material-icons-round',
+    route: 'tasks/mapImage',
+    formRoute: ':id/taskForm',
+    duplicateRoute: ':id/taskForm/:idDuplicate',
+    component: 'TasksMapImageComponent',
+    formComponent: 'TaskMapImageFormComponent'
+  };
+
+  /**
    * Advanced More Info tasks configuration
    */
   static readonly TASK_MORE_INFO_ADVANCED: FormConfiguration = {
@@ -493,6 +509,7 @@ export class Configuration {
       Configuration.TASK,
       Configuration.TASK_BASIC,
       Configuration.TASK_QUERY,
+      Configuration.TASK_MAP_IMAGE,
       Configuration.TASK_DOCUMENT_EXPORT,
       Configuration.TASK_TEMPLATE,
       Configuration.TASK_MORE_INFO,
@@ -556,6 +573,7 @@ export class Configuration {
           children: [
             Configuration.toMenuItem(Configuration.TASK_BASIC),
             Configuration.toMenuItem(Configuration.TASK_QUERY),
+            Configuration.toMenuItem(Configuration.TASK_MAP_IMAGE),
             Configuration.toMenuItem(Configuration.TASK_DOCUMENT_EXPORT),
             Configuration.toMenuItem(Configuration.TASK_TEMPLATE),
             Configuration.toMenuItem(Configuration.TASK_LOCATOR),

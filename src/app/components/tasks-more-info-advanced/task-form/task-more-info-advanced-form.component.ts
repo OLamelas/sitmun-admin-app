@@ -661,8 +661,9 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
     return Object.entries(mappingObj)
       .map(([childParam, featureField]) => {
         const miaParam = this.resolveMiaParamLabel(String(featureField), miaParams);
-        return {miaParam, childParam};
-      });
+        return miaParam == null ? null : {miaParam, childParam};
+      })
+      .filter((mapping): mapping is ChildParamMapping => mapping != null);
   }
 
   private pruneStoredChildTaskParameters(
@@ -963,13 +964,10 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
 
   private getViewerContextParameters(): TaskMoreInfoParameter[] {
     return [
-      new TaskMoreInfoParameter('bboxMinX', 9001, 'bboxMinX'),
-      new TaskMoreInfoParameter('bboxMinY', 9002, 'bboxMinY'),
-      new TaskMoreInfoParameter('bboxMaxX', 9003, 'bboxMaxX'),
-      new TaskMoreInfoParameter('bboxMaxY', 9004, 'bboxMaxY'),
-      new TaskMoreInfoParameter('queriedLayer', 9005, 'queriedLayer'),
-      new TaskMoreInfoParameter('queriedLayerId', 9006, 'queriedLayerId'),
-      new TaskMoreInfoParameter('queriedService', 9007, 'queriedService')
+      new TaskMoreInfoParameter('featureBboxMinX', 9001, 'featureBboxMinX'),
+      new TaskMoreInfoParameter('featureBboxMinY', 9002, 'featureBboxMinY'),
+      new TaskMoreInfoParameter('featureBboxMaxX', 9003, 'featureBboxMaxX'),
+      new TaskMoreInfoParameter('featureBboxMaxY', 9004, 'featureBboxMaxY')
     ];
   }
 
@@ -979,10 +977,10 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
     return miaParamObj?.value || null;
   }
 
-  private resolveMiaParamLabel(featureField: string, miaParams: any[]): string {
+  private resolveMiaParamLabel(featureField: string, miaParams: any[]): string | null {
     const allParams = [...(Array.isArray(miaParams) ? miaParams : []), ...this.getViewerContextParameters()];
     const miaParamObj = allParams.find(p => p.value === featureField || p.label === featureField);
-    return miaParamObj?.label || String(featureField);
+    return miaParamObj?.label || null;
   }
 
   private normalizeChildParameter(raw: unknown): TaskMoreInfoParameter | null {

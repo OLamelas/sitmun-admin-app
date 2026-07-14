@@ -59,4 +59,21 @@ describe('TaskPropertiesContract', () => {
     expect(TaskPropertiesContract.getTemplateEditorState(updated)).toEqual(editorState);
     expect(TaskPropertiesContract.getCommand(updated)).toBe('select 1');
   });
+
+  it('reads and writes map image properties preserving unknown keys', () => {
+    let updated = TaskPropertiesContract.withFormat({ custom: true }, 'png');
+    updated = TaskPropertiesContract.withWidth(updated, 1024);
+    updated = TaskPropertiesContract.withHeight(updated, 768);
+    updated = TaskPropertiesContract.withSrs(updated, 'EPSG:4326');
+    updated = TaskPropertiesContract.withBboxMarginPercent(updated, 15);
+    updated = TaskPropertiesContract.withMapSources(updated, [{ serviceId: 9, layerNames: ['layer_a', 'layer_b'] }]);
+
+    expect(TaskPropertiesContract.getFormat(updated)).toBe('png');
+    expect(TaskPropertiesContract.getWidth(updated)).toBe(1024);
+    expect(TaskPropertiesContract.getHeight(updated)).toBe(768);
+    expect(TaskPropertiesContract.getSrs(updated)).toBe('EPSG:4326');
+    expect(TaskPropertiesContract.getBboxMarginPercent(updated)).toBe(15);
+    expect(TaskPropertiesContract.getMapSources(updated)).toEqual([{ serviceId: 9, layerNames: ['layer_a', 'layer_b'] }]);
+    expect(updated.custom).toBe(true);
+  });
 });

@@ -92,6 +92,9 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   }
 
   get parameterDefinitions(): Array<Record<string, unknown>> {
+    if (this.task?.typeId === magic.taskMapImageTypeId) {
+      return [];
+    }
     return TaskPropertiesContract.getParameters(this.task?.properties);
   }
 

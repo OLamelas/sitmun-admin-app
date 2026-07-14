@@ -40,6 +40,8 @@ import {TaskDocumentExportFormComponent} from '@app/components/tasks-document-ex
 import {TasksDocumentExportComponent} from '@app/components/tasks-document-export/tasks-document-export.component';
 import {TaskEditFormComponent} from '@app/components/tasks-edit/task-form/task-edit-form.component';
 import {TasksEditComponent} from '@app/components/tasks-edit/tasks-edit.component';
+import { TaskMapImageFormComponent } from '@app/components/tasks-map-image/task-form/task-map-image-form.component';
+import { TasksMapImageComponent } from '@app/components/tasks-map-image/tasks-map-image.component';
 import {TaskLocatorFormComponent} from '@app/components/tasks-locator/task-form/task-locator-form.component';
 import {TasksLocatorComponent} from '@app/components/tasks-locator/tasks-locator.component';
 import {TaskMoreInfoFormComponent} from '@app/components/tasks-more-info/task-form/task-more-info-form.component';
@@ -93,6 +95,7 @@ export const APP_ROUTES: Routes = [
       {path: `tasks/:id/${magic.taskEditTypeId}`, component: TaskEditFormComponent},
       {path: `tasks/:id/${magic.taskBasicTypeId}`, component: TaskBasicFormComponent},
       {path: `tasks/:id/${magic.taskQueryTypeId}`, component: TaskQueryFormComponent},
+      {path: `tasks/:id/${magic.taskMapImageTypeId}`, component: TaskMapImageFormComponent},
       {path: `tasks/:id/${magic.taskDocumentExportTypeId}`, component: TaskDocumentExportFormComponent},
       {path: `tasks/:id/${magic.taskTemplateTypeId}`, component: TaskTemplateFormComponent},
       {path: 'tasksEdit', component: TasksEditComponent},
@@ -113,6 +116,9 @@ export const APP_ROUTES: Routes = [
       {path: 'tasksDocumentExport', component: TasksDocumentExportComponent, canDeactivate: [CanDeactivateGuard]},
       {path: 'taskDocumentExport/:id/:type', component: TaskDocumentExportFormComponent},
       {path: 'taskDocumentExport/:id/:type/:idDuplicate', component: TaskDocumentExportFormComponent},
+      {path: 'tasksMapImage', component: TasksMapImageComponent, canDeactivate: [CanDeactivateGuard]},
+      {path: 'taskMapImage/:id/:type', component: TaskMapImageFormComponent},
+      {path: 'taskMapImage/:id/:type/:idDuplicate', component: TaskMapImageFormComponent},
       {path: 'tasksTemplate', component: TasksTemplateComponent, canDeactivate: [CanDeactivateGuard]},
       {path: 'taskTemplate/:id/:type', component: TaskTemplateFormComponent},
       {path: 'taskTemplate/:id/:type/:idDuplicate', component: TaskTemplateFormComponent},

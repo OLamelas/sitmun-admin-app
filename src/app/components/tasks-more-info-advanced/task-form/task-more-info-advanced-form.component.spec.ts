@@ -189,6 +189,27 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
     ]);
   });
 
+  it('drops legacy viewer context mappings on edit', () => {
+    setupForm({
+      childTaskOrderIds: [queryTask.id, templateTask.id],
+      childTaskParameters: {
+        '201': {layerid: 'feature_code', staleBbox: 'bboxMinX', staleLayer: 'queriedLayer'}
+      },
+      templateChildTaskParameters: {
+        '301': {
+          '401': {innerCode: 'feature_name', staleService: 'queriedService'}
+        }
+      }
+    });
+
+    expect((component as any).getChildMappings(queryTask.id)).toEqual([
+      {miaParam: 'featureCode', childParam: 'layerid'}
+    ]);
+    expect((component as any).getTemplateChildMappings(templateTask.id, nestedApiTask.id)).toEqual([
+      {miaParam: 'featureName', childParam: 'innerCode'}
+    ]);
+  });
+
   it('adds and removes nested mappings only for template child tasks', () => {
     setupForm({childTaskOrderIds: [queryTask.id, templateTask.id]});
 
@@ -264,14 +285,17 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
     ]);
   });
 
-  it('includes queriedService in reserved viewer MIA parameters', () => {
+  it('includes only feature bbox in reserved viewer MIA parameters', () => {
     setupForm({childTaskOrderIds: [queryTask.id]});
 
     expect((component as any).miaParameters.map((parameter: any) => parameter.label)).toEqual(
+      expect.arrayContaining(['featureBboxMinX', 'featureBboxMinY', 'featureBboxMaxX', 'featureBboxMaxY'])
+    );
+    expect((component as any).miaParameters.map((parameter: any) => parameter.label)).not.toEqual(
       expect.arrayContaining(['bboxMinX', 'bboxMinY', 'bboxMaxX', 'bboxMaxY', 'queriedLayer', 'queriedLayerId', 'queriedService'])
     );
     expect((component as any).getAvailableMiaParams(queryTask.id, 0).map((parameter: any) => parameter.label)).toEqual(
-      expect.arrayContaining(['queriedService'])
+      expect.arrayContaining(['featureBboxMinX'])
     );
   });
 

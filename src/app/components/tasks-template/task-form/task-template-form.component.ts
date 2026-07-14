@@ -207,21 +207,29 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     this.initializePreviewLanguage();
 
     const queryTaskOptions = { params: [{ key: 'type.id', value: magic.taskQueryTypeId }] };
+    const mapImageTaskOptions = { params: [{ key: 'type.id', value: magic.taskMapImageTypeId }] };
     const templateTaskOptions = { params: [{ key: 'type.id', value: magic.taskTemplateTypeId }] };
-    const [queryTasks, templateTasks] = await Promise.all([
+    const [queryTasks, mapImageTasks, templateTasks] = await Promise.all([
       firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, queryTaskOptions, undefined, 'tasks')),
+      firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, mapImageTaskOptions, undefined, 'tasks')),
       firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, templateTaskOptions, undefined, 'tasks')),
     ]);
 
-    [...queryTasks, ...templateTasks].forEach((task) => this.taskLookup.set(task.id, task));
+    [...queryTasks, ...mapImageTasks, ...templateTasks].forEach((task) => this.taskLookup.set(task.id, task));
 
     const validQueryTasks = this.filterLinkableQueryTasks(queryTasks);
+    const validMapImageTasks = mapImageTasks.map((task) => this.toLinkableTask(
+      task,
+      'template-task',
+      this.translateService.instant('entity.task.mapImage.label'),
+    ));
     const nestedTemplates = templateTasks
       .filter((task) => task.id !== this.entityID && task.id !== this.duplicateID)
       .map((task) => this.toLinkableTask(task, 'template-nested', this.translateService.instant('entity.task.template.label')));
 
     this.linkableTasks = [
       ...validQueryTasks,
+      ...validMapImageTasks,
       ...nestedTemplates,
     ].sort((left, right) => left.name.localeCompare(right.name));
 
@@ -509,6 +517,9 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     if (task.typeId === magic.taskTemplateTypeId) {
       return this.translateService.instant('entity.task.template.label');
     }
+    if (task.typeId === magic.taskMapImageTypeId) {
+      return this.translateService.instant('entity.task.mapImage.label');
+    }
 
     const scope = String(TaskPropertiesContract.getScope(task.properties) || '');
     return this.getScopeLabel(scope);
@@ -734,9 +745,13 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
 
     const linkedTasks = await Promise.all(templateRelations.map(async (relation) => {
       const relatedTask = await firstValueFrom(relation.getRelationEx(Task, 'relatedTask'));
+      const relatedTaskTypeId = (relatedTask as TaskProjection | undefined)?.typeId
+        ?? ((relatedTask as Task | undefined)?.type as TaskType | undefined)?.id;
       const typeLabel = relation.relationType === 'template-nested'
         ? this.translateService.instant('entity.task.template.label')
-        : this.getScopeLabel(String(TaskPropertiesContract.getScope(relatedTask.properties) || ''));
+        : relatedTaskTypeId === magic.taskMapImageTypeId
+          ? this.translateService.instant('entity.task.mapImage.label')
+          : this.getScopeLabel(String(TaskPropertiesContract.getScope(relatedTask.properties) || ''));
 
       return {
         relationId: relation.id ?? null,
