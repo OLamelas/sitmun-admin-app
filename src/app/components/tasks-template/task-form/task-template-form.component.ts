@@ -44,9 +44,9 @@ import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
 import { NotificationService } from '@app/services/notification.service';
 import { UtilsService } from '@app/services/utils.service';
+import { config } from '@config';
 import { magic } from '@environments/constants';
 import { environment } from '@environments/environment';
-import { config } from '@config';
 
 import { QueryExecutionCardComponent, TemplateChildTaskLink } from '../query-execution-card/query-execution-card.component';
 import { TemplateValidationResult } from '../template-editor/template-html-validator.service';
@@ -87,7 +87,6 @@ interface TemplateTaskProperties extends Record<string, unknown> {
 export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection> {
   private static readonly MAX_TEMPLATE_NESTING_LEVEL = 3;
   private static readonly REFERENCE_ALIAS_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
   readonly config = Configuration.TASK_TEMPLATE;
 
   public override entityForm: FormGroup;
@@ -270,6 +269,10 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
         nonNullable: true,
       }),
     });
+
+    if (TaskPropertiesContract.hasDeprecatedPdfRegionHeights(this.entityToEdit?.properties)) {
+      this.entityForm.markAsDirty();
+    }
 
     this.filteredLinkableTasks = this.linkTaskSearchControl.valueChanges.pipe(
       startWith(this.linkTaskSearchControl.value),
@@ -610,18 +613,20 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   private createObject(id: number | null = null): Task {
     const safeToEdit = TaskProjection.fromObject(this.entityToEdit);
     const formValues = this.entityForm.getRawValue();
-    const properties = {
-      ...TaskPropertiesBuilder.from(this.entityToEdit?.properties)
+    const properties = TaskPropertiesContract.withoutDeprecatedPdfRegionHeights(TaskPropertiesBuilder.from(this.entityToEdit?.properties)
       .withTemplateHtml(formValues.templateHtml || null)
-      .build(),
+      .build());
+    const templateProperties = {
+      ...properties,
       childTaskOrderIds: this.linkedTasks.map((linkedTask) => linkedTask.taskId),
     } as TemplateTaskProperties;
-    delete (properties as Record<string, unknown>).previewContext;
+    delete (templateProperties as Record<string, unknown>).previewContext;
+    const entityValues = { ...formValues } as Record<string, unknown>;
 
     return Task.fromObject(
-      Object.assign(safeToEdit, formValues, {
+      Object.assign(safeToEdit, entityValues, {
         id,
-        properties,
+        properties: templateProperties,
       }),
     );
   }

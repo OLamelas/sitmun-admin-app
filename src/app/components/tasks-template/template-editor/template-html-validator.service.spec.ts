@@ -58,4 +58,67 @@ describe('TemplateHtmlValidatorService', () => {
     });
     expect(service.validate('<t>Hola').errors).toContain('Etiqueta <t> sin cierre.');
   });
+
+  it('accepts one top-level PDF header and footer', () => {
+    expect(service.validate(
+      '<table class="sitmun-pdf-header"><tbody><tr><td>Header</td></tr></tbody></table><p class="sitmun-pdf-footer">Footer</p>',
+    ).valid).toBe(true);
+  });
+
+  it('accepts full-bleed PDF header and footer variants', () => {
+    expect(service.validate(
+      '<table class="sitmun-pdf-header-full-bleed"><tbody><tr><td>Header</td></tr></tbody></table>'
+      + '<p class="sitmun-pdf-footer-full-bleed">Footer</p>',
+    ).valid).toBe(true);
+  });
+
+  it('rejects duplicate PDF regions', () => {
+    translateService.instant.mockImplementation((key: string) => key);
+    const result = service.validate('<p class="sitmun-pdf-header">One</p><p class="sitmun-pdf-header">Two</p>');
+
+    expect(result.errors).toContain('entity.task.template.editor.validation.multiplePdfHeaders');
+  });
+
+  it('rejects different variants of the same PDF region', () => {
+    translateService.instant.mockImplementation((key: string) => key);
+    const result = service.validate(
+      '<p class="sitmun-pdf-header">One</p><p class="sitmun-pdf-header-full-bleed">Two</p>',
+    );
+
+    expect(result.errors).toContain('entity.task.template.editor.validation.multiplePdfHeaders');
+  });
+
+  it('rejects a block marked as both PDF header and footer', () => {
+    translateService.instant.mockImplementation((key: string) => key);
+    const result = service.validate('<p class="sitmun-pdf-header sitmun-pdf-footer">Both</p>');
+
+    expect(result.errors).toContain('entity.task.template.editor.validation.conflictingPdfRegion');
+  });
+
+  it('accepts a PDF header nested in template content', () => {
+    const result = service.validate(
+      '<table><tbody><tr><td><table class="sitmun-pdf-header"><tbody><tr><td>Header</td></tr></tbody></table></td></tr></tbody></table>',
+    );
+
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects PDF regions nested within each other', () => {
+    translateService.instant.mockImplementation((key: string) => key);
+    const result = service.validate(
+      '<table class="sitmun-pdf-header"><tbody><tr><td><p class="sitmun-pdf-footer">Footer</p></td></tr></tbody></table>',
+    );
+
+    expect(result.errors).toContain('entity.task.template.editor.validation.invalidPdfRegionBlock');
+  });
+
+  it('rejects iframe elements marked as PDF regions', () => {
+    translateService.instant.mockImplementation((key: string) => key);
+
+    const result = service.validate(
+      '<iframe class="sitmun-pdf-header" src="https://example.org/document.pdf"></iframe>',
+    );
+
+    expect(result.errors).toContain('entity.task.template.editor.validation.invalidPdfRegionBlock');
+  });
 });

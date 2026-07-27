@@ -869,6 +869,10 @@
   "entity.task.template.editor.link": "Enlace",
   "entity.task.template.editor.image": "Imagen",
   "entity.task.template.editor.table": "Tabla",
+  "entity.task.template.editor.pdfHeader": "Marcar o desmarcar como cabecera PDF",
+  "entity.task.template.editor.pdfFooter": "Marcar o desmarcar como pie PDF",
+  "entity.task.template.editor.pdfFullBleedHeader": "Marcar o desmarcar como cabecera PDF a sangre",
+  "entity.task.template.editor.pdfFullBleedFooter": "Marcar o desmarcar como pie PDF a sangre",
   "entity.task.template.editor.elementsGroup": "Elementos",
   "entity.task.template.editor.stylesGroup": "Estilos",
   "entity.task.template.editor.alignLeft": "Izq.",
@@ -919,6 +923,10 @@
   "entity.task.template.editor.validation.nestedT": "No se permite anidar etiquetas <t>.",
   "entity.task.template.editor.validation.unopenedT": "Etiqueta <t> sin apertura.",
   "entity.task.template.editor.validation.unclosedT": "Etiqueta <t> sin cierre.",
+  "entity.task.template.editor.validation.multiplePdfHeaders": "Solo se permite una cabecera PDF.",
+  "entity.task.template.editor.validation.multiplePdfFooters": "Solo se permite un pie PDF.",
+  "entity.task.template.editor.validation.conflictingPdfRegion": "Un mismo bloque no puede tener más de un tipo de cabecera o pie PDF.",
+  "entity.task.template.editor.validation.invalidPdfRegionBlock": "La cabecera y el pie PDF deben ser bloques compatibles y no pueden contenerse entre sí.",
 
   "entity.task.template.apiAuthWarning": "Las tareas Web API con autenticación habilitada no se pueden vincular a Plantilla por ahora.",
 

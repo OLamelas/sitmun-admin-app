@@ -16,6 +16,7 @@ describe('TaskPropertiesContract', () => {
     expect(TaskPropertiesContract.getFields(properties)).toEqual([]);
     expect(TaskPropertiesContract.getTemplateHtml(properties)).toBeNull();
     expect(TaskPropertiesContract.getTemplateEditorState(properties)).toBeNull();
+    expect(TaskPropertiesContract.hasDeprecatedPdfRegionHeights(properties)).toBe(false);
   });
 
   it('preserves unknown keys when updating known keys', () => {
@@ -58,6 +59,17 @@ describe('TaskPropertiesContract', () => {
 
     expect(TaskPropertiesContract.getTemplateEditorState(updated)).toEqual(editorState);
     expect(TaskPropertiesContract.getCommand(updated)).toBe('select 1');
+  });
+
+  it('removes deprecated PDF region heights preserving unknown keys', () => {
+    const updated = TaskPropertiesContract.withoutDeprecatedPdfRegionHeights({
+      custom: true,
+      pdfHeaderHeightMm: 25,
+      pdfFooterHeightMm: '15',
+    });
+
+    expect(TaskPropertiesContract.hasDeprecatedPdfRegionHeights(updated)).toBe(false);
+    expect(updated.custom).toBe(true);
   });
 
   it('reads and writes map image properties preserving unknown keys', () => {

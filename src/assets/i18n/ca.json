@@ -1426,6 +1426,10 @@
   "entity.task.template.editor.link": "Enllaç",
   "entity.task.template.editor.image": "Imatge",
   "entity.task.template.editor.table": "Taula",
+  "entity.task.template.editor.pdfHeader": "Marcar o desmarcar com a capçalera PDF",
+  "entity.task.template.editor.pdfFooter": "Marcar o desmarcar com a peu PDF",
+  "entity.task.template.editor.pdfFullBleedHeader": "Marcar o desmarcar com a capçalera PDF a sang",
+  "entity.task.template.editor.pdfFullBleedFooter": "Marcar o desmarcar com a peu PDF a sang",
   "entity.task.template.editor.elementsGroup": "Elements",
   "entity.task.template.editor.stylesGroup": "Estils",
   "entity.task.template.editor.alignLeft": "Esq.",
@@ -1476,6 +1480,10 @@
   "entity.task.template.editor.validation.nestedT": "No es permet niuar etiquetes <t>.",
   "entity.task.template.editor.validation.unopenedT": "Etiqueta <t> sense apertura.",
   "entity.task.template.editor.validation.unclosedT": "Etiqueta <t> sense tancament.",
+  "entity.task.template.editor.validation.multiplePdfHeaders": "Només es permet una capçalera PDF.",
+  "entity.task.template.editor.validation.multiplePdfFooters": "Només es permet un peu PDF.",
+  "entity.task.template.editor.validation.conflictingPdfRegion": "Un mateix bloc no pot tenir més d'un tipus de capçalera o peu PDF.",
+  "entity.task.template.editor.validation.invalidPdfRegionBlock": "La capçalera i el peu PDF han de ser blocs compatibles i no poden contenir-se entre si.",
 
   "entity.task.template.apiAuthWarning": "Les tasques Web API amb autenticació habilitada no es poden vincular a Plantilla per ara.",
 

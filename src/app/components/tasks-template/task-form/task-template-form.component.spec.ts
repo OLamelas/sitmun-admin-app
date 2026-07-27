@@ -7,8 +7,9 @@ import { join } from 'path';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
-import { TaskTemplateFormComponent } from './task-template-form.component';
 import { magic } from '@environments/constants';
+
+import { TaskTemplateFormComponent } from './task-template-form.component';
 
 describe('TaskTemplateFormComponent', () => {
   let component: TaskTemplateFormComponent;
@@ -120,6 +121,19 @@ describe('TaskTemplateFormComponent', () => {
     expect(component.entityForm.get('name')?.value).toBe('Template 1');
     expect(component.entityForm.get('taskGroupId')?.value).toBe(2);
     expect(component.entityForm.get('templateHtml')?.value).toBe('');
+    expect(component.entityForm.get('pdfHeaderHeightMm')).toBeNull();
+    expect(component.entityForm.get('pdfFooterHeightMm')).toBeNull();
+  });
+
+  it('should mark templates with deprecated PDF region heights for cleanup', () => {
+    component.entityToEdit = {
+      name: 'Template 1',
+      groupId: 2,
+      properties: { pdfHeaderHeightMm: 25 },
+    } as any;
+    component.postFetchData();
+
+    expect(component.entityForm.dirty).toBe(true);
   });
 
   it('should remove linked task from local list', () => {
@@ -141,7 +155,12 @@ describe('TaskTemplateFormComponent', () => {
       id: 99,
       name: 'Template 1',
       groupId: 2,
-      properties: { templateHtml: '<p>x</p>' },
+      properties: {
+        templateHtml: '<p>x</p>',
+        custom: true,
+        pdfHeaderHeightMm: 32,
+        pdfFooterHeightMm: 18,
+      },
     } as any;
     component.entityForm = new FormGroup({
       name: new FormControl('Template 1'),
@@ -156,6 +175,9 @@ describe('TaskTemplateFormComponent', () => {
     const task = (component as any).createObject(99);
 
     expect(task.properties.childTaskOrderIds).toEqual([15, 13]);
+    expect(task.properties.custom).toBe(true);
+    expect(task.properties.pdfHeaderHeightMm).toBeUndefined();
+    expect(task.properties.pdfFooterHeightMm).toBeUndefined();
   });
 
   it('should expose only name and optional value in template parameter dialog', () => {

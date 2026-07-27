@@ -193,6 +193,23 @@
   outline: none;
 }
 
+:host ::ng-deep .ProseMirror .sitmun-pdf-header,
+:host ::ng-deep .ProseMirror .sitmun-pdf-header-full-bleed {
+  outline: 2px dashed #2563eb;
+  outline-offset: 3px;
+}
+
+:host ::ng-deep .ProseMirror .sitmun-pdf-footer,
+:host ::ng-deep .ProseMirror .sitmun-pdf-footer-full-bleed {
+  outline: 2px dashed #059669;
+  outline-offset: 3px;
+}
+
+:host ::ng-deep .ProseMirror .sitmun-pdf-header-full-bleed,
+:host ::ng-deep .ProseMirror .sitmun-pdf-footer-full-bleed {
+  outline-style: solid;
+}
+
 :host ::ng-deep .ProseMirror img,
 :host ::ng-deep .ProseMirror iframe {
   max-width: 100%;

@@ -22,6 +22,7 @@ export class TaskPropertiesContract {
   private static readonly API_KEY_TYPE = 'apiKeyType';
   private static readonly TEMPLATE_HTML = 'templateHtml';
   private static readonly TEMPLATE_EDITOR_STATE = 'templateEditorState';
+  private static readonly DEPRECATED_PDF_REGION_HEIGHT_KEYS = ['pdfHeaderHeightMm', 'pdfFooterHeightMm'];
   private static readonly FORMAT = 'format';
   private static readonly WIDTH = 'width';
   private static readonly HEIGHT = 'height';
@@ -101,6 +102,11 @@ export class TaskPropertiesContract {
 
   public static getTemplateEditorState(properties: TaskProperties | null | undefined): unknown {
     return TaskPropertiesContract.fromRaw(properties)[TaskPropertiesContract.TEMPLATE_EDITOR_STATE] ?? null;
+  }
+
+  public static hasDeprecatedPdfRegionHeights(properties: TaskProperties | null | undefined): boolean {
+    const normalized = TaskPropertiesContract.fromRaw(properties);
+    return TaskPropertiesContract.DEPRECATED_PDF_REGION_HEIGHT_KEYS.some((key) => key in normalized);
   }
 
   public static getFormat(properties: TaskProperties | null | undefined): string | null {
@@ -337,6 +343,14 @@ export class TaskPropertiesContract {
       ...TaskPropertiesContract.fromRaw(properties),
       [TaskPropertiesContract.TEMPLATE_EDITOR_STATE]: templateEditorState
     };
+  }
+
+  public static withoutDeprecatedPdfRegionHeights(
+    properties: TaskProperties | null | undefined
+  ): TaskProperties {
+    const updated = TaskPropertiesContract.fromRaw(properties);
+    TaskPropertiesContract.DEPRECATED_PDF_REGION_HEIGHT_KEYS.forEach((key) => delete updated[key]);
+    return updated;
   }
 
   public static withFormat(properties: TaskProperties | null | undefined, format: string | null): TaskProperties {

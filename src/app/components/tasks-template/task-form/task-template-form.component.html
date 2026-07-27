@@ -14,7 +14,8 @@
 <app-entity-form-alerts
   *ngIf="dataLoaded"
   [form]="entityForm"
-  entityLabelPrefix="entity.task.template">
+  entityLabelPrefix="entity.task.template"
+  [fieldLabelKeys]="validationFieldLabels">
 </app-entity-form-alerts>
 
 <mat-tab-group

@@ -71,6 +71,30 @@
                 (click)="wrapSelectionInTranslationLiteral()">
           <mat-icon>translate</mat-icon>
         </button>
+        <button type="button" class="action-button icon" [class.action-button--active]="pdfHeaderSelected"
+                [disabled]="readonly || !canMarkPdfRegion"
+                [title]="'entity.task.template.editor.pdfHeader' | translate"
+                (click)="togglePdfHeader()">
+          <mat-icon>vertical_align_top</mat-icon>
+        </button>
+        <button type="button" class="action-button icon" [class.action-button--active]="pdfFooterSelected"
+                [disabled]="readonly || !canMarkPdfRegion"
+                [title]="'entity.task.template.editor.pdfFooter' | translate"
+                (click)="togglePdfFooter()">
+          <mat-icon>vertical_align_bottom</mat-icon>
+        </button>
+        <button type="button" class="action-button icon" [class.action-button--active]="pdfFullBleedHeaderSelected"
+                [disabled]="readonly || !canMarkPdfRegion"
+                [title]="'entity.task.template.editor.pdfFullBleedHeader' | translate"
+                (click)="togglePdfFullBleedHeader()">
+          <mat-icon fontSet="material-symbols-outlined">page_header</mat-icon>
+        </button>
+        <button type="button" class="action-button icon" [class.action-button--active]="pdfFullBleedFooterSelected"
+                [disabled]="readonly || !canMarkPdfRegion"
+                [title]="'entity.task.template.editor.pdfFullBleedFooter' | translate"
+                (click)="togglePdfFullBleedFooter()">
+          <mat-icon fontSet="material-symbols-outlined">page_footer</mat-icon>
+        </button>
         <button type="button" class="action-button icon action-button--danger" [disabled]="readonly || !canDeleteSelection"
                 [title]="'entity.task.template.editor.deleteSelection' | translate"
                 (click)="deleteSelectedElement()">

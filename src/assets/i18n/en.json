@@ -1422,6 +1422,10 @@
   "entity.task.template.editor.link": "Link",
   "entity.task.template.editor.image": "Image",
   "entity.task.template.editor.table": "Table",
+  "entity.task.template.editor.pdfHeader": "Mark or unmark as PDF header",
+  "entity.task.template.editor.pdfFooter": "Mark or unmark as PDF footer",
+  "entity.task.template.editor.pdfFullBleedHeader": "Mark or unmark as full-bleed PDF header",
+  "entity.task.template.editor.pdfFullBleedFooter": "Mark or unmark as full-bleed PDF footer",
   "entity.task.template.editor.elementsGroup": "Elements",
   "entity.task.template.editor.stylesGroup": "Styles",
   "entity.task.template.editor.alignLeft": "Left",
@@ -1472,6 +1476,10 @@
   "entity.task.template.editor.validation.nestedT": "Nesting <t> tags is not allowed.",
   "entity.task.template.editor.validation.unopenedT": "Tag <t> without opening.",
   "entity.task.template.editor.validation.unclosedT": "Tag <t> without closing.",
+  "entity.task.template.editor.validation.multiplePdfHeaders": "Only one PDF header is allowed.",
+  "entity.task.template.editor.validation.multiplePdfFooters": "Only one PDF footer is allowed.",
+  "entity.task.template.editor.validation.conflictingPdfRegion": "The same block cannot have more than one PDF header or footer type.",
+  "entity.task.template.editor.validation.invalidPdfRegionBlock": "PDF headers and footers must be supported blocks and cannot contain each other.",
 
   "entity.task.template.apiAuthWarning": "Web API tasks with authentication enabled cannot be linked to a Template at this time.",
 

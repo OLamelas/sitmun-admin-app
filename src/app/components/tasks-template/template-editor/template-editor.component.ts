@@ -5,7 +5,6 @@ import { Editor } from '@tiptap/core';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
-import Table from '@tiptap/extension-table';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
@@ -23,11 +22,63 @@ import { FontSizeExtension } from './font-size.extension';
 import { HandlebarsBlockExtension, handlebarsBlockHtmlAttribute } from './handlebars-block.extension';
 import { HtmlAttributesExtension } from './html-attributes.extension';
 import { IframeExtension } from './iframe.extension';
+import { LayoutPreservingTable } from './layout-preserving-table.extension';
+import {
+  PDF_FOOTER_CLASS,
+  PDF_FOOTER_CLASSES,
+  PDF_FULL_BLEED_FOOTER_CLASS,
+  PDF_FULL_BLEED_HEADER_CLASS,
+  PDF_HEADER_CLASS,
+  PDF_HEADER_CLASSES,
+  PDF_REGION_CLASSES,
+  PDF_REGION_NODE_TYPES,
+} from './pdf-region.constants';
 import { SizedImageExtension } from './sized-image.extension';
 import { TemplateHtmlValidatorService, TemplateValidationResult } from './template-html-validator.service';
 import { TranslationLiteralExtension, translationLiteralHtmlAttribute, translationLiteralSelector } from './translation-literal.extension';
 
 const HANDLEBARS_TABLE_ROW_ATTR = handlebarsBlockHtmlAttribute;
+export function updateHtmlClass(value: string | null | undefined, add: string | null, remove: string[]): string | null {
+  const classes = new Set((value || '').split(/\s+/).filter(Boolean));
+  remove.forEach((className) => classes.delete(className));
+  if (add) {
+    classes.add(add);
+  }
+  return classes.size > 0 ? Array.from(classes).join(' ') : null;
+}
+
+export function resolveSelectedPdfRegionNode(selection: Selection): { node: ProseMirrorNode; pos: number } | null {
+  if (selection instanceof NodeSelection && PDF_REGION_NODE_TYPES.has(selection.node.type.name)) {
+    return { node: selection.node, pos: selection.from };
+  }
+  if (selection.$from.depth < 1) {
+    return null;
+  }
+
+  for (let depth = selection.$from.depth; depth >= 1; depth--) {
+    const node = selection.$from.node(depth);
+    const classes = String(node.attrs['class'] || '').split(/\s+/);
+    if (PDF_REGION_NODE_TYPES.has(node.type.name)
+        && classes.some((className) => PDF_REGION_CLASSES.has(className))) {
+      return { node, pos: selection.$from.before(depth) };
+    }
+  }
+
+  for (let depth = selection.$from.depth; depth >= 1; depth--) {
+    const node = selection.$from.node(depth);
+    if (node.type.name === 'bulletList' || node.type.name === 'orderedList') {
+      return { node, pos: selection.$from.before(depth) };
+    }
+  }
+
+  for (let depth = selection.$from.depth; depth >= 1; depth--) {
+    const node = selection.$from.node(depth);
+    if (PDF_REGION_NODE_TYPES.has(node.type.name)) {
+      return { node, pos: selection.$from.before(depth) };
+    }
+  }
+  return null;
+}
 
 export function normalizeHandlebarsMarkup(html: string): string {
   return (html || '').replace(/\{\{[\s\S]*?}}/g, (placeholder) => {
@@ -124,6 +175,11 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
   canDeleteSelection = false;
   editorFocused = false;
   componentFocusedWithin = false;
+  canMarkPdfRegion = false;
+  pdfHeaderSelected = false;
+  pdfFooterSelected = false;
+  pdfFullBleedHeaderSelected = false;
+  pdfFullBleedFooterSelected = false;
 
   readonly fontSizeOptions = TemplateEditorComponent.FONT_SIZE_OPTIONS;
 
@@ -163,7 +219,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
           },
         }),
         SizedImageExtension,
-        Table.configure({
+        LayoutPreservingTable.configure({
           resizable: false,
           allowTableNodeSelection: true,
         }),
@@ -289,6 +345,22 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
 
   toggleOrderedList(): void {
     this.editor?.chain().focus().toggleOrderedList().run();
+  }
+
+  togglePdfHeader(): void {
+    this.togglePdfRegion(PDF_HEADER_CLASS, PDF_HEADER_CLASSES);
+  }
+
+  togglePdfFooter(): void {
+    this.togglePdfRegion(PDF_FOOTER_CLASS, PDF_FOOTER_CLASSES);
+  }
+
+  togglePdfFullBleedHeader(): void {
+    this.togglePdfRegion(PDF_FULL_BLEED_HEADER_CLASS, PDF_HEADER_CLASSES);
+  }
+
+  togglePdfFullBleedFooter(): void {
+    this.togglePdfRegion(PDF_FULL_BLEED_FOOTER_CLASS, PDF_FOOTER_CLASSES);
   }
 
   toggleTextAlign(alignment: 'left' | 'center' | 'right' | 'justify'): void {
@@ -758,6 +830,13 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
     this.selectedNodeType = this.resolveSelectedNodeType(selection);
     this.tableSelectionMode = this.resolveTableSelectionMode(selection);
     this.rememberCurrentTablePosition(selection);
+    const pdfRegionNode = this.getSelectedPdfRegionNode();
+    const pdfRegionClasses = new Set(String(pdfRegionNode?.node.attrs['class'] || '').split(/\s+/).filter(Boolean));
+    this.canMarkPdfRegion = pdfRegionNode !== null;
+    this.pdfHeaderSelected = pdfRegionClasses.has(PDF_HEADER_CLASS);
+    this.pdfFooterSelected = pdfRegionClasses.has(PDF_FOOTER_CLASS);
+    this.pdfFullBleedHeaderSelected = pdfRegionClasses.has(PDF_FULL_BLEED_HEADER_CLASS);
+    this.pdfFullBleedFooterSelected = pdfRegionClasses.has(PDF_FULL_BLEED_FOOTER_CLASS);
 
     const textStyleAttributes = this.editor.getAttributes('textStyle') as Record<string, string | null | undefined>;
     const highlightAttributes = this.editor.getAttributes('highlight') as Record<string, string | null | undefined>;
@@ -791,6 +870,60 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
     this.selectedTableCellBackground = '#ffffff';
     this.selectedTableCellBorderColor = '#000000';
     this.selectedTableCellBorderWidth = '1';
+    this.canMarkPdfRegion = false;
+    this.pdfHeaderSelected = false;
+    this.pdfFooterSelected = false;
+    this.pdfFullBleedHeaderSelected = false;
+    this.pdfFullBleedFooterSelected = false;
+  }
+
+  private togglePdfRegion(targetClass: string, categoryClasses: Set<string>): void {
+    if (!this.editor) {
+      return;
+    }
+
+    const selected = this.getSelectedPdfRegionNode();
+    if (!selected) {
+      return;
+    }
+
+    const selectedClasses = new Set(String(selected.node.attrs['class'] || '').split(/\s+/).filter(Boolean));
+    const removeSelectedMarker = selectedClasses.has(targetClass);
+    let transaction = this.editor.state.tr;
+
+    this.editor.state.doc.descendants((node, pos) => {
+      if (!PDF_REGION_NODE_TYPES.has(node.type.name)) {
+        return;
+      }
+
+      const currentClass = String(node.attrs['class'] || '');
+      const currentClasses = currentClass.split(/\s+/);
+      const isSelectedNode = pos === selected.pos;
+      const hasCategoryClass = currentClasses.some((className) => categoryClasses.has(className));
+      if (!isSelectedNode && (removeSelectedMarker || !hasCategoryClass)) {
+        return;
+      }
+      const nextClass = isSelectedNode
+        ? updateHtmlClass(currentClass, removeSelectedMarker ? null : targetClass, [...PDF_REGION_CLASSES])
+        : updateHtmlClass(currentClass, null, [...categoryClasses]);
+      if ((nextClass || '') !== currentClass) {
+        transaction = transaction.setNodeMarkup(pos, undefined, { ...node.attrs, class: nextClass });
+      }
+    });
+
+    this.interactionErrors = [];
+    if (transaction.docChanged) {
+      this.editor.view.dispatch(transaction);
+    }
+    this.syncSelectionState();
+  }
+
+  private getSelectedPdfRegionNode(): { node: ProseMirrorNode; pos: number } | null {
+    if (!this.editor) {
+      return null;
+    }
+
+    return resolveSelectedPdfRegionNode(this.editor.state.selection);
   }
 
   private resolveSelectedNodeType(selection: Selection): SelectedNodeType {
