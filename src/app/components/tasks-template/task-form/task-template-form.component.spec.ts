@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
-import { DomSanitizer } from '@angular/platform-browser';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
@@ -89,7 +90,6 @@ describe('TaskTemplateFormComponent', () => {
       notificationService as any,
       utils as any,
       http as any,
-      TestBed.inject(DomSanitizer),
     ));
 
     (component as any).linkableTasks = [
@@ -717,14 +717,13 @@ describe('TaskTemplateFormComponent', () => {
     expect((component as any).previewDirty).toBe(true);
   });
 
-  it('should expose trusted preview html so iframe content can be previewed', () => {
-    (component as any).previewHtml = '<iframe src="https://example.com"></iframe>';
-    (component as any).trustedPreviewHtml = TestBed.inject(DomSanitizer).bypassSecurityTrustHtml(
-      (component as any).previewHtml,
-    );
+  it('uses the sandboxed preview component instead of an innerHTML sink', () => {
+    const template = readFileSync(join(__dirname, 'task-template-form.component.html'), 'utf8');
+    const source = readFileSync(join(__dirname, 'task-template-form.component.ts'), 'utf8');
 
-    const trusted = (component as any).trustedPreviewHtml;
-
-    expect(trusted).toBeTruthy();
+    expect(template).toContain('<app-safe-html-preview');
+    expect(template).toContain('[html]="previewHtml"');
+    expect(template).not.toContain('[innerHTML]');
+    expect(source).not.toContain('bypassSecurityTrustHtml');
   });
 });

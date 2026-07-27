@@ -5,8 +5,11 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { of, Subject, throwError } from 'rxjs';
 
+import { SafeHtmlPreviewComponent } from '@app/components/shared/safe-html-preview/safe-html-preview.component';
 import { TaskTemplatePreviewService } from '@app/domain';
 
 import { QueryExecutionCardComponent } from './query-execution-card.component';
@@ -47,7 +50,7 @@ describe('QueryExecutionCardComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      declarations: [QueryExecutionCardComponent],
+      declarations: [QueryExecutionCardComponent, SafeHtmlPreviewComponent],
       imports: [HttpClientTestingModule, ReactiveFormsModule, MatCardModule, MatButtonModule, MatIconModule, TranslateModule.forRoot()],
       providers: [{ provide: TaskTemplatePreviewService, useValue: previewService }],
     }).compileComponents();
@@ -84,6 +87,16 @@ describe('QueryExecutionCardComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('uses the sandboxed preview component instead of an innerHTML sink', () => {
+    const template = readFileSync(join(__dirname, 'query-execution-card.component.html'), 'utf8');
+    const source = readFileSync(join(__dirname, 'query-execution-card.component.ts'), 'utf8');
+
+    expect(template).toContain('<app-safe-html-preview');
+    expect(template).toContain('[html]="renderedTemplateHtml"');
+    expect(template).not.toContain('[innerHTML]');
+    expect(source).not.toContain('bypassSecurityTrustHtml');
   });
 
   it('should create one form control per parameter', () => {

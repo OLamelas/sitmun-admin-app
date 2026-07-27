@@ -3,7 +3,6 @@ import { Component, QueryList, TemplateRef, ViewChild, ViewChildren } from '@ang
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { TranslateService } from '@ngx-translate/core';
@@ -107,7 +106,6 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   protected previewLanguages: Language[] = [];
   protected previewLanguageControl = new FormControl(config.defaultLang, { nonNullable: true });
   protected previewHtml = '';
-  protected trustedPreviewHtml: SafeHtml = '';
   protected previewPlaceholders: string[] = [];
   protected previewError = '';
   protected previewDirty = true;
@@ -155,7 +153,6 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     protected notificationService: NotificationService,
     protected utils: UtilsService,
     protected http: HttpClient,
-    protected domSanitizer: DomSanitizer,
   ) {
     super(
       dialog,
@@ -597,14 +594,12 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     ).subscribe({
       next: (response) => {
         this.previewHtml = response.html;
-        this.trustedPreviewHtml = this.domSanitizer.bypassSecurityTrustHtml(this.previewHtml || '');
         this.previewPlaceholders = response.placeholders;
         this.previewError = '';
         this.previewDirty = false;
       },
       error: (error) => {
         this.previewHtml = '';
-        this.trustedPreviewHtml = this.domSanitizer.bypassSecurityTrustHtml('');
         this.previewPlaceholders = [];
         this.previewError = this.resolvePreviewError(error);
         this.previewDirty = false;

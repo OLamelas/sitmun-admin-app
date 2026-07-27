@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, QueryList, SimpleChanges, ViewChildren } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import { firstValueFrom } from 'rxjs';
 
@@ -49,7 +48,6 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   status: ExecutionStatus = 'PENDING';
   response: TemplateTaskExecutionResponse | null = null;
   errorMessage: string | null = null;
-  trustedRenderedTemplateHtml: SafeHtml = '';
   renderableChildTasks: TemplateChildTaskLink[] = [];
   childAncestorTaskIds: number[] = [];
   childrenReady = false;
@@ -58,7 +56,6 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
 
   constructor(
     private readonly previewService: TaskTemplatePreviewService,
-    private readonly domSanitizer: DomSanitizer,
     private readonly cdr: ChangeDetectorRef,
   ) {}
 
@@ -68,7 +65,6 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
       this.status = 'PENDING';
       this.response = null;
       this.errorMessage = null;
-      this.trustedRenderedTemplateHtml = '';
     }
     this.childAncestorTaskIds = this.getChildAncestorTaskIds();
     this.renderableChildTasks = this.getRenderableChildTasks();
@@ -255,7 +251,6 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
       );
 
       this.response = response;
-      this.trustedRenderedTemplateHtml = this.domSanitizer.bypassSecurityTrustHtml(this.renderedTemplateHtml || '');
       this.status = response.status === 'PENDING' ? 'PENDING' : 'COMPLETED';
       this.executed.emit({
         ...response,

@@ -53,6 +53,7 @@ import {RelationGridComponent} from '@app/components/shared/relation-grid/relati
 import {SideMenuComponent} from '@app/components/shared/side-menu/side-menu.component';
 import {ToolbarComponent} from '@app/components/shared/toolbar/toolbar.component';
 import {WarningsPanelComponent} from '@app/components/shared/warnings-panel/warnings-panel.component';
+import { SafeHtmlPreviewComponent } from '@app/components/shared/safe-html-preview/safe-html-preview.component';
 import {TaskGroupFormComponent} from '@app/components/task-group/task-group-form/task-group-form.component';
 import {TaskGroupComponent} from '@app/components/task-group/task-group.component';
 import {TaskTypeFormComponent} from '@app/components/task-type/task-type-form/task-type-form.component';
@@ -304,6 +305,7 @@ function getDefaultLanguage(languages: any[], appConfigService?: AppConfigServic
         TaskTemplateFormComponent,
         QueryExecutionCardComponent,
         TemplateEditorComponent,
+        SafeHtmlPreviewComponent,
         TasksMoreInfoAdvancedComponent,
         TaskLocatorFormComponent,
         TasksLocatorComponent,
