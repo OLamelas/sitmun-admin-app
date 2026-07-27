@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -37,6 +38,9 @@ describe('TaskTemplateFormComponent', () => {
             }),
           },
         }),
+      ],
+      providers: [
+        { provide: ChangeDetectorRef, useValue: { markForCheck: jest.fn() } },
       ],
     });
 

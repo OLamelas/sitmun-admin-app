@@ -1,3 +1,4 @@
+import {ChangeDetectorRef} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {FormControl} from '@angular/forms';
 import {of, throwError} from 'rxjs';
@@ -15,7 +16,11 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
   };
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [
+        {provide: ChangeDetectorRef, useValue: createSpyObj(['markForCheck'])}
+      ]
+    });
 
     const translateService = createSpyObj(['instant', 'get']);
     translateService.instant.mockImplementation((key: string) => key);
