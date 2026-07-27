@@ -125,11 +125,13 @@
               [newButton]="false"
               [actionButton]="false"
               [addButton]="false"
+              [rowDragManaged]="true"
               [hideDuplicateButton]="true"
               [hideReplaceButton]="true"
               [hideExportButton]="true"
               [globalSearch]="false"
               (remove)="removeSelectedLayerRows($event)"
+              (rowOrderChanged)="onSelectedLayerOrderChanged($event)"
               *ngIf="selectedLayerRows.length > 0; else noSources">
             </app-data-grid>
 

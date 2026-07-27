@@ -335,13 +335,23 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
 
   protected addLayer(option: MapImageLayerOption): void {
     const nextSources = this.readMapSourcesFromForm();
-    const existing = nextSources.find((source) => source.serviceId === option.serviceId);
-    if (existing) {
-      existing.layerNames = this.deduplicateLayerNames([...existing.layerNames, ...option.layerIds]);
+    const selectedLayerIds = new Set(
+      nextSources
+        .filter((source) => source.serviceId === option.serviceId)
+        .flatMap((source) => source.layerNames),
+    );
+    const layerIdsToAdd = option.layerIds.filter((layerId) => !selectedLayerIds.has(layerId));
+    if (layerIdsToAdd.length === 0) {
+      return;
+    }
+
+    const lastSource = nextSources[nextSources.length - 1];
+    if (lastSource?.serviceId === option.serviceId) {
+      lastSource.layerNames = this.deduplicateLayerNames([...lastSource.layerNames, ...layerIdsToAdd]);
     } else {
       nextSources.push({
         serviceId: option.serviceId,
-        layerNames: this.deduplicateLayerNames(option.layerIds),
+        layerNames: this.deduplicateLayerNames(layerIdsToAdd),
       });
     }
     this.replaceMapSources(nextSources);
@@ -400,12 +410,20 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
     this.replaceMapSources(nextSources);
   }
 
-  protected isLayerOptionSelected(option: MapImageLayerOption): boolean {
-    const source = this.readMapSourcesFromForm().find((item) => item.serviceId === option.serviceId);
-    if (!source) {
-      return false;
+  protected onSelectedLayerOrderChanged(rows: MapImageSelectedLayerGridRow[]): void {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return;
     }
-    const selectedIds = new Set(source.layerNames);
+
+    this.replaceMapSources(this.mapRowsToConsecutiveSources(rows));
+  }
+
+  protected isLayerOptionSelected(option: MapImageLayerOption): boolean {
+    const selectedIds = new Set(
+      this.readMapSourcesFromForm()
+        .filter((item) => item.serviceId === option.serviceId)
+        .flatMap((source) => source.layerNames),
+    );
     return option.layerIds.every((layerId) => selectedIds.has(layerId));
   }
 
@@ -475,6 +493,26 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
 
   private buildMapSourcesPayload(): MapImageSourceProperties[] {
     return this.readMapSourcesFromForm();
+  }
+
+  private mapRowsToConsecutiveSources(rows: MapImageSelectedLayerRow[]): MapImageSourceProperties[] {
+    return rows.reduce((sources, row) => {
+      if (row.serviceId == null || !row.layerId) {
+        return sources;
+      }
+
+      const lastSource = sources[sources.length - 1];
+      if (lastSource?.serviceId === row.serviceId) {
+        lastSource.layerNames = this.deduplicateLayerNames([...lastSource.layerNames, row.layerId]);
+        return sources;
+      }
+
+      sources.push({
+        serviceId: row.serviceId,
+        layerNames: [row.layerId],
+      });
+      return sources;
+    }, [] as MapImageSourceProperties[]);
   }
 
   private async ensureLayerOptionsForSelectedRows(): Promise<void> {
@@ -657,11 +695,38 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
   }
 
   private defineSelectedLayersColumnDefs(): any[] {
+    const dragCol: any = {
+      headerName: '',
+      field: 'order',
+      rowDrag: true,
+      sortable: false,
+      editable: false,
+      filter: false,
+      width: 70,
+      minWidth: 70,
+      maxWidth: 70,
+      suppressHeaderMenuButton: true,
+      suppressMenu: true,
+      cellClass: 'sitmun-centered-cell',
+      headerClass: 'sitmun-centered-header',
+      valueGetter: () => 'drag_indicator',
+      cellRenderer: () => '<span class="material-icons-round">drag_indicator</span>'
+    };
+
+    const layerIdCol: any = Object.assign(this.utils.getNonEditableColumnDef('entity.task.mapImage.layers.id', 'layerIdLabel'), { flex: 2, minWidth: 180, tooltipField: 'layerIdLabel' });
+    const layerNameCol: any = Object.assign(this.utils.getNonEditableColumnDef('entity.task.mapImage.layers.name', 'layerName'), { flex: 3, minWidth: 240, tooltipField: 'layerName' });
+    const serviceNameCol: any = Object.assign(this.utils.getNonEditableColumnDef('entity.task.mapImage.layers.serviceName', 'serviceName'), { flex: 2, minWidth: 180, tooltipField: 'serviceName' });
+    [layerIdCol, layerNameCol, serviceNameCol].forEach((column: any) => {
+      column.sortable = false;
+      column.filter = false;
+    });
+
     return [
       this.utils.getSelCheckboxColumnDef(),
-      Object.assign(this.utils.getNonEditableColumnDef('entity.task.mapImage.layers.id', 'layerIdLabel'), { flex: 2, minWidth: 180, tooltipField: 'layerIdLabel' }),
-      Object.assign(this.utils.getNonEditableColumnDef('entity.task.mapImage.layers.name', 'layerName'), { flex: 3, minWidth: 240, tooltipField: 'layerName' }),
-      Object.assign(this.utils.getNonEditableColumnDef('entity.task.mapImage.layers.serviceName', 'serviceName'), { flex: 2, minWidth: 180, tooltipField: 'serviceName' }),
+      dragCol,
+      layerIdCol,
+      layerNameCol,
+      serviceNameCol,
     ];
   }
 

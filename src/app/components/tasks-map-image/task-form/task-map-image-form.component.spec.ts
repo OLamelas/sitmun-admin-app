@@ -487,6 +487,71 @@ describe('TaskMapImageFormComponent', () => {
     expect(component.mapSourcesArray.at(0)?.get('layerNames')?.value).toEqual(['layer_b', 'layer_a', 'layer_c']);
   });
 
+  it('appends added layer at the end when same service is not the last source', () => {
+    component.entityToEdit = {
+      name: 'Map image task',
+      groupId: 2,
+      properties: {
+        mapSources: [
+          { serviceId: 9, layerNames: ['layer_a'] },
+          { serviceId: 10, layerNames: ['layer_b'] },
+        ],
+      },
+    } as any;
+    (component as any).availableLayerOptions = [
+      {
+        serviceId: 9,
+        serviceName: 'Tourism WMS',
+        layerIds: ['layer_a', 'layer_c'],
+        layerIdLabel: 'layer_a, layer_c',
+        layerName: 'Layer group',
+      },
+    ];
+
+    component.postFetchData();
+
+    (component as any).addLayer((component as any).availableLayerOptions[0]);
+
+    expect(component.mapSourcesArray.length).toBe(3);
+    expect(component.mapSourcesArray.at(0)?.get('serviceId')?.value).toBe(9);
+    expect(component.mapSourcesArray.at(0)?.get('layerNames')?.value).toEqual(['layer_a']);
+    expect(component.mapSourcesArray.at(1)?.get('serviceId')?.value).toBe(10);
+    expect(component.mapSourcesArray.at(1)?.get('layerNames')?.value).toEqual(['layer_b']);
+    expect(component.mapSourcesArray.at(2)?.get('serviceId')?.value).toBe(9);
+    expect(component.mapSourcesArray.at(2)?.get('layerNames')?.value).toEqual(['layer_c']);
+  });
+
+  it('reorders selected layers and stores only consecutive same-service layers together', () => {
+    component.entityToEdit = {
+      name: 'Map image task',
+      groupId: 2,
+      properties: {
+        mapSources: [
+          { serviceId: 9, layerNames: ['layer_a', 'layer_c'] },
+          { serviceId: 10, layerNames: ['layer_b'] },
+        ],
+      },
+    } as any;
+
+    component.postFetchData();
+    component.entityForm.markAsPristine();
+
+    (component as any).onSelectedLayerOrderChanged([
+      { serviceId: 9, serviceName: 'Tourism WMS', layerId: 'layer_a', layerIdLabel: 'layer_a', layerName: 'Layer A', missing: false, status: 'statusOK', newItem: false },
+      { serviceId: 10, serviceName: 'Urbanism WMS', layerId: 'layer_b', layerIdLabel: 'layer_b', layerName: 'Layer B', missing: false, status: 'statusOK', newItem: false },
+      { serviceId: 9, serviceName: 'Tourism WMS', layerId: 'layer_c', layerIdLabel: 'layer_c', layerName: 'Layer C', missing: false, status: 'statusOK', newItem: false },
+    ]);
+
+    expect(component.mapSourcesArray.length).toBe(3);
+    expect(component.mapSourcesArray.at(0)?.get('serviceId')?.value).toBe(9);
+    expect(component.mapSourcesArray.at(0)?.get('layerNames')?.value).toEqual(['layer_a']);
+    expect(component.mapSourcesArray.at(1)?.get('serviceId')?.value).toBe(10);
+    expect(component.mapSourcesArray.at(1)?.get('layerNames')?.value).toEqual(['layer_b']);
+    expect(component.mapSourcesArray.at(2)?.get('serviceId')?.value).toBe(9);
+    expect(component.mapSourcesArray.at(2)?.get('layerNames')?.value).toEqual(['layer_c']);
+    expect(component.entityForm.dirty).toBe(true);
+  });
+
   it('removes selected layer from mapSources payload and marks form dirty', () => {
     component.entityToEdit = {
       name: 'Map image task',
