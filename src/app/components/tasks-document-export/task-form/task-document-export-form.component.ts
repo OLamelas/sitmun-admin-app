@@ -36,6 +36,7 @@ import { UtilsService } from '@app/services/utils.service';
 import { magic } from '@environments/constants';
 
 interface DocumentExportTaskProperties {
+  [key: string]: unknown;
   exportEngine?: string;
   downloadFormat?: string;
   downloadSource?: string;
@@ -51,8 +52,6 @@ interface DocumentExportTaskProperties {
 })
 export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProjection> {
   readonly config = Configuration.TASK_DOCUMENT_EXPORT;
-  private static readonly XML_OUTPUT = 'xml';
-  private static readonly PDF_OUTPUT = 'pdf';
   private static readonly DEFAULT_PAGE_SIZE = 'A4';
   private static readonly DEFAULT_PAGE_ORIENTATION = 'portrait';
 
@@ -71,7 +70,6 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
     taskGroupId: 'entity.taskGroup.label',
     exportEngine: 'entity.task.documentExport.engine',
     output: 'entity.task.documentExport.output',
-    sourcePath: 'entity.task.documentExport.sourcePath',
     pageSize: 'entity.task.documentExport.pageSize',
     pageOrientation: 'entity.task.documentExport.pageOrientation',
   };
@@ -171,10 +169,7 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
         validators: [Validators.required],
       }),
       output: new FormControl(properties.downloadFormat ?? null, {
-        validators: [Validators.required],
-      }),
-      sourcePath: new FormControl(properties.downloadSource ?? '', {
-        nonNullable: true,
+        validators: [Validators.required, Validators.pattern(/^pdf$/)],
       }),
       pageSize: new FormControl(properties.pageSize ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_SIZE, {
         nonNullable: true,
@@ -185,13 +180,6 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
           nonNullable: true,
         },
       ),
-    });
-
-    this.updateSourcePathValidator(this.entityForm.get('output')?.value);
-    this.updatePdfConfigState(this.entityForm.get('output')?.value);
-    this.entityForm.get('output')?.valueChanges.subscribe((output) => {
-      this.updateSourcePathValidator(output);
-      this.updatePdfConfigState(output);
     });
   }
 
@@ -225,22 +213,19 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
     await this.saveTranslations(this.entityToEdit);
   }
 
+  protected documentExportOutputOptions() {
+    return this.codeList('documentExport.output').filter((option) => option.value === 'pdf');
+  }
+
   createObject(id: number = null): Task {
     let safeToEdit = TaskProjection.fromObject(this.entityToEdit);
     const values = this.entityForm.getRawValue();
-    const properties: DocumentExportTaskProperties = {
-      exportEngine: values.exportEngine ?? undefined,
-      downloadFormat: values.output ?? undefined,
-    };
-    const normalizedSourcePath = this.normalizeOptionalText(values.sourcePath);
-    if (normalizedSourcePath) {
-      properties.downloadSource = normalizedSourcePath;
-    }
-    if (values.output === TaskDocumentExportFormComponent.PDF_OUTPUT) {
-      properties.pageSize = values.pageSize ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_SIZE;
-      properties.pageOrientation =
-        values.pageOrientation ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_ORIENTATION;
-    }
+    const properties = this.getDocumentExportProperties(this.entityToEdit?.properties);
+    properties.exportEngine = values.exportEngine ?? undefined;
+    properties.downloadFormat = values.output ?? undefined;
+    properties.pageSize = values.pageSize ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_SIZE;
+    properties.pageOrientation = values.pageOrientation ?? TaskDocumentExportFormComponent.DEFAULT_PAGE_ORIENTATION;
+    delete properties.downloadSource;
 
     safeToEdit = Object.assign(safeToEdit, {
       id,
@@ -256,45 +241,6 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
       return {};
     }
     return { ...(raw as DocumentExportTaskProperties) };
-  }
-
-  private normalizeOptionalText(value: unknown): string | undefined {
-    if (typeof value !== 'string') {
-      return undefined;
-    }
-    const trimmedValue = value.trim();
-    return trimmedValue.length > 0 ? trimmedValue : undefined;
-  }
-
-  private updateSourcePathValidator(output: unknown): void {
-    const sourcePathControl = this.entityForm.get('sourcePath');
-    if (!sourcePathControl) {
-      return;
-    }
-
-    if (output === TaskDocumentExportFormComponent.XML_OUTPUT) {
-      sourcePathControl.setValidators([Validators.required]);
-    } else {
-      sourcePathControl.clearValidators();
-    }
-    sourcePathControl.updateValueAndValidity({ emitEvent: false });
-  }
-
-  private updatePdfConfigState(output: unknown): void {
-    const pageSizeControl = this.entityForm.get('pageSize');
-    const pageOrientationControl = this.entityForm.get('pageOrientation');
-    if (!pageSizeControl || !pageOrientationControl) {
-      return;
-    }
-
-    if (output === TaskDocumentExportFormComponent.PDF_OUTPUT) {
-      pageSizeControl.enable({ emitEvent: false });
-      pageOrientationControl.enable({ emitEvent: false });
-      return;
-    }
-
-    pageSizeControl.disable({ emitEvent: false });
-    pageOrientationControl.disable({ emitEvent: false });
   }
 
   private defineRolesTable(): DataTableDefinition<Role, Role> {

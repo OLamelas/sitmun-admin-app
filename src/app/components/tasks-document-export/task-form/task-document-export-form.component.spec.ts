@@ -16,7 +16,7 @@ describe('TaskDocumentExportFormComponent', () => {
       properties: {
         exportEngine: 'openhtmltopdf',
         downloadFormat: 'pdf',
-        downloadSource: 'reports/export.jrxml',
+        downloadSource: 'obsolete/export.xml',
         pageSize: 'A3',
         pageOrientation: 'landscape',
       },
@@ -28,7 +28,7 @@ describe('TaskDocumentExportFormComponent', () => {
     expect(component.entityForm.get('taskGroupId')?.value).toBe(4);
     expect(component.entityForm.get('exportEngine')?.value).toBe('openhtmltopdf');
     expect(component.entityForm.get('output')?.value).toBe('pdf');
-    expect(component.entityForm.get('sourcePath')?.value).toBe('reports/export.jrxml');
+    expect(component.entityForm.contains('sourcePath')).toBe(false);
     expect(component.entityForm.get('pageSize')?.value).toBe('A3');
     expect(component.entityForm.get('pageOrientation')?.value).toBe('landscape');
     expect(component.entityForm.get('name')?.hasError('required')).toBe(false);
@@ -41,14 +41,13 @@ describe('TaskDocumentExportFormComponent', () => {
     component.entityToEdit = TaskProjection.fromObject({
       id: 12,
       name: 'Old export',
-      properties: { custom: 'lost-on-purpose' },
+      properties: { custom: 'preserved', downloadSource: 'obsolete/export.xml' },
     });
     component.entityForm = new FormGroup({
       name: new FormControl('New export'),
       taskGroupId: new FormControl(3),
       exportEngine: new FormControl('openhtmltopdf'),
       output: new FormControl('pdf'),
-      sourcePath: new FormControl(' reports/export.jrxml '),
       pageSize: new FormControl('A3'),
       pageOrientation: new FormControl('landscape'),
     });
@@ -60,36 +59,13 @@ describe('TaskDocumentExportFormComponent', () => {
     expect(result.properties).toEqual({
       exportEngine: 'openhtmltopdf',
       downloadFormat: 'pdf',
-      downloadSource: 'reports/export.jrxml',
       pageSize: 'A3',
       pageOrientation: 'landscape',
+      custom: 'preserved',
     });
   });
 
-  it('createObject omits blank optional sourcePath for pdf output', () => {
-    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
-    component.entityToEdit = TaskProjection.fromObject({ id: 13, name: 'Export', properties: null });
-    component.entityForm = new FormGroup({
-      name: new FormControl('Export'),
-      taskGroupId: new FormControl(3),
-      exportEngine: new FormControl('openhtmltopdf'),
-      output: new FormControl('pdf'),
-      sourcePath: new FormControl('   '),
-      pageSize: new FormControl('A4'),
-      pageOrientation: new FormControl('portrait'),
-    });
-
-    const result = component.createObject(13);
-
-    expect(result.properties).toEqual({
-      exportEngine: 'openhtmltopdf',
-      downloadFormat: 'pdf',
-      pageSize: 'A4',
-      pageOrientation: 'portrait',
-    });
-  });
-
-  it('keeps sourcePath optional for pdf output', () => {
+  it('accepts only pdf output', () => {
     const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
     component.entityToEdit = TaskProjection.fromObject({
       id: 14,
@@ -105,91 +81,22 @@ describe('TaskDocumentExportFormComponent', () => {
 
     component.postFetchData();
 
-    const sourcePathControl = component.entityForm.get('sourcePath');
-    const pageSizeControl = component.entityForm.get('pageSize');
-    const pageOrientationControl = component.entityForm.get('pageOrientation');
-    expect(sourcePathControl?.hasError('required')).toBe(false);
-    sourcePathControl?.setValue('');
-    expect(sourcePathControl?.valid).toBe(true);
-    expect(pageSizeControl?.disabled).toBe(false);
-    expect(pageOrientationControl?.disabled).toBe(false);
-  });
-
-  it('requires sourcePath for xml output', () => {
-    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
-    component.entityToEdit = TaskProjection.fromObject({
-      id: 15,
-      name: 'XML export',
-      groupId: 3,
-      properties: {
-        exportEngine: 'openhtmltopdf',
-        downloadFormat: 'xml',
-      },
-    });
-
-    component.postFetchData();
-
-    const sourcePathControl = component.entityForm.get('sourcePath');
-    expect(component.entityForm.get('pageSize')?.disabled).toBe(true);
-    expect(component.entityForm.get('pageOrientation')?.disabled).toBe(true);
-    sourcePathControl?.setValue('');
-    expect(sourcePathControl?.hasError('required')).toBe(true);
-    sourcePathControl?.setValue('reports/export.jrxml');
-    expect(sourcePathControl?.valid).toBe(true);
-  });
-
-  it('marks form invalid for xml output until sourcePath is provided', () => {
-    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
-    component.entityToEdit = TaskProjection.fromObject({
-      id: 17,
-      name: 'XML export',
-      groupId: 3,
-      properties: {
-        exportEngine: 'openhtmltopdf',
-        downloadFormat: 'xml',
-      },
-    });
-
-    component.postFetchData();
-
-    expect(component.entityForm.valid).toBe(false);
-    component.entityForm.get('sourcePath')?.setValue('reports/export.jrxml');
-    expect(component.entityForm.valid).toBe(true);
-  });
-
-  it('toggles sourcePath required validator when output changes', () => {
-    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
-    component.entityToEdit = TaskProjection.fromObject({
-      id: 16,
-      name: 'Switch export',
-      groupId: 3,
-      properties: {
-        exportEngine: 'openhtmltopdf',
-        downloadFormat: 'pdf',
-      },
-    });
-
-    component.postFetchData();
-
     const outputControl = component.entityForm.get('output');
-    const sourcePathControl = component.entityForm.get('sourcePath');
-    const pageSizeControl = component.entityForm.get('pageSize');
-    const pageOrientationControl = component.entityForm.get('pageOrientation');
-    sourcePathControl?.setValue('');
-    expect(sourcePathControl?.valid).toBe(true);
-    expect(pageSizeControl?.disabled).toBe(false);
-    expect(pageOrientationControl?.disabled).toBe(false);
-
+    expect(outputControl?.valid).toBe(true);
     outputControl?.setValue('xml');
-    expect(sourcePathControl?.hasError('required')).toBe(true);
-    expect(pageSizeControl?.disabled).toBe(true);
-    expect(pageOrientationControl?.disabled).toBe(true);
+    expect(outputControl?.hasError('pattern')).toBe(true);
+  });
 
-    outputControl?.setValue('pdf');
-    expect(sourcePathControl?.hasError('required')).toBe(false);
-    expect(sourcePathControl?.valid).toBe(true);
-    expect(pageSizeControl?.disabled).toBe(false);
-    expect(pageOrientationControl?.disabled).toBe(false);
+  it('offers only pdf from the output codelist', () => {
+    const component = Object.create(TaskDocumentExportFormComponent.prototype) as TaskDocumentExportFormComponent;
+    (component as any).codeList = jest.fn().mockReturnValue([
+      { value: 'pdf', description: 'PDF' },
+      { value: 'xml', description: 'XML' },
+    ]);
+
+    expect((component as any).documentExportOutputOptions()).toEqual([
+      { value: 'pdf', description: 'PDF' },
+    ]);
   });
 
   it('fetchCopy prefixes translated copy marker', async () => {
@@ -221,7 +128,6 @@ describe('TaskDocumentExportFormComponent', () => {
       taskGroupId: new FormControl(4),
       exportEngine: new FormControl('openhtmltopdf'),
       output: new FormControl('pdf'),
-      sourcePath: new FormControl(''),
       pageSize: new FormControl('A4'),
       pageOrientation: new FormControl('portrait'),
     });
@@ -250,8 +156,7 @@ describe('TaskDocumentExportFormComponent', () => {
       name: new FormControl('Export'),
       taskGroupId: new FormControl(8),
       exportEngine: new FormControl('openhtmltopdf'),
-      output: new FormControl('xml'),
-      sourcePath: new FormControl('reports/export.jrxml'),
+      output: new FormControl('pdf'),
       pageSize: new FormControl('A4'),
       pageOrientation: new FormControl('portrait'),
     });
