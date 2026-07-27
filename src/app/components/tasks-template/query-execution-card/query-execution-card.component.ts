@@ -133,7 +133,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   }
 
   get isBinaryResourceResponse(): boolean {
-    return this.response?.context?.['binary'] === true || this.response?.binary === true;
+    return this.response?.context?.['binary'] === true;
   }
 
   get showResponseTable(): boolean {
@@ -147,6 +147,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   get canInsertBinaryContentSnippet(): boolean {
     return !!this.binaryContentReference
       && this.isBinaryResourceResponse
+      && (this.binaryMimeType === 'application/pdf' || this.binaryMimeType.startsWith('image/'));
   }
 
   get showTaskResultReference(): boolean {
@@ -155,7 +156,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
 
   get binaryMimeType(): string {
     const contextMimeType = this.response?.context?.['mimeType'];
-    return String(contextMimeType ?? this.response?.mimeType ?? '').toLowerCase();
+    return String(contextMimeType ?? '').toLowerCase();
   }
 
   get resolvedReferenceAlias(): string {

@@ -640,7 +640,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
       }
 
       const scope = String(TaskPropertiesContract.getScope(task.properties) || '');
-      if (!['sql-query', 'web-api-query', 'web-api-query-no-proxy', 'URL', 'resource', 'external-link', 'cartography-query'].includes(scope)) {
+      if (!['sql-query', 'web-api-query', 'web-api-query-no-proxy', 'URL', 'resource', 'external-link'].includes(scope)) {
         return [];
       }
 

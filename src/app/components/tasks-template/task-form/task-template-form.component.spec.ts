@@ -247,7 +247,7 @@ describe('TaskTemplateFormComponent', () => {
       id: 99,
       properties: { childTaskOrderIds: [15] },
       getRelationArrayEx: jest.fn().mockReturnValue(of([
-        relationFor(3, 'template-task', { id: 20, name: 'Consulta zeta', properties: { scope: 'sql-query' } }, 'task_20'),
+        relationFor(3, 'template-task', { id: 20, name: 'Consulta zeta', properties: { scope: 'cartography-query' } }, 'task_20'),
         relationFor(1, 'template-task', { id: 13, name: 'Consulta alfa', properties: { scope: 'sql-query' } }, 'task_13'),
         relationFor(2, 'template-nested', { id: 15, name: 'Plantilla', properties: {} }, 'task_15'),
       ])),
@@ -256,6 +256,15 @@ describe('TaskTemplateFormComponent', () => {
     await (component as any).loadLinkedTasks();
 
     expect((component as any).linkedTasks.map((task: any) => task.taskId)).toEqual([15, 13, 20]);
+  });
+
+  it('excludes cartography queries only from new template candidates', () => {
+    const candidates = (component as any).filterLinkableQueryTasks([
+      { id: 13, name: 'SQL', typeId: magic.taskQueryTypeId, properties: { scope: 'sql-query' } },
+      { id: 20, name: 'Cartography', typeId: magic.taskQueryTypeId, properties: { scope: 'cartography-query' } },
+    ]);
+
+    expect(candidates.map((task: any) => task.taskId)).toEqual([13]);
   });
 
   it('should block linking nested template when resulting depth exceeds max nesting', () => {

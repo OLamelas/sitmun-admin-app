@@ -10,12 +10,9 @@ export interface TemplateTaskExecutionResponse {
   taskId: number;
   status: string;
   resultType: string;
-  parameters: Record<string, unknown>;
   context: Record<string, unknown>;
   rows: Record<string, unknown>[];
   resourceUrl: string | null;
-  mimeType?: string | null;
-  binary?: boolean;
 }
 
 export interface TemplateTaskExecutionEvent extends TemplateTaskExecutionResponse {
