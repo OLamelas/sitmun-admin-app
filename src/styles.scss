@@ -95,18 +95,6 @@ h2 {
 //   overflow: hidden;
 // }
 
-.divider {
-  height: 3px;
-  background: #ddd;
-  width: calc(100% - 20px);
-  display: block;
-  margin-bottom: 15px;
-}
-
-.formDiv .divider {
-  width: calc(100%);
-}
-
 // Very subtle alternating row background for trees and lists (global)
 .mat-tree-node:nth-of-type(odd) {
   background-color: rgba(0, 0, 0, 0.02);
@@ -124,6 +112,24 @@ h2 {
 .ag-theme-material {
   --ag-odd-row-background-color: rgba(0, 0, 0, 0.02);
   --ag-row-hover-color: rgba(0, 0, 0, 0.06);
+  // AG Grid 31 Material theme hardcodes Material Design defaults that don't match
+  // the SITMUN M2 orange theme:
+  //   --ag-material-primary-color: #3f51b5 (indigo) → focus borders, tab underlines
+  //   --ag-material-accent-color:  #ff4081 (pink)   → checkbox checked color
+  // Override both to SITMUN primary orange (M2 orange-500).
+  --ag-material-primary-color: #ff9800;
+  --ag-checkbox-checked-color: #ff9800;
+  --ag-checkbox-indeterminate-color: #ff9800;
+  --ag-selected-row-background-color: rgba(255, 152, 0, 0.12);
+
+  // The Material theme sizes the inline editor taller than the row
+  // (row-height + grid-size*3). With domLayout="autoHeight" rows are fixed
+  // height, so the editor overflows and overlaps the adjacent row. Constrain
+  // it to the row height so editing stays within its own row.
+  .ag-cell-inline-editing {
+    height: var(--ag-row-height);
+    padding: 0 var(--ag-grid-size);
+  }
 }
 
 // Apply gray background only to authenticated pages
@@ -155,6 +161,11 @@ app-login .mat-app-background {
 .formDialogs {
   min-width: min(640px, 90vw);
   max-width: min(800px, 90vw);
+}
+
+.formDialogs mat-dialog-content {
+  max-height: min(80vh, 720px);
+  overflow-y: auto;
 }
 
 
@@ -192,22 +203,12 @@ app-login .mat-app-background {
 //  right: 0px;
 //}
 
-.formDiv {
-  margin-left: 10px;
-  margin-right: 20px;
-}
-
 .tableDiv .mat-expansion-panel-header.mat-expanded {
   height: 50px;
 }
 
 .mat-mdc-list-item .list-text {
   margin-right: auto;
-}
-
-.formLabel span {
-  color: gray !important  ;
-  font-weight: normal !important;
 }
 
 
@@ -224,25 +225,6 @@ app-login .mat-app-background {
 //  padding-right: 8px !important;
 //  padding-left: 12px !important;
 //}
-
-.routerTitle > h6 {
-  display: inline-block;
-}
-
-.routerTitle a {
-  color: #bf0000 !important;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.title-row h2 {
-  flex-grow: 1;
-  width: unset;
-}
 
 /* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version. */
 //.mat-mdc-tab-body.mat-tab-body-active {
@@ -318,27 +300,6 @@ app-login .mat-app-background {
   }
 }
 
-.item-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.stay__info > span {
-  color: #0494f7;
-  font-weight: 600;
-  font-size: 0.875rem;
-  letter-spacing: 0.046875rem;
-  text-transform: uppercase;
-  line-height: 1rem;
-  text-align: center;
-}
-
-.align-right {
-  text-align: right;
-}
-
-
 // Snackbar container overrides
 .mat-mdc-snack-bar-container {
   .mdc-snackbar__surface {
@@ -351,6 +312,18 @@ app-login .mat-app-background {
   }
 }
 // Ensure Material overlay container (snackbars, dialogs) is above app overlays
+
+// Snackbar container overrides
+.mat-mdc-snack-bar-container {
+  .mdc-snackbar__surface {
+    background-color: transparent !important;
+    padding-right: 0 !important;
+  }
+
+  .mdc-snackbar__label {
+    padding: 0 !important;
+  }
+}
 
 //Dialogs
 .dialog h1 {
@@ -405,30 +378,6 @@ app-login .mat-app-background {
   font-weight: bold;
 }
 
-.stable::before{
-  font-family: 'Material Icons', sans-serif;
-  content: 'fiber_manual_record';
-  color: #68A225;
-}
-
-.pendingModify::before,.pendingCreation::before,.pendingRegistration:before{
-  font-family: 'Material Icons', sans-serif;
-  content: 'fiber_manual_record';
-  color: #ff9300;
-}
-
-.unregisteredLayer:before{
-  font-family: 'Material Icons', sans-serif;
-  content: 'fiber_manual_record';
-  color: #ffe100;
-}
-
-.pendingDelete:before,.notAvailable::before{
-  font-family: 'Material Icons', sans-serif;
-  content: 'fiber_manual_record';
-  color: #bf0000;
-}
-
 // Relation-grid status column (getStatusColumnDef cellRenderer)
 .sitmun-status-dot {
   display: inline-block;
@@ -437,12 +386,6 @@ app-login .mat-app-background {
   border-radius: 50%;
   flex-shrink: 0;
 }
-
-// .notAvailable::before,.pendingRegistration:before{
-//   font-family: 'Material Icons';
-//   content: 'fiber_manual_record';
-//   color: #0165f1;
-// }
 
 @media print {
   app-toolbar,
@@ -511,36 +454,6 @@ h4 > .mat-icon {
 
 // Removed sitmun-get-info-button and sitmun-validate-button - use mat-raised-button color="primary" instead
 
-.sitmun-delete-button, .deleteButton {
-  color: #BF0000 !important;
-  border: #BF0000 solid 1px !important;
-  float: right !important;
-  margin-right: 10px;
-}
-
-.sitmun-form-title {
-  font-weight: bold !important;
-}
-
-//.sitmun-delete-button:disabled, .deleteButton:disabled {
-//  color: gray !important;
-//}
-
-//.sitmun-ag-grid-expansion-panel, .agGridExpansionPanel {
-//  margin-bottom: 15px !important;
-//}
-
-//.sitmun-ag-grid-expansion-panel-title, .agGridExpansionPanelTitle {
-//  background-color: #ffe9cc !important;
-//  font-weight: bold !important;
-// }
-
-.flex-container {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-
 //
 // Flexbox tricks
 //
@@ -572,7 +485,7 @@ h4 > .mat-icon {
 
 // Ag-Grid
 
-.ag-header-cell.sitmun-centered-header {
+.ag-header-cell.sitmun-selection-header {
   padding: 0 !important;
   justify-content: center;
 
@@ -585,6 +498,14 @@ h4 > .mat-icon {
     justify-content: center;
     margin: 0;
     width: 100%;
+  }
+}
+
+.ag-header-cell.sitmun-centered-header {
+  justify-content: center;
+
+  .ag-header-cell-label {
+    justify-content: center;
   }
 }
 
@@ -607,10 +528,6 @@ h4 > .mat-icon {
     min-width: 0 !important;
     flex: 0 0 0 !important;
   }
-}
-
-.force-padding {
-  padding-left: 11px !important;
 }
 
 .spacer {
@@ -650,9 +567,6 @@ h4 > .mat-icon {
   width: 16px;
   margin-right: 4px;
 }
-.toolbar-text {
-  margin-left: 4px;
-}
 
 // Add spacing between form sections
 mat-card-content {
@@ -661,19 +575,22 @@ mat-card-content {
   }
 }
 
-// Warning icons in input length
-
 .warning-icon {
   vertical-align: middle;
   margin-left: 4px;
 }
 
-
 // Reduce line-height for auto-height cells in AG Grid
 
 /* Style for modified form fields */
 .input-modified {
+  .mdc-text-field--outlined {
+    background: #E8F1DE !important;
+  }
 
+  .mdc-checkbox {
+    background: #E8F1DE !important;
+  }
 }
 
 .router-link {
@@ -684,6 +601,10 @@ mat-card-content {
 }
 .router-link:hover {
   text-decoration: underline;
+}
+
+.related-entity-open-link {
+  color: inherit;
 }
 
 .url-link {
@@ -697,12 +618,6 @@ mat-card-content {
 .url-link:hover {
   text-decoration: underline;
   color: #0056b3;
-}
-
-.external-link-icon {
-  font-size: 0.8em;
-  margin-left: 2px;
-  opacity: 0.7;
 }
 
 .sitmun-toggle-row {

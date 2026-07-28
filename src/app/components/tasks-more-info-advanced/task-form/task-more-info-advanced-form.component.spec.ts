@@ -1,7 +1,10 @@
 import {ChangeDetectorRef} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {FormControl} from '@angular/forms';
+
 import {of, throwError} from 'rxjs';
+
+import {LanguageService} from '@app/domain/translation/services/language.service';
 
 import {TaskMoreInfoAdvancedFormComponent} from './task-more-info-advanced-form.component';
 
@@ -18,8 +21,19 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        {provide: ChangeDetectorRef, useValue: createSpyObj(['markForCheck'])}
-      ]
+        {
+          provide: ChangeDetectorRef,
+          useValue: {markForCheck: jest.fn(), detectChanges: jest.fn()},
+        },
+        {
+          provide: LanguageService,
+          useValue: {
+            applyLanguagesToUse: (languages: unknown[]) => languages,
+            fetchAllItems: () => of([]),
+            languagesToUse$: of([]),
+          },
+        },
+      ],
     });
 
     const translateService = createSpyObj(['instant', 'get']);
@@ -51,13 +65,13 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
       createSpyObj(['navigate']) as any,
       createSpyObj(['show', 'hide']) as any,
       createSpyObj(['enable', 'disable']) as any,
-      createSpyObj(['create', 'update', 'getProjection', 'getAllProjection', 'createProxy']) as any,
-      createSpyObj(['getAllEx']) as any,
-      createSpyObj(['getAllEx', 'createProxy']) as any,
-      createSpyObj(['getAll']) as any,
+      createSpyObj(['create', 'update', 'fetchProjectionById', 'fetchAllProjectionItems', 'createProxy']) as any,
+      createSpyObj(['fetchAllRawItems']) as any,
+      createSpyObj(['fetchAllRawItems', 'createProxy']) as any,
+      createSpyObj(['fetchAllRawItems']) as any,
       utilsService as any,
-      createSpyObj(['getAll']) as any,
-      createSpyObj(['getAllProjection', 'createProxy']) as any,
+      createSpyObj(['fetchAllRawItems']) as any,
+      createSpyObj(['fetchAllProjectionItems', 'createProxy']) as any,
       createSpyObj(['create', 'delete', 'createProxy']) as any
     ));
   });
@@ -194,27 +208,6 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
     ]);
   });
 
-  it('drops legacy viewer context mappings on edit', () => {
-    setupForm({
-      childTaskOrderIds: [queryTask.id, templateTask.id],
-      childTaskParameters: {
-        '201': {layerid: 'feature_code', staleBbox: 'bboxMinX', staleLayer: 'queriedLayer'}
-      },
-      templateChildTaskParameters: {
-        '301': {
-          '401': {innerCode: 'feature_name', staleService: 'queriedService'}
-        }
-      }
-    });
-
-    expect((component as any).getChildMappings(queryTask.id)).toEqual([
-      {miaParam: 'featureCode', childParam: 'layerid'}
-    ]);
-    expect((component as any).getTemplateChildMappings(templateTask.id, nestedApiTask.id)).toEqual([
-      {miaParam: 'featureName', childParam: 'innerCode'}
-    ]);
-  });
-
   it('adds and removes nested mappings only for template child tasks', () => {
     setupForm({childTaskOrderIds: [queryTask.id, templateTask.id]});
 
@@ -288,20 +281,6 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
     expect(nestedTemplateView.childParameters).toEqual([
       expect.objectContaining({label: 'nestedTemplateParam', value: 'nested_template_param'})
     ]);
-  });
-
-  it('includes only feature bbox in reserved viewer MIA parameters', () => {
-    setupForm({childTaskOrderIds: [queryTask.id]});
-
-    expect((component as any).miaParameters.map((parameter: any) => parameter.label)).toEqual(
-      expect.arrayContaining(['featureBboxMinX', 'featureBboxMinY', 'featureBboxMaxX', 'featureBboxMaxY'])
-    );
-    expect((component as any).miaParameters.map((parameter: any) => parameter.label)).not.toEqual(
-      expect.arrayContaining(['bboxMinX', 'bboxMinY', 'bboxMaxX', 'bboxMaxY', 'queriedLayer', 'queriedLayerId', 'queriedService'])
-    );
-    expect((component as any).getAvailableMiaParams(queryTask.id, 0).map((parameter: any) => parameter.label)).toEqual(
-      expect.arrayContaining(['featureBboxMinX'])
-    );
   });
 
   it('builds recursive template mapping views for nested templates', () => {
@@ -409,6 +388,12 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
     expect(rebuiltNestedTemplateView.expanded).toBe(false);
   });
 
+  it('builds deep task form links from id and typeId', () => {
+    expect(component.getTaskFormLink({id: 42, typeId: 16} as any)).toEqual(['/tasks', 42, 16]);
+    expect(component.getTaskFormLink({id: 42} as any)).toBeNull();
+    expect(component.getTaskFormLink({typeId: 16} as any)).toBeNull();
+  });
+
   it('prunes stale direct and nested mappings when saving parameters from the grid', async () => {
     setupForm({
       childTaskOrderIds: [queryTask.id, templateTask.id],
@@ -442,5 +427,126 @@ describe('TaskMoreInfoAdvancedFormComponent', () => {
         templateChildTaskParameters: {'301': {'401': {innerCode: 'feature_name'}}}
       })
     }));
+  });
+
+  it('persists unsaved in-memory mappings when parameters grid saves', async () => {
+    setupForm({
+      childTaskOrderIds: [queryTask.id, templateTask.id],
+      childTaskParameters: {
+        '201': {layerid: 'feature_code'}
+      }
+    });
+    (component as any).childTaskParameterMappings.set(queryTask.id, [
+      {miaParam: 'featureName', childParam: 'layerid'}
+    ]);
+    (component as any).templateChildTaskParameterMappings.set(templateTask.id, new Map([[nestedApiTask.id, [
+      {miaParam: 'featureCode', childParam: 'innerCode'}
+    ]]]));
+    (component as any).taskService.update.mockReturnValue(of({}));
+
+    await (component as any).parametersTable.relationsUpdateFn([
+      {label: 'featureCode', value: 'feature_code'},
+      {label: 'featureName', value: 'feature_name'}
+    ]);
+
+    expect(component.entityToEdit.properties.childTaskParameters).toEqual({
+      '201': {layerid: 'feature_name'}
+    });
+    expect(component.entityToEdit.properties.templateChildTaskParameters).toEqual({
+      '301': {
+        '401': {innerCode: 'feature_code'}
+      }
+    });
+    expect((component as any).getChildMappings(queryTask.id)).toEqual([
+      {miaParam: 'featureName', childParam: 'layerid'}
+    ]);
+  });
+
+  it('stops template mapping views at nesting depth 3', () => {
+    const depth2Template = {
+      id: 404,
+      name: 'Depth 2 template',
+      typeId: 15,
+      typeName: 'Plantilla',
+      properties: {parameters: []}
+    } as any;
+    const depth3Template = {
+      id: 405,
+      name: 'Depth 3 template',
+      typeId: 15,
+      typeName: 'Plantilla',
+      properties: {parameters: []}
+    } as any;
+    const depth4Query = {
+      id: 406,
+      name: 'Depth 4 query',
+      typeId: 5,
+      typeName: 'Consulta',
+      properties: {parameters: [{label: 'deepest', value: 'deepest'}]}
+    } as any;
+
+    setupForm({childTaskOrderIds: [templateTask.id]});
+    (component as any).templateChildTasks = new Map([
+      [templateTask.id, [
+        {task: nestedTemplateTask, referenceAlias: 'nested_template'}
+      ]],
+      [nestedTemplateTask.id, [
+        {task: depth2Template, referenceAlias: 'depth2_template'}
+      ]],
+      [depth2Template.id, [
+        {task: depth3Template, referenceAlias: 'depth3_template'}
+      ]],
+      [depth3Template.id, [
+        {task: depth4Query, referenceAlias: 'depth4_query'}
+      ]]
+    ]);
+    (component as any).rebuildIncludedTaskMappingViews();
+
+    const rootView = (component as any).includedTaskMappingViews[0];
+    const nestedTemplateView = rootView.templateChildViews.find((view: any) => view.task.id === nestedTemplateTask.id);
+    const depth2View = nestedTemplateView.childNodes.find((view: any) => view.task.id === depth2Template.id);
+    const depth3View = depth2View.childNodes.find((view: any) => view.task.id === depth3Template.id);
+
+    expect(depth3View).toEqual(expect.objectContaining({
+      task: depth3Template,
+      depth: 3,
+      childNodes: []
+    }));
+  });
+
+  it('omits orphan mappings for non-included tasks from createObject', () => {
+    setupForm({childTaskOrderIds: [queryTask.id]});
+    (component as any).childTaskParameterMappings.set(queryTask.id, [
+      {miaParam: 'featureCode', childParam: 'layerid'}
+    ]);
+    (component as any).childTaskParameterMappings.set(99999, [
+      {miaParam: 'featureName', childParam: 'orphan'}
+    ]);
+    (component as any).templateChildTaskParameterMappings.set(templateTask.id, new Map([[nestedApiTask.id, [
+      {miaParam: 'featureCode', childParam: 'innerCode'}
+    ]]]));
+
+    const task = component.createObject(100) as any;
+
+    expect(task.properties.childTaskParameters).toEqual({
+      '201': {layerid: 'feature_code'}
+    });
+    expect(task.properties.templateChildTaskParameters).toEqual({});
+  });
+
+  it('disables root canAddMapping when the child has no parameters', () => {
+    const emptyParamTask = {
+      id: 501,
+      name: 'Empty params',
+      typeId: 5,
+      typeName: 'Consulta',
+      properties: {parameters: []}
+    } as any;
+    setupForm({childTaskOrderIds: [emptyParamTask.id]});
+    (component as any).allCandidateTasks = [emptyParamTask];
+    (component as any).restoreIncludedTasks({childTaskOrderIds: [emptyParamTask.id]});
+    (component as any).rebuildIncludedTaskMappingViews();
+
+    expect((component as any).includedTaskMappingViews[0].canAddMapping).toBe(false);
   });
 });

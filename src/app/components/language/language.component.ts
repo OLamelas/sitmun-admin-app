@@ -3,21 +3,21 @@ import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute, Router} from '@angular/router';
 
 import {TranslateService} from '@ngx-translate/core';
-import {firstValueFrom} from 'rxjs';
+import {firstValueFrom, of} from 'rxjs';
 
 import {BaseListComponent} from "@app/components/base-list.component";
 import {EntityListConfig} from "@app/components/shared/entity-list";
 import {Configuration} from '@app/core/config/configuration';
+import {createPagedInfiniteFetcher} from '@app/core/hal';
+import {INFINITE_PAGE_SIZE_DEFAULT} from '@app/core/hal/infinite-page-size';
 import {CodeListService} from '@app/domain/codelist/services/codelist.service';
 import {Language} from '@app/domain/translation/models/language.model';
 import {LanguageService} from '@app/domain/translation/services/language.service';
 import {TranslationService} from '@app/domain/translation/services/translation.service';
-import {DIALOG_EVENTS, DialogMessageComponent} from '@app/frontend-gui/src/lib/public_api';
 import {ErrorHandlerService} from '@app/services/error-handler.service';
 import {LoadingOverlayService} from '@app/services/loading-overlay.service';
 import {LoggerService} from '@app/services/logger.service';
 import {UtilsService} from '@app/services/utils.service';
-import {config} from '@config';
 
 @Component({
     selector: 'app-language',
@@ -26,7 +26,6 @@ import {config} from '@config';
     standalone: false
 })
 export class LanguageComponent extends BaseListComponent<Language> implements OnInit {
-  private pendingOrderedLanguageIds: number[] = [];
   currentDefaultLanguage: string | null = null;
 
   entityListConfig: EntityListConfig<Language> = {
@@ -34,14 +33,18 @@ export class LanguageComponent extends BaseListComponent<Language> implements On
     iconName: Configuration.LANGUAGE.icon,
     font: Configuration.LANGUAGE.font,
     columnDefs: [],
-    dataFetchFn: () => this.languageService.fetchAllItems(),
-    rowModelMode: 'clientSide',
-    rowDragManaged: true,
+    dataFetchFn: () => of([]),
+    rowModelMode: 'infinite',
+    pageSize: INFINITE_PAGE_SIZE_DEFAULT,
+    infiniteBlockFetcher: createPagedInfiniteFetcher(this.languageService),
+    progressiveLocalFilter: false,
+    backendSearch: true,
+    defaultColumnSorting: ['order'],
     gridOptions: {
       discardChangesButton: false,
       redoButton: false,
       undoButton: false,
-      applyChangesButton: true,
+      applyChangesButton: false,
       deleteButton: true,
       newButton: true,
       hideReplaceButton: true
@@ -88,26 +91,8 @@ export class LanguageComponent extends BaseListComponent<Language> implements On
   }
 
   override async postFetchData(): Promise<void> {
-    const dragCol: any = {
-      headerName: '',
-      field: 'order',
-      rowDrag: true,
-      sortable: false,
-      editable: false,
-      filter: false,
-      width: 70,
-      minWidth: 70,
-      maxWidth: 70,
-      suppressHeaderMenuButton: true,
-      suppressMenu: true,
-      cellClass: 'sitmun-centered-cell',
-      headerClass: 'sitmun-centered-header',
-      valueGetter: () => 'drag_indicator',
-      cellRenderer: () => '<span class="material-icons-round">drag_indicator</span>'
-    };
-
-    const nameCol: any = {
-      ...this.utils.getRouterLinkColumnDef('entity.language.name', 'name', 'language/:id/languageForm', {id: 'id'}, 220),
+    const endonymCol: any = {
+      ...this.utils.getRouterLinkColumnDef('entity.language.endonym', 'name', 'language/:id/languageForm', {id: 'id'}, 180),
       valueGetter: (params) => {
         const name = params.data?.name || '';
         const shortname = params.data?.shortname || '';
@@ -116,44 +101,48 @@ export class LanguageComponent extends BaseListComponent<Language> implements On
         return shortname ? `${name} (${shortname})${defaultMarker}` : name;
       }
     };
-    nameCol.sortable = false;
-    nameCol.flex = 1;
-    nameCol.tooltipValueGetter = (params) => {
+    endonymCol.sortable = true;
+    endonymCol.cellRendererParams = {...endonymCol.cellRendererParams, sortField: 'name'};
+    endonymCol.flex = 1;
+    endonymCol.tooltipValueGetter = (params) => {
       const isDefault = params.data?.shortname === this.currentDefaultLanguage;
       return isDefault ? `${params.value} - Default database language` : params.value;
     };
 
-    const defaultCol: any = this.utils.getBooleanColumnDef('entity.language.default', 'defaultLanguage', false, 150, 170);
-    defaultCol.sortable = false;
-    defaultCol.filter = false;
+    const uiLocaleCol: any = {
+      ...this.utils.getNonEditableColumnDef('entity.language.label', 'translatedName', 160, 280),
+      valueGetter: (params) => {
+        const shortname = params.data?.shortname;
+        if (!shortname) {
+          return '';
+        }
+        const key = `lang.${shortname}`;
+        const label = this.translateService.instant(key);
+        return !label || label === key ? '' : label;
+      },
+      sortable: false,
+    };
 
+    const orderCol: any = {
+      ...this.utils.getNonEditableColumnDef('entity.language.order', 'order', 80, 100),
+      sortable: true,
+      cellRendererParams: {sortField: 'order'},
+    };
+
+    const enabledCol: any = {
+      ...this.utils.getBooleanColumnDef('entity.language.enabled', 'enabled', false, 90, 110),
+      sortable: true,
+      cellRendererParams: {sortField: 'enabled'},
+    };
+
+    // Identity → UI label → availability → sort weight
     this.entityListConfig.columnDefs = [
       this.utils.getRowCheckboxColumnDef(),
-      dragCol,
-      nameCol,
-      defaultCol
+      endonymCol,
+      uiLocaleCol,
+      enabledCol,
+      orderCol,
     ];
-  }
-
-  onRowOrderChanged(rows: Language[]): void {
-    this.pendingOrderedLanguageIds = rows.map((row) => row.id);
-  }
-
-  override sendChanges(_data: Language[]) {
-    if (this.pendingOrderedLanguageIds.length === 0) {
-      return;
-    }
-
-    this.loadingOverlay.wrap(
-      async () => {
-        await firstValueFrom(this.languageService.reorder(this.pendingOrderedLanguageIds));
-        config.languagesToUse = await firstValueFrom(this.languageService.fetchAllItems());
-        localStorage.setItem('languages', JSON.stringify(config.languagesToUse));
-        this.pendingOrderedLanguageIds = [];
-        this.refreshCommandEvent$.next(true);
-      },
-      { message: this.translateService.instant('entity.language.reorderSaving') }
-    );
   }
 
   override async newData() {
@@ -162,53 +151,6 @@ export class LanguageComponent extends BaseListComponent<Language> implements On
 
   override async duplicateItem(id: number) {
     await this.router.navigate(['language', -1, 'languageForm', id]);
-  }
-
-  override removeData(data: Language[]) {
-    if (data.some((language) => language.defaultLanguage)) {
-      const dialogRef = this.dialog.open(DialogMessageComponent, {
-        width: '420px',
-        data: {
-          title: 'common.atention',
-          message: 'entity.language.defaultDeleteWarning',
-          hideCancelButton: true,
-        },
-      });
-      dialogRef.afterClosed().subscribe();
-      return;
-    }
-
-    const dialogRef = this.dialog.open(DialogMessageComponent, {
-      width: '460px',
-      data: {
-        title: 'common.delete.title',
-        message: 'entity.language.deleteWithLiteralTranslationsWarning',
-        destructive: true,
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result?.event !== DIALOG_EVENTS.ACCEPT) {
-        return;
-      }
-
-      this.loadingOverlay.wrap(
-        async () => {
-          const results = await Promise.allSettled(
-            data.map((item) => this.dataDeleteFn(item))
-          );
-
-          results.forEach((deleteResult, index) => {
-            if (deleteResult.status === 'rejected') {
-              this.loggerService.error(`Failed to delete language ${data[index]?.id}:`, deleteResult.reason);
-            }
-          });
-
-          this.refreshCommandEvent$.next(true);
-        },
-        { message: this.translateService.instant('common.deleting') }
-      );
-    });
   }
 
   override dataUpdateFn = (data: Language) => firstValueFrom(this.languageService.update(data))

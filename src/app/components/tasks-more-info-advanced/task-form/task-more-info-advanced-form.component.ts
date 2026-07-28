@@ -46,8 +46,7 @@ import {ErrorHandlerService} from '@app/services/error-handler.service';
 import {LoadingOverlayService} from '@app/services/loading-overlay.service';
 import {LoggerService} from '@app/services/logger.service';
 import {UtilsService} from '@app/services/utils.service';
-import {magic} from '@environments/constants';
-import {constants} from '@environments/constants';
+import {TEMPLATE_TASK_RELATION_TYPES, magic, constants} from '@environments/constants';
 
 /**
  * Properties stored in task.properties for an MIA task.
@@ -168,8 +167,8 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
   protected filteredAvailableTasks: Observable<TaskProjection[]> = of([]);
 
   protected readonly parentLayouts: Array<{ value: string, key: string }> = [
-    {value: 'tabs', key: 'tasksMoreInfoAdvancedEntity.parentLayout.tabs'},
-    {value: 'scroll', key: 'tasksMoreInfoAdvancedEntity.parentLayout.scroll'}
+    {value: 'tabs', key: 'entity.task.moreInfoAdvanced.parentLayout.tabs'},
+    {value: 'scroll', key: 'entity.task.moreInfoAdvanced.parentLayout.scroll'}
   ];
 
   protected readonly trackTaskById = (_index: number, task: TaskProjection): number => task.id;
@@ -177,12 +176,14 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
   protected readonly trackMappingRow = (_index: number, row: MappingRowView): ChildParamMapping => row.mapping;
   protected readonly trackTemplateChildMappingView = (_index: number, view: TemplateChildMappingView): string => view.key;
 
-  private readonly maxTemplateNestingDepth = 6;
+  /** Aligned with template form and backend TemplateExecutionService. */
+  private readonly maxTemplateNestingDepth = 3;
 
   protected validationFieldLabels: Record<string, string> = {
-    'name': 'entity.task.label',
-    'taskGroupId': 'tasksMoreInfoAdvancedEntity.taskGroup',
-    'cartographyId': 'tasksMoreInfoAdvancedEntity.cartography'
+    'name': 'entity.task.moreInfoAdvanced.taskName',
+    'taskGroupId': 'entity.task.moreInfoAdvanced.taskGroup',
+    'cartographyId': 'entity.task.moreInfoAdvanced.cartography',
+    'parentLayout': 'entity.task.moreInfoAdvanced.parentLayout'
   };
 
   constructor(
@@ -219,9 +220,9 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
     this.initTranslations('Task', ['name']);
 
     const [taskTypes, taskGroups, cartographies, candidateTasks] = await Promise.all([
-      firstValueFrom(this.taskTypeService.fetchAllItems()),
-      firstValueFrom(this.taskGroupService.fetchAllItems()),
-      firstValueFrom(this.cartographyService.fetchAllItems()),
+      firstValueFrom(this.taskTypeService.fetchAllRawItems()),
+      firstValueFrom(this.taskGroupService.fetchAllRawItems()),
+      firstValueFrom(this.cartographyService.fetchAllRawItems()),
       this.fetchCandidateChildTasks()
     ]);
 
@@ -239,6 +240,39 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
 
   override async fetchRelatedData(): Promise<void> {
     return this.loadTranslations(this.entityToEdit);
+  }
+
+  /**
+   * Parameters are written in {@code dataTables.saveAll()} onto {@code entityToEdit.properties}.
+   * The subsequent {@code fetchOriginal()} can return a stale projection (HTTP cache), which
+   * would drop those parameters and empty the Details mapping dropdowns on the next rebuild.
+   */
+  override async onSaveButtonClicked(): Promise<boolean> {
+    this.loggerService.info('onSaveButtonClicked', this.explainFormValidity());
+    if (!this.canSaveEntity) {
+      return false;
+    }
+    const duplicated = this.isDuplicated();
+    try {
+      await this.saveEntity();
+      await this.dataTables.saveAll();
+    } catch (error) {
+      this.loggerService.error('Save failed', error);
+      return false;
+    }
+    const savedMiaProperties = this.snapshotMiaProperties(this.entityToEdit?.properties);
+    this.entityToEdit = await this.fetchOriginal();
+    this.mergeMiaPropertiesAfterSave(savedMiaProperties);
+    this.rebuildIncludedTaskMappingViews();
+    this.afterSave();
+    if (duplicated) {
+      const segments = this.activatedRoute.snapshot.url.map(segment => segment.path);
+      const parentRoute = segments.slice(0, -1)
+        .map(segment => segment === '-1' ? ':id' : segment)
+        .join('/');
+      return this.router.navigate(['/' + parentRoute, this.entityID], {skipLocationChange: true});
+    }
+    return false;
   }
 
   override fetchOriginal(): Promise<TaskProjection> {
@@ -273,6 +307,7 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
         nonNullable: true
       }),
       parentLayout: new FormControl(properties.parentLayout || 'tabs', {
+        validators: [Validators.required],
         nonNullable: true
       })
     });
@@ -346,29 +381,10 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
   createObject(id: number = null): Task {
     let safeToEdit = TaskProjection.fromObject(this.entityToEdit);
     const values = this.entityForm.getRawValue();
-
-    const childTaskParameters: Record<string, Record<string, string>> = {};
-    const templateChildTaskParameters: Record<string, Record<string, Record<string, string>>> = {};
     const miaParams: unknown[] = Array.isArray(this.entityToEdit?.properties?.parameters)
       ? this.entityToEdit.properties.parameters : [];
-    this.childTaskParameterMappings.forEach((mappings, taskId) => {
-      const map = this.serializeMappings(mappings, miaParams);
-      if (Object.keys(map).length > 0) {
-        childTaskParameters[String(taskId)] = map;
-      }
-    });
-    this.templateChildTaskParameterMappings.forEach((innerMappings, templateTaskId) => {
-      const serializedInnerMappings: Record<string, Record<string, string>> = {};
-      innerMappings.forEach((mappings, innerTaskId) => {
-        const map = this.serializeMappings(mappings, miaParams);
-        if (Object.keys(map).length > 0) {
-          serializedInnerMappings[String(innerTaskId)] = map;
-        }
-      });
-      if (Object.keys(serializedInnerMappings).length > 0) {
-        templateChildTaskParameters[String(templateTaskId)] = serializedInnerMappings;
-      }
-    });
+    const {childTaskParameters, templateChildTaskParameters} =
+      this.serializeAllChildTaskParameters(miaParams);
 
     const properties: MiaTaskProperties = {
       parentLayout: values.parentLayout,
@@ -545,30 +561,6 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
     this.templateExpansionState.set(key, expanded);
   }
 
-  getAvailableMiaParams(taskId: number, currentIndex: number): TaskMoreInfoParameter[] {
-    const allMia = this.getMiaParameters();
-    const mappings = this.getChildMappings(taskId);
-    const usedParams = new Set(
-      mappings
-        .filter((_, i) => i !== currentIndex)
-        .map(m => m.miaParam)
-        .filter(p => !!p)
-    );
-    return allMia.filter(p => !usedParams.has(p.label));
-  }
-
-  getAvailableMiaParamsForTemplateChild(templateTaskId: number, innerTaskId: number, currentIndex: number): TaskMoreInfoParameter[] {
-    const allMia = this.getMiaParameters();
-    const mappings = this.getTemplateChildMappings(templateTaskId, innerTaskId);
-    const usedParams = new Set(
-      mappings
-        .filter((_, i) => i !== currentIndex)
-        .map(m => m.miaParam)
-        .filter(p => !!p)
-    );
-    return allMia.filter(p => !usedParams.has(p.label));
-  }
-
   onMappingChanged(): void {
     this.rebuildIncludedTaskMappingViews();
     this.entityForm.markAsDirty();
@@ -576,6 +568,17 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
 
   getTaskTypeName(task: TaskProjection): string {
     return task.typeName || this.translateService.instant('common.form.unknown');
+  }
+
+  getTaskGroupName(taskGroupId: number): string {
+    return this.taskGroups.find(group => group.id === taskGroupId)?.name || '';
+  }
+
+  getTaskFormLink(task: TaskProjection): (string | number)[] | null {
+    if (!task?.id || task.typeId == null) {
+      return null;
+    }
+    return ['/tasks', task.id, task.typeId];
   }
 
   // --- Private helpers ---
@@ -648,22 +651,90 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
     mappings
       .filter(m => m.miaParam && m.childParam)
       .forEach(m => {
-        const featureField = this.resolveMiaParamFeatureField(m.miaParam, miaParams);
-        if (!featureField) {
+        const miaParamObj = miaParams.find((p: any) => p.label === m.miaParam) as any;
+        if (!miaParamObj) {
           return;
         }
+        const featureField = miaParamObj?.value || m.miaParam;
         map[m.childParam] = featureField;
       });
     return map;
   }
 
+  private serializeAllChildTaskParameters(miaParams: unknown[]): {
+    childTaskParameters: Record<string, Record<string, string>>;
+    templateChildTaskParameters: Record<string, Record<string, Record<string, string>>>;
+  } {
+    const includedIds = new Set(this.includedTasks.map(task => task.id));
+    const childTaskParameters: Record<string, Record<string, string>> = {};
+    const templateChildTaskParameters: Record<string, Record<string, Record<string, string>>> = {};
+
+    this.includedTasks.forEach(task => {
+      const map = this.serializeMappings(this.getChildMappings(task.id), miaParams);
+      if (Object.keys(map).length > 0) {
+        childTaskParameters[String(task.id)] = map;
+      }
+      if (!this.isTemplateTask(task)) {
+        return;
+      }
+      const allowedInnerIds = this.collectTemplateDescendantIds(task.id, new Set([task.id]), 1);
+      const innerMappings = this.templateChildTaskParameterMappings.get(task.id);
+      if (!innerMappings) {
+        return;
+      }
+      const serializedInnerMappings: Record<string, Record<string, string>> = {};
+      innerMappings.forEach((mappings, innerTaskId) => {
+        if (!allowedInnerIds.has(innerTaskId)) {
+          return;
+        }
+        const map = this.serializeMappings(mappings, miaParams);
+        if (Object.keys(map).length > 0) {
+          serializedInnerMappings[String(innerTaskId)] = map;
+        }
+      });
+      if (Object.keys(serializedInnerMappings).length > 0) {
+        templateChildTaskParameters[String(task.id)] = serializedInnerMappings;
+      }
+    });
+
+    // Defensive: never re-emit keys for tasks that are no longer included.
+    Object.keys(childTaskParameters).forEach(taskId => {
+      if (!includedIds.has(Number(taskId))) {
+        delete childTaskParameters[taskId];
+      }
+    });
+
+    return {childTaskParameters, templateChildTaskParameters};
+  }
+
+  private collectTemplateDescendantIds(
+    templateTaskId: number,
+    path: Set<number>,
+    depth: number
+  ): Set<number> {
+    const ids = new Set<number>();
+    if (depth > this.maxTemplateNestingDepth) {
+      return ids;
+    }
+    (this.templateChildTasks.get(templateTaskId) || []).forEach(childLink => {
+      ids.add(childLink.task.id);
+      if (childLink.task.typeId === magic.taskTemplateTypeId && !path.has(childLink.task.id)) {
+        const nextPath = new Set(path);
+        nextPath.add(childLink.task.id);
+        this.collectTemplateDescendantIds(childLink.task.id, nextPath, depth + 1)
+          .forEach(id => ids.add(id));
+      }
+    });
+    return ids;
+  }
+
   private deserializeMappings(mappingObj: Record<string, unknown>, miaParams: any[]): ChildParamMapping[] {
     return Object.entries(mappingObj)
       .map(([childParam, featureField]) => {
-        const miaParam = this.resolveMiaParamLabel(String(featureField), miaParams);
-        return miaParam == null ? null : {miaParam, childParam};
-      })
-      .filter((mapping): mapping is ChildParamMapping => mapping != null);
+        const miaParamObj = miaParams.find(p => p.value === featureField);
+        const miaParam = miaParamObj?.label || String(featureField);
+        return {miaParam, childParam};
+      });
   }
 
   private pruneStoredChildTaskParameters(
@@ -728,12 +799,9 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
   }
 
   private getDeclaredFeatureFields(parametersToSave: TaskMoreInfoParameter[]): Set<string> {
-    return new Set([
-      ...parametersToSave
-        .map(parameter => parameter.value || parameter.label)
-        .filter((value): value is string => typeof value === 'string' && value.length > 0),
-      ...this.getViewerContextParameters().map(parameter => parameter.value)
-    ]);
+    return new Set(parametersToSave
+      .map(parameter => parameter.value || parameter.label)
+      .filter((value): value is string => typeof value === 'string' && value.length > 0));
   }
 
   private async loadTemplateChildTasks(candidateTasks: TaskProjection[]): Promise<void> {
@@ -786,9 +854,9 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
       return;
     }
 
-    for (const relation of relations.filter(r => ['template-task', 'template-nested'].includes(r.relationType))) {
+    for (const relation of relations.filter(r => TEMPLATE_TASK_RELATION_TYPES.includes(r.relationType))) {
       try {
-        const relatedTask = await firstValueFrom(relation.getRelationEx(Task, 'relatedTask'));
+        const relatedTask = await this.fetchRelatedTask(relation);
         if (!relatedTask?.id) {
           continue;
         }
@@ -815,6 +883,10 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
     visited.add(templateTask.id);
   }
 
+  private fetchRelatedTask(relation: TaskRelation): Promise<Task> {
+    return firstValueFrom(relation.getRelationEx(Task, 'relatedTask'));
+  }
+
   private rebuildIncludedTaskMappingViews(): void {
     this.miaParameters = this.readMiaParameters();
     this.includedTasks.forEach(task => this.initializeMappingArraysForTask(task));
@@ -829,7 +901,7 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
         mappings,
         mappingRows: this.buildMappingRows(mappings),
         childParameters,
-        canAddMapping: mappings.length < this.miaParameters.length,
+        canAddMapping: mappings.length < this.miaParameters.length && childParameters.length > 0,
         isTemplate: this.isTemplateTask(task),
         templateChildViews
       };
@@ -955,32 +1027,33 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
 
   private readMiaParameters(): TaskMoreInfoParameter[] {
     const raw = this.entityToEdit?.properties?.parameters;
-    const merged = [
-      ...(Array.isArray(raw) ? raw as TaskMoreInfoParameter[] : []),
-      ...this.getViewerContextParameters()
-    ];
-    return merged.filter((parameter, index, array) => array.findIndex((item) => item.label === parameter.label) === index);
+    return Array.isArray(raw) ? raw as TaskMoreInfoParameter[] : [];
   }
 
-  private getViewerContextParameters(): TaskMoreInfoParameter[] {
-    return [
-      new TaskMoreInfoParameter('featureBboxMinX', 9001, 'featureBboxMinX'),
-      new TaskMoreInfoParameter('featureBboxMinY', 9002, 'featureBboxMinY'),
-      new TaskMoreInfoParameter('featureBboxMaxX', 9003, 'featureBboxMaxX'),
-      new TaskMoreInfoParameter('featureBboxMaxY', 9004, 'featureBboxMaxY')
-    ];
+  private snapshotMiaProperties(properties: unknown): MiaTaskProperties | null {
+    if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
+      return null;
+    }
+    return {...(properties as MiaTaskProperties)};
   }
 
-  private resolveMiaParamFeatureField(miaParamLabel: string, miaParams: unknown[]): string | null {
-    const allParams = [...(Array.isArray(miaParams) ? miaParams : []), ...this.getViewerContextParameters()];
-    const miaParamObj = allParams.find((p: any) => p.label === miaParamLabel || p.value === miaParamLabel) as any;
-    return miaParamObj?.value || null;
-  }
-
-  private resolveMiaParamLabel(featureField: string, miaParams: any[]): string | null {
-    const allParams = [...(Array.isArray(miaParams) ? miaParams : []), ...this.getViewerContextParameters()];
-    const miaParamObj = allParams.find(p => p.value === featureField || p.label === featureField);
-    return miaParamObj?.label || null;
+  private mergeMiaPropertiesAfterSave(saved: MiaTaskProperties | null): void {
+    if (!saved || !this.entityToEdit) {
+      return;
+    }
+    const current = (this.entityToEdit.properties || {}) as MiaTaskProperties;
+    const savedParams = Array.isArray(saved.parameters) ? saved.parameters : [];
+    const currentParams = Array.isArray(current.parameters) ? current.parameters : [];
+    this.entityToEdit.properties = {
+      ...current,
+      parentLayout: saved.parentLayout ?? current.parentLayout,
+      moreInfoAdvanced: saved.moreInfoAdvanced ?? current.moreInfoAdvanced,
+      childTaskOrderIds: saved.childTaskOrderIds ?? current.childTaskOrderIds,
+      childTaskParameters: saved.childTaskParameters ?? current.childTaskParameters,
+      templateChildTaskParameters:
+        saved.templateChildTaskParameters ?? current.templateChildTaskParameters,
+      parameters: savedParams.length >= currentParams.length ? savedParams : currentParams,
+    };
   }
 
   private normalizeChildParameter(raw: unknown): TaskMoreInfoParameter | null {
@@ -1094,12 +1167,15 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
             miaKeys[k] = currentProps[k];
           }
         }
-        if (currentProps['childTaskParameters'] !== undefined) {
-          miaKeys['childTaskParameters'] = this.pruneStoredChildTaskParameters(currentProps['childTaskParameters'], parametersToSave);
-        }
-        if (currentProps['templateChildTaskParameters'] !== undefined) {
-          miaKeys['templateChildTaskParameters'] = this.pruneStoredTemplateChildTaskParameters(currentProps['templateChildTaskParameters'], parametersToSave);
-        }
+        const serialized = this.serializeAllChildTaskParameters(parametersToSave);
+        miaKeys['childTaskParameters'] = this.pruneStoredChildTaskParameters(
+          serialized.childTaskParameters,
+          parametersToSave
+        );
+        miaKeys['templateChildTaskParameters'] = this.pruneStoredTemplateChildTaskParameters(
+          serialized.templateChildTaskParameters,
+          parametersToSave
+        );
         this.entityToEdit.properties = {
           ...TaskPropertiesBuilder.from(this.entityToEdit.properties)
             .withParameters(parametersToSave).build(),
@@ -1164,7 +1240,8 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
       ])
       .withTargetsOrder('name')
       .withTargetsFetcher(() => this.roleService.fetchAllItems())
-      .withTargetsTitle(this.translateService.instant('entity.task.roles.title'))
+      .withTargetToRelation((items) => items)
+      .withTargetsTitle('entity.task.roles.title')
       .build();
   }
 
@@ -1211,7 +1288,7 @@ export class TaskMoreInfoAdvancedFormComponent extends BaseFormComponent<TaskPro
       .withTargetToRelation((items: TerritoryProjection[]) => {
         return items.map(item => TaskAvailabilityProjection.of(this.entityToEdit, item));
       })
-      .withTargetsTitle(this.translateService.instant('entity.task.territories.title'))
+      .withTargetsTitle('entity.task.territories.title')
       .build();
   }
 }

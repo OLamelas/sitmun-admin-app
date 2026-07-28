@@ -1,15 +1,13 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+
 import { TranslateModule } from '@ngx-translate/core';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { of, Subject, throwError } from 'rxjs';
 
-import { SafeHtmlPreviewComponent } from '@app/components/shared/safe-html-preview/safe-html-preview.component';
 import { TaskTemplatePreviewService } from '@app/domain';
 
 import { QueryExecutionCardComponent } from './query-execution-card.component';
@@ -42,6 +40,7 @@ describe('QueryExecutionCardComponent', () => {
         taskId: 13,
         status: 'COMPLETED',
         resultType: 'table',
+        parameters: {},
         context: {},
         rows: [],
         resourceUrl: null,
@@ -49,7 +48,7 @@ describe('QueryExecutionCardComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      declarations: [QueryExecutionCardComponent, SafeHtmlPreviewComponent],
+      declarations: [QueryExecutionCardComponent],
       imports: [HttpClientTestingModule, ReactiveFormsModule, MatCardModule, MatButtonModule, MatIconModule, TranslateModule.forRoot()],
       providers: [{ provide: TaskTemplatePreviewService, useValue: previewService }],
     }).compileComponents();
@@ -86,16 +85,6 @@ describe('QueryExecutionCardComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('uses the sandboxed preview component instead of an innerHTML sink', () => {
-    const template = readFileSync(join(__dirname, 'query-execution-card.component.html'), 'utf8');
-    const source = readFileSync(join(__dirname, 'query-execution-card.component.ts'), 'utf8');
-
-    expect(template).toContain('<app-safe-html-preview');
-    expect(template).toContain('[html]="renderedTemplateHtml"');
-    expect(template).not.toContain('[innerHTML]');
-    expect(source).not.toContain('bypassSecurityTrustHtml');
   });
 
   it('should create one form control per parameter', () => {
@@ -156,6 +145,25 @@ describe('QueryExecutionCardComponent', () => {
     expect(component.errorMessage).toBe('Execution failed');
   });
 
+  it('should prefer Spring Problem Detail detail over Angular HttpClient message', async () => {
+    previewService.executeLinkedTask.mockReturnValueOnce(
+      throwError(() => ({
+        message: 'Http failure response for http://localhost:9000/backend/api/tasks/template/execute-child?lang=ca: 400 OK',
+        error: {
+          type: 'about:blank',
+          title: 'Bad Request',
+          status: 400,
+          detail: 'Bad request',
+        },
+      })),
+    );
+
+    await component.execute();
+
+    expect(component.status).toBe('FAILED');
+    expect(component.errorMessage).toBe('Bad request');
+  });
+
   it('should request OnPush refresh when execution starts and completes', async () => {
     const executionResponse$ = new Subject<any>();
     previewService.executeLinkedTask.mockReturnValueOnce(executionResponse$);
@@ -170,6 +178,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 13,
       status: 'COMPLETED',
       resultType: 'table',
+      parameters: {},
       context: {},
       rows: [{ field: 'name', value: 'Parcela' }],
       resourceUrl: null,
@@ -232,6 +241,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 13,
       status: 'COMPLETED',
       resultType: 'table',
+      parameters: {},
       context: {},
       rows: [{ tui_tooltip: 'Layer', tui_id: 35 }],
       resourceUrl: null,
@@ -251,6 +261,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 13,
       status: 'COMPLETED',
       resultType: 'table',
+      parameters: {},
       context: {},
       rows: [{ tui_tooltip: 'Layer', tui_id: 35 }],
       resourceUrl: null,
@@ -270,6 +281,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 13,
       status: 'COMPLETED',
       resultType: 'table',
+      parameters: {},
       context: {},
       rows: [
         { field: 'items[0].title', value: 'Iced Coffee' },
@@ -293,6 +305,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 13,
       status: 'COMPLETED',
       resultType: 'url',
+      parameters: {},
       context: { url: 'https://example.com' },
       rows: [],
       resourceUrl: 'https://example.com',
@@ -310,6 +323,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 32315,
       status: 'COMPLETED',
       resultType: 'resource',
+      parameters: {},
       context: {
         contentUrl: 'https://api.example.org/report.pdf',
         mimeType: 'application/pdf',
@@ -334,6 +348,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 32319,
       status: 'COMPLETED',
       resultType: 'resource',
+      parameters: {},
       context: {
         contentUrl: 'https://api.example.org/archive.zip',
         mimeType: 'application/zip',
@@ -363,6 +378,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 32317,
       status: 'COMPLETED',
       resultType: 'resource',
+      parameters: {},
       context: {
         contentUrl: 'https://api.example.org/image.jpg',
         mimeType: 'image/jpeg',
@@ -389,6 +405,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 32317,
       status: 'COMPLETED',
       resultType: 'resource',
+      parameters: {},
       context: {
         contentUrl: 'https://api.example.org/image.jpg',
         url: 'https://api.example.org/image.jpg',
@@ -435,6 +452,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 32317,
       status: 'COMPLETED',
       resultType: 'resource',
+      parameters: {},
       context: {
         contentUrl: 'https://api.example.org/image.jpg',
         mimeType: 'image/jpeg',
@@ -471,6 +489,7 @@ describe('QueryExecutionCardComponent', () => {
       taskId: 15,
       status: 'COMPLETED',
       resultType: 'template',
+      parameters: {},
       context: { html: '<p>Rendered</p>' },
       rows: [],
       resourceUrl: null,

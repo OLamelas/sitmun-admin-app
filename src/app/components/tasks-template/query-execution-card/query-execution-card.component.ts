@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, QueryList, SimpleChanges, ViewChildren } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 
+import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -10,6 +11,7 @@ import {
   TemplateTaskExecutionEvent,
   TemplateTaskExecutionResponse,
 } from '@app/domain';
+import { getErrorMessage } from '@app/utils/problem-detail.utils';
 import { magic } from '@environments/constants';
 
 type ExecutionStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
@@ -57,6 +59,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   constructor(
     private readonly previewService: TaskTemplatePreviewService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly translateService: TranslateService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -133,7 +136,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   }
 
   get isBinaryResourceResponse(): boolean {
-    return this.response?.context?.['binary'] === true;
+    return this.response?.context?.['binary'] === true || this.response?.binary === true;
   }
 
   get showResponseTable(): boolean {
@@ -156,7 +159,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
 
   get binaryMimeType(): string {
     const contextMimeType = this.response?.context?.['mimeType'];
-    return String(contextMimeType ?? '').toLowerCase();
+    return String(contextMimeType ?? this.response?.mimeType ?? '').toLowerCase();
   }
 
   get resolvedReferenceAlias(): string {
@@ -261,9 +264,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
       this.cdr.markForCheck();
     } catch (error) {
       this.status = 'FAILED';
-      this.errorMessage = (error as { error?: { message?: string }, message?: string } | undefined)?.error?.message
-        || (error as { message?: string } | undefined)?.message
-        || 'Execution failed';
+      this.errorMessage = getErrorMessage(error) || 'Execution failed';
       this.cdr.markForCheck();
     }
   }
@@ -405,14 +406,19 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   }
 
   private buildBinaryContentSnippet(contentReference: string): string {
-    const label = this.escapeHtml(this.task?.name || 'Contenido binario');
+    const label = this.escapeHtml(
+      this.task?.name || this.translateService.instant('entity.task.template.binaryContent'),
+    );
     if (this.binaryMimeType === 'application/pdf') {
       return `<iframe src="${contentReference}" width="100%" height="360" title="${label}"></iframe>`;
     }
     if (this.binaryMimeType.startsWith('image/')) {
       return `<img src="${contentReference}" alt="${label}">`;
     }
-    return `<a href="${contentReference}" target="_blank" rel="noopener noreferrer">Descargar contenido</a>`;
+    const downloadLabel = this.escapeHtml(
+      this.translateService.instant('entity.task.template.downloadContent'),
+    );
+    return `<a href="${contentReference}" target="_blank" rel="noopener noreferrer">${downloadLabel}</a>`;
   }
 
   private escapeHtml(value: string): string {

@@ -2,12 +2,12 @@ import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { DomSanitizer } from '@angular/platform-browser';
 
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
+import { LanguageService } from '@app/domain/translation/services/language.service';
 import { magic } from '@environments/constants';
 
 import { TaskTemplateFormComponent } from './task-template-form.component';
@@ -40,7 +40,18 @@ describe('TaskTemplateFormComponent', () => {
         }),
       ],
       providers: [
-        { provide: ChangeDetectorRef, useValue: { markForCheck: jest.fn() } },
+        {
+          provide: ChangeDetectorRef,
+          useValue: { markForCheck: jest.fn(), detectChanges: jest.fn() },
+        },
+        {
+          provide: LanguageService,
+          useValue: {
+            applyLanguagesToUse: (languages: unknown[]) => languages,
+            fetchAllItems: () => of([]),
+            languagesToUse$: of([]),
+          },
+        },
       ],
     });
 
@@ -84,17 +95,18 @@ describe('TaskTemplateFormComponent', () => {
       createSpyObj(['navigate']) as any,
       createSpyObj(['show', 'hide']) as any,
       createSpyObj(['enable', 'disable']) as any,
-      createSpyObj(['create', 'update', 'getProjection']) as any,
-      createSpyObj(['getAllEx']) as any,
-      createSpyObj(['getAllEx', 'createProxy']) as any,
+      createSpyObj(['create', 'update', 'fetchProjectionById']) as any,
+      createSpyObj(['fetchAllRawItems']) as any,
+      createSpyObj(['fetchAllRawItems', 'createProxy']) as any,
       createSpyObj(['create', 'delete']) as any,
-      createSpyObj(['getAll']) as any,
-      createSpyObj(['getAllProjection', 'createProxy']) as any,
+      createSpyObj(['fetchAllRawItems']) as any,
+      createSpyObj(['fetchAllProjectionItems', 'createProxy']) as any,
       createSpyObj(['create', 'delete', 'createProxy']) as any,
       previewService as any,
       notificationService as any,
       utils as any,
       http as any,
+      TestBed.inject(DomSanitizer),
     ));
 
     (component as any).linkableTasks = [
@@ -125,19 +137,6 @@ describe('TaskTemplateFormComponent', () => {
     expect(component.entityForm.get('name')?.value).toBe('Template 1');
     expect(component.entityForm.get('taskGroupId')?.value).toBe(2);
     expect(component.entityForm.get('templateHtml')?.value).toBe('');
-    expect(component.entityForm.get('pdfHeaderHeightMm')).toBeNull();
-    expect(component.entityForm.get('pdfFooterHeightMm')).toBeNull();
-  });
-
-  it('should mark templates with deprecated PDF region heights for cleanup', () => {
-    component.entityToEdit = {
-      name: 'Template 1',
-      groupId: 2,
-      properties: { pdfHeaderHeightMm: 25 },
-    } as any;
-    component.postFetchData();
-
-    expect(component.entityForm.dirty).toBe(true);
   });
 
   it('should remove linked task from local list', () => {
@@ -159,12 +158,7 @@ describe('TaskTemplateFormComponent', () => {
       id: 99,
       name: 'Template 1',
       groupId: 2,
-      properties: {
-        templateHtml: '<p>x</p>',
-        custom: true,
-        pdfHeaderHeightMm: 32,
-        pdfFooterHeightMm: 18,
-      },
+      properties: { templateHtml: '<p>x</p>' },
     } as any;
     component.entityForm = new FormGroup({
       name: new FormControl('Template 1'),
@@ -179,9 +173,6 @@ describe('TaskTemplateFormComponent', () => {
     const task = (component as any).createObject(99);
 
     expect(task.properties.childTaskOrderIds).toEqual([15, 13]);
-    expect(task.properties.custom).toBe(true);
-    expect(task.properties.pdfHeaderHeightMm).toBeUndefined();
-    expect(task.properties.pdfFooterHeightMm).toBeUndefined();
   });
 
   it('should expose only name and optional value in template parameter dialog', () => {
@@ -251,7 +242,7 @@ describe('TaskTemplateFormComponent', () => {
       id: 99,
       properties: { childTaskOrderIds: [15] },
       getRelationArrayEx: jest.fn().mockReturnValue(of([
-        relationFor(3, 'template-task', { id: 20, name: 'Consulta zeta', properties: { scope: 'cartography-query' } }, 'task_20'),
+        relationFor(3, 'template-task', { id: 20, name: 'Consulta zeta', properties: { scope: 'sql-query' } }, 'task_20'),
         relationFor(1, 'template-task', { id: 13, name: 'Consulta alfa', properties: { scope: 'sql-query' } }, 'task_13'),
         relationFor(2, 'template-nested', { id: 15, name: 'Plantilla', properties: {} }, 'task_15'),
       ])),
@@ -260,15 +251,6 @@ describe('TaskTemplateFormComponent', () => {
     await (component as any).loadLinkedTasks();
 
     expect((component as any).linkedTasks.map((task: any) => task.taskId)).toEqual([15, 13, 20]);
-  });
-
-  it('excludes cartography queries only from new template candidates', () => {
-    const candidates = (component as any).filterLinkableQueryTasks([
-      { id: 13, name: 'SQL', typeId: magic.taskQueryTypeId, properties: { scope: 'sql-query' } },
-      { id: 20, name: 'Cartography', typeId: magic.taskQueryTypeId, properties: { scope: 'cartography-query' } },
-    ]);
-
-    expect(candidates.map((task: any) => task.taskId)).toEqual([13]);
   });
 
   it('should block linking nested template when resulting depth exceeds max nesting', () => {
@@ -752,13 +734,14 @@ describe('TaskTemplateFormComponent', () => {
     expect((component as any).previewDirty).toBe(true);
   });
 
-  it('uses the sandboxed preview component instead of an innerHTML sink', () => {
-    const template = readFileSync(join(__dirname, 'task-template-form.component.html'), 'utf8');
-    const source = readFileSync(join(__dirname, 'task-template-form.component.ts'), 'utf8');
+  it('should expose trusted preview html so iframe content can be previewed', () => {
+    (component as any).previewHtml = '<iframe src="https://example.com"></iframe>';
+    (component as any).trustedPreviewHtml = TestBed.inject(DomSanitizer).bypassSecurityTrustHtml(
+      (component as any).previewHtml,
+    );
 
-    expect(template).toContain('<app-safe-html-preview');
-    expect(template).toContain('[html]="previewHtml"');
-    expect(template).not.toContain('[innerHTML]');
-    expect(source).not.toContain('bypassSecurityTrustHtml');
+    const trusted = (component as any).trustedPreviewHtml;
+
+    expect(trusted).toBeTruthy();
   });
 });

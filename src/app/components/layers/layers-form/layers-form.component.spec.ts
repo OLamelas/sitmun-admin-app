@@ -1,4 +1,7 @@
 
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -42,6 +45,8 @@ import {configureLoggerForTests, provideErrorHandlerForTests} from '@app/testing
 import {constants} from '@environments/constants';
 
 import { LayersFormComponent } from './layers-form.component';
+
+const layersFormTemplate = readFileSync(join(__dirname, 'layers-form.component.html'), 'utf8');
 
 describe('LayersFormComponent', () => {
   let component: LayersFormComponent;
@@ -716,6 +721,8 @@ describe('LayersFormComponent', () => {
       expect(table.hasStatusColumn()).toBe(false);
       expect(table.hasTemplateDialogs()).toBe(false);
       expect(table.supportsDuplicate()).toBe(false);
+      expect(table.relationsColumnsDefs.some((col: { checkboxSelection?: boolean }) => col.checkboxSelection))
+        .toBe(true);
     });
 
     it('parametersTable should have template-dialog, updater, and status capabilities', () => {
@@ -743,6 +750,68 @@ describe('LayersFormComponent', () => {
       expect(table.hasStatusColumn()).toBe(true);
       expect(table.supportsDuplicate()).toBe(false);
       expect(table.hasPickerAdd()).toBe(false);
+    });
+  });
+
+  describe('template markup', () => {
+    it('does not use the undefined and-gap utility class', () => {
+      expect(layersFormTemplate).not.toContain('and-gap');
+      expect(layersFormTemplate).toContain('add-gap');
+    });
+
+    it('uses primary slide toggles in modal dialogs instead of checkboxes', () => {
+      const styleDialog = layersFormTemplate.match(/#newStyleDialog[\s\S]*?<\/ng-template>/)?.[0] ?? '';
+      const filterDialog = layersFormTemplate.match(/#newTerritorialFilterDialog[\s\S]*?<\/ng-template>/)?.[0] ?? '';
+
+      expect(styleDialog).toContain('mat-slide-toggle color="primary" formControlName="defaultStyle"');
+      expect(styleDialog).not.toContain('mat-checkbox formControlName="defaultStyle"');
+      expect(filterDialog).toContain('mat-slide-toggle color="primary" formControlName="required"');
+      expect(filterDialog).not.toContain('mat-checkbox formControlName="required"');
+    });
+
+    it('scopes the Details entity form and keeps Territories on app-relation-grid', () => {
+      const detailsTab = layersFormTemplate.match(
+        /label="\{\{ 'common\.form\.details' \| translate \}\}"[\s\S]*?(?=<mat-tab label="\{\{ 'entity\.cartography\.territories)/,
+      )?.[0] ?? '';
+      const territoriesTab = layersFormTemplate.match(
+        /entity\.cartography\.territories\.header[\s\S]*?<\/mat-tab>/,
+      )?.[0] ?? '';
+
+      expect(detailsTab).toContain('<form');
+      expect(detailsTab).toContain('sitmun-cartography-form-entity');
+      expect(detailsTab).toContain('related-entity-open-link');
+      expect(detailsTab).toContain("['/service', serviceId, 'serviceForm']");
+      expect(territoriesTab).toContain('app-relation-grid');
+      expect(territoriesTab).not.toContain('sitmun-cartography-form-entity');
+    });
+  });
+
+  describe('grid boolean column sizing', () => {
+    it('constrains the filters required column width', () => {
+      const requiredColumn = component['territorialFiltersTable'].relationsColumnsDefs
+        .find(col => col.field === 'required');
+
+      expect(requiredColumn.flex).toBe(0);
+      expect(requiredColumn.minWidth).toBe(100);
+      expect(requiredColumn.maxWidth).toBe(120);
+    });
+
+    it('constrains the styles defaultStyle column width', () => {
+      const defaultStyleColumn = component['stylesTable'].relationsColumnsDefs
+        .find(col => col.field === 'defaultStyle');
+
+      expect(defaultStyleColumn.flex).toBe(0);
+      expect(defaultStyleColumn.minWidth).toBe(100);
+      expect(defaultStyleColumn.maxWidth).toBe(120);
+    });
+
+    it('keeps style legend URL editable with the editable external URL renderer mode', () => {
+      const urlColumn = component['stylesTable'].relationsColumnsDefs
+        .find(col => col.field === 'legendURL.onlineResource');
+
+      expect(urlColumn.editable).toBe(true);
+      expect(urlColumn.cellRenderer).toBe('externalUrlRenderer');
+      expect(urlColumn.cellRendererParams).toEqual({ editable: true });
     });
   });
 

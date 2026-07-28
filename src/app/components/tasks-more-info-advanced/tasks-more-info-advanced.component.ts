@@ -1,27 +1,27 @@
-import {Component} from '@angular/core';
-import {MatDialog} from '@angular/material/dialog';
-import {ActivatedRoute, Router} from '@angular/router';
+import { Component } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { ActivatedRoute, Router } from '@angular/router';
 
-import {TranslateService} from '@ngx-translate/core';
-import {firstValueFrom, of} from 'rxjs';
+import { TranslateService } from '@ngx-translate/core';
+import { firstValueFrom, of } from 'rxjs';
 
-import {BaseListComponent} from '@app/components/base-list.component';
-import {EntityListConfig} from '@app/components/shared/entity-list';
-import {Configuration} from '@app/core/config/configuration';
-import {createPagedInfiniteFetcher} from '@app/core/hal';
-import {INFINITE_PAGE_SIZE_DEFAULT} from '@app/core/hal/infinite-page-size';
-import {CodeListService, Task, TaskService, TranslationService} from '@app/domain';
-import {ErrorHandlerService} from '@app/services/error-handler.service';
-import {LoadingOverlayService} from '@app/services/loading-overlay.service';
-import {LoggerService} from '@app/services/logger.service';
-import {UtilsService} from '@app/services/utils.service';
-import {magic} from '@environments/constants';
+import { BaseListComponent } from '@app/components/base-list.component';
+import { EntityListConfig } from '@app/components/shared/entity-list';
+import { Configuration } from '@app/core/config/configuration';
+import { createPagedInfiniteFetcher } from '@app/core/hal';
+import { INFINITE_PAGE_SIZE_DEFAULT } from '@app/core/hal/infinite-page-size';
+import { CodeListService, Task, TaskService, TranslationService } from '@app/domain';
+import { ErrorHandlerService } from '@app/services/error-handler.service';
+import { LoadingOverlayService } from '@app/services/loading-overlay.service';
+import { LoggerService } from '@app/services/logger.service';
+import { UtilsService } from '@app/services/utils.service';
+import { magic } from '@environments/constants';
 
 @Component({
   selector: 'app-tasks-more-info-advanced',
   templateUrl: './tasks-more-info-advanced.component.html',
   styles: [],
-  standalone: false
+  standalone: false,
 })
 export class TasksMoreInfoAdvancedComponent extends BaseListComponent<Task> {
   entityListConfig: EntityListConfig<Task> = {
@@ -32,14 +32,14 @@ export class TasksMoreInfoAdvancedComponent extends BaseListComponent<Task> {
     dataFetchFn: () => of([]),
     rowModelMode: 'infinite',
     pageSize: INFINITE_PAGE_SIZE_DEFAULT,
+    infiniteGridHeight: '80vh',
     infiniteBlockFetcher: createPagedInfiniteFetcher(this.taskService, {
-      params: [{key: 'typeId', value: magic.taskMoreInfoAdvancedTypeId}]
+      params: [{ key: 'typeId', value: magic.taskMoreInfoAdvancedTypeId }],
     }),
     progressiveLocalFilter: false,
     backendSearch: true,
     defaultColumnSorting: ['name'],
     gridOptions: {
-      globalSearch: true,
       discardChangesButton: false,
       redoButton: false,
       undoButton: false,
@@ -47,8 +47,8 @@ export class TasksMoreInfoAdvancedComponent extends BaseListComponent<Task> {
       deleteButton: true,
       newButton: true,
       actionButton: true,
-      hideReplaceButton: true
-    }
+      hideReplaceButton: true,
+    },
   };
 
   constructor(
@@ -62,7 +62,7 @@ export class TasksMoreInfoAdvancedComponent extends BaseListComponent<Task> {
     protected override router: Router,
     protected override loadingOverlay: LoadingOverlayService,
     public taskService: TaskService,
-    protected override readonly utils: UtilsService
+    protected override readonly utils: UtilsService,
   ) {
     super(
       dialog,
@@ -74,7 +74,7 @@ export class TasksMoreInfoAdvancedComponent extends BaseListComponent<Task> {
       activatedRoute,
       utils,
       router,
-      loadingOverlay
+      loadingOverlay,
     );
   }
 
@@ -85,9 +85,9 @@ export class TasksMoreInfoAdvancedComponent extends BaseListComponent<Task> {
         'common.form.name',
         'name',
         `tasksMoreInfoAdvanced/:id/${magic.taskMoreInfoAdvancedTypeId}`,
-        {id: 'id'}
+        { id: 'id' },
       ),
-      this.utils.getNonEditableColumnDef('tasksMoreInfoAdvancedEntity.cartography', 'cartographyName')
+      this.utils.getNonEditableColumnDef('entity.task.moreInfoAdvanced.cartography', 'cartographyName'),
     ];
   }
 

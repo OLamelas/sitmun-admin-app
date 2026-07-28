@@ -528,6 +528,9 @@ export class DataGridComponent implements OnInit, OnDestroy, OnChanges {
   /** Event emitter for row order changes triggered by drag and drop */
   @Output() rowOrderChanged: EventEmitter<any[]>;
 
+  /** Emits true/false whenever the selection state changes */
+  @Output() selectionChanged = new EventEmitter<boolean>();
+
   /** Event emitter for visibility state */
   @Output() visible = new EventEmitter<HTMLElement>();
 
@@ -576,6 +579,7 @@ export class DataGridComponent implements OnInit, OnDestroy, OnChanges {
       onCellMouseOver: (params) => this.markTruncatedCell(params),
       onCellMouseOut: (params) => this.unmarkTruncatedCell(params),
       onCellClicked: (params) => this.expandTruncatedCellColumn(params),
+      onSelectionChanged: () => this.selectionChanged.emit(this.areRowsSelected()),
       defaultColDef: {
         filter: true,
         sortable: true,
@@ -1228,6 +1232,13 @@ export class DataGridComponent implements OnInit, OnDestroy, OnChanges {
     if (columns.length === 0) {
       this.hasHiddenColumns = false;
       return;
+    }
+
+    const fixedFieldIds = (this.columnDefs ?? [])
+      .filter((col) => !col.checkboxSelection && col.flex === 0 && typeof col.field === 'string' && col.field)
+      .map((col) => col.field as string);
+    if (fixedFieldIds.length > 0 && typeof this.gridApi.autoSizeColumns === 'function') {
+      this.gridApi.autoSizeColumns(fixedFieldIds);
     }
 
     const displayedColumns = this.gridApi?.getAllDisplayedColumns?.() ?? [];

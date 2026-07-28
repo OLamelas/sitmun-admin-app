@@ -45,7 +45,7 @@ import { LoggerService } from '@app/services/logger.service';
 import { NotificationService } from '@app/services/notification.service';
 import { UtilsService } from '@app/services/utils.service';
 import { config } from '@config';
-import { magic } from '@environments/constants';
+import { TEMPLATE_TASK_RELATION_TYPES, constants, magic } from '@environments/constants';
 import { environment } from '@environments/environment';
 
 import { QueryExecutionCardComponent, TemplateChildTaskLink } from '../query-execution-card/query-execution-card.component';
@@ -87,6 +87,7 @@ interface TemplateTaskProperties extends Record<string, unknown> {
 export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection> {
   private static readonly MAX_TEMPLATE_NESTING_LEVEL = 3;
   private static readonly REFERENCE_ALIAS_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
   readonly config = Configuration.TASK_TEMPLATE;
 
   public override entityForm: FormGroup;
@@ -189,8 +190,8 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     }
 
     const [taskTypes, taskGroups] = await Promise.all([
-      firstValueFrom(this.taskTypeService.fetchAllItems()),
-      firstValueFrom(this.taskGroupService.fetchAllItems()),
+      firstValueFrom(this.taskTypeService.fetchAllRawItems()),
+      firstValueFrom(this.taskGroupService.fetchAllRawItems()),
     ]);
 
     this.taskType = taskTypes.find((taskType) => taskType.id === typeId) ?? null;
@@ -216,12 +217,16 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     const validQueryTasks = this.filterLinkableQueryTasks(queryTasks);
     const validMapImageTasks = mapImageTasks.map((task) => this.toLinkableTask(
       task,
-      'template-task',
+      constants.taskRelationType.templateTask,
       this.translateService.instant('entity.task.mapImage.label'),
     ));
     const nestedTemplates = templateTasks
       .filter((task) => task.id !== this.entityID && task.id !== this.duplicateID)
-      .map((task) => this.toLinkableTask(task, 'template-nested', this.translateService.instant('entity.task.template.label')));
+      .map((task) => this.toLinkableTask(
+        task,
+        constants.taskRelationType.templateNested,
+        this.translateService.instant('entity.task.template.label'),
+      ));
 
     this.linkableTasks = [
       ...validQueryTasks,
@@ -336,6 +341,17 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     return this.taskGroupList.find((group) => group.id === taskGroupId)?.name || '';
   }
 
+  protected getLinkedTaskFormLink(linkedTask: LinkedTemplateTask): (string | number)[] | null {
+    if (!linkedTask?.taskId) {
+      return null;
+    }
+    const typeId = this.taskLookup.get(linkedTask.taskId)?.typeId
+      ?? (linkedTask.relationType === constants.taskRelationType.templateNested
+        ? magic.taskTemplateTypeId
+        : magic.taskQueryTypeId);
+    return ['/tasks', linkedTask.taskId, typeId];
+  }
+
   protected displayLinkableTask(task: LinkableTemplateTask | string): string {
     if (typeof task === 'string') {
       return task;
@@ -352,7 +368,8 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
       return;
     }
 
-    if (task.relationType === 'template-nested' && this.exceedsTemplateNestingLimit(task.taskId)) {
+    if (task.relationType === constants.taskRelationType.templateNested
+      && this.exceedsTemplateNestingLimit(task.taskId)) {
       this.nestingLimitWarning = this.translateService.instant('entity.task.template.maxNestingWarning', {
         max: TaskTemplateFormComponent.MAX_TEMPLATE_NESTING_LEVEL,
       });
@@ -613,18 +630,19 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   private createObject(id: number | null = null): Task {
     const safeToEdit = TaskProjection.fromObject(this.entityToEdit);
     const formValues = this.entityForm.getRawValue();
-    const properties = TaskPropertiesContract.withoutDeprecatedPdfRegionHeights(TaskPropertiesBuilder.from(this.entityToEdit?.properties)
-      .withTemplateHtml(formValues.templateHtml || null)
-      .build());
+    const properties = TaskPropertiesContract.withoutDeprecatedPdfRegionHeights(
+      TaskPropertiesBuilder.from(this.entityToEdit?.properties)
+        .withTemplateHtml(formValues.templateHtml || null)
+        .build(),
+    );
     const templateProperties = {
       ...properties,
       childTaskOrderIds: this.linkedTasks.map((linkedTask) => linkedTask.taskId),
     } as TemplateTaskProperties;
     delete (templateProperties as Record<string, unknown>).previewContext;
-    const entityValues = { ...formValues } as Record<string, unknown>;
 
     return Task.fromObject(
-      Object.assign(safeToEdit, entityValues, {
+      Object.assign(safeToEdit, formValues, {
         id,
         properties: templateProperties,
       }),
@@ -633,7 +651,6 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
 
   private filterLinkableQueryTasks(tasks: TaskProjection[]): LinkableTemplateTask[] {
     this.excludedAuthenticatedApiTasks = 0;
-
     return tasks.flatMap((task) => {
       if (task.typeId !== magic.taskQueryTypeId) {
         return [];
@@ -644,7 +661,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
         return [];
       }
 
-      return [this.toLinkableTask(task, 'template-task', this.getScopeLabel(scope))];
+      return [this.toLinkableTask(task, constants.taskRelationType.templateTask, this.getScopeLabel(scope))];
     });
   }
 
@@ -741,13 +758,14 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     }
 
     const relations = await firstValueFrom(this.entityToEdit.getRelationArrayEx(TaskRelation, 'relations'));
-    const templateRelations = relations.filter((relation) => ['template-task', 'template-nested'].includes(relation.relationType));
+    const templateRelations = relations.filter((relation) =>
+      TEMPLATE_TASK_RELATION_TYPES.includes(relation.relationType));
 
     const linkedTasks = await Promise.all(templateRelations.map(async (relation) => {
-      const relatedTask = await firstValueFrom(relation.getRelationEx(Task, 'relatedTask'));
+      const relatedTask = await this.fetchRelatedTask(relation);
       const relatedTaskTypeId = (relatedTask as TaskProjection | undefined)?.typeId
         ?? ((relatedTask as Task | undefined)?.type as TaskType | undefined)?.id;
-      const typeLabel = relation.relationType === 'template-nested'
+      const typeLabel = relation.relationType === constants.taskRelationType.templateNested
         ? this.translateService.instant('entity.task.template.label')
         : relatedTaskTypeId === magic.taskMapImageTypeId
           ? this.translateService.instant('entity.task.mapImage.label')
@@ -806,11 +824,12 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
 
     for (const templateTask of templateTasks) {
       const relations = await firstValueFrom(templateTask.getRelationArrayEx(TaskRelation, 'relations'));
-      const templateRelations = relations.filter((relation) => ['template-task', 'template-nested'].includes(relation.relationType));
+      const templateRelations = relations.filter((relation) =>
+        TEMPLATE_TASK_RELATION_TYPES.includes(relation.relationType));
 
       const childTasks: TemplateChildTaskLink[] = [];
       for (const relation of templateRelations) {
-        const relatedTask = await firstValueFrom(relation.getRelationEx(Task, 'relatedTask'));
+        const relatedTask = await this.fetchRelatedTask(relation);
         const relatedProjection = this.taskLookup.get(relatedTask.id) || TaskProjection.fromObject(relatedTask as unknown as TaskProjection);
         this.taskLookup.set(relatedProjection.id, relatedProjection);
         childTasks.push({
@@ -825,19 +844,18 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
 
   private async syncLinkedTaskRelations() {
     const existingRelations = await firstValueFrom(this.entityToEdit.getRelationArrayEx(TaskRelation, 'relations'));
-    const matchingRelations = existingRelations.filter((relation) => ['template-task', 'template-nested'].includes(relation.relationType));
+    const matchingRelations = existingRelations.filter((relation) =>
+      TEMPLATE_TASK_RELATION_TYPES.includes(relation.relationType));
     const existingByKey = new Map<string, TaskRelation>();
 
     for (const relation of matchingRelations) {
-      const relatedTask = await firstValueFrom(relation.getRelationEx(Task, 'relatedTask'));
+      const relatedTask = await this.fetchRelatedTask(relation);
       existingByKey.set(`${relation.relationType}:${relatedTask.id}`, relation);
     }
 
     const desiredKeys = new Set(this.linkedTasks.map((task) => `${task.relationType}:${task.taskId}`));
 
-    for (const relation of matchingRelations) {
-      const relatedTask = await firstValueFrom(relation.getRelationEx(Task, 'relatedTask'));
-      const relationKey = `${relation.relationType}:${relatedTask.id}`;
+    for (const [relationKey, relation] of existingByKey) {
       if (!desiredKeys.has(relationKey)) {
         await firstValueFrom(this.taskRelationService.delete(relation));
       }
@@ -867,6 +885,10 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
         relatedTask: this.taskService.createProxy(linkedTask.taskId),
       })));
     }
+  }
+
+  private fetchRelatedTask(relation: TaskRelation): Promise<Task> {
+    return firstValueFrom(relation.getRelationEx(Task, 'relatedTask'));
   }
 
   private markPreviewDirty() {
@@ -1047,7 +1069,8 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
       ])
       .withTargetsOrder('name')
       .withTargetsFetcher(() => this.roleService.fetchAllItems())
-      .withTargetsTitle(this.translateService.instant('entity.task.roles.title'))
+      .withTargetToRelation((items) => items)
+      .withTargetsTitle('entity.task.roles.title')
       .build();
   }
 
@@ -1092,7 +1115,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
         return !availabilities.some((availability) => availability.territoryId === item.id);
       })
       .withTargetToRelation((items: TerritoryProjection[]) => items.map((item) => TaskAvailabilityProjection.of(this.entityToEdit, item)))
-      .withTargetsTitle(this.translateService.instant('entity.task.territories.title'))
+      .withTargetsTitle('entity.task.territories.title')
       .withTargetsOrder('name')
       .build();
   }

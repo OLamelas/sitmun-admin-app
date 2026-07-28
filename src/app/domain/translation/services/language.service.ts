@@ -1,14 +1,15 @@
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, Injector } from '@angular/core';
 
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
-import { SubTypeBuilder } from '@app/core/hal/common/subtype-builder';
-import { ResourceHelper } from '@app/core/hal/resource/resource-helper';
-import { HalOptions , RestService } from '@app/core/hal/rest/rest.service';
-import { Sort } from '@app/core/hal/rest/sort.model';
+import { RestService } from '@app/core/hal/rest/rest.service';
 import {SUPPRESS_HTTP_NOTIFICATION} from '@app/core/interceptors/messages.interceptor';
-import { Language } from '@app/domain';
+import { filterEnabledLanguages, sortByLanguageOrder } from '@app/services/ui-language.resolver';
+import { config } from '@config';
+
+import { Language } from '../models/language.model';
 
 export interface DefaultLanguageChangePreview {
   currentDefault: string;
@@ -46,8 +47,13 @@ export interface MissingTranslationDto {
   providedIn: 'root'
 })
 export class LanguageService extends RestService<Language> {
-  private readonly http: HttpClient;
-  private readonly url = `${ResourceHelper.getURL()}languages`;
+  private http: HttpClient;
+  private readonly languagesToUseSubject = new BehaviorSubject<Language[]>(
+    sortByLanguageOrder(config.languagesToUse || [])
+  );
+
+  /** Enabled languages for selectors (toolbar, login, translation dialogs). */
+  readonly languagesToUse$ = this.languagesToUseSubject.asObservable();
 
   /** constructor */
   constructor(injector: Injector) {
@@ -55,22 +61,28 @@ export class LanguageService extends RestService<Language> {
     this.http = injector.get(HttpClient);
   }
 
-  override fetchAllItems(
-    options?: HalOptions,
-    subType?: SubTypeBuilder,
-    embeddedName?: string,
-    ignoreProjection?: boolean,
-  ): Observable<Language[]> {
-    const sort = [new Sort('order', 'ASC'), new Sort('id', 'ASC')];
-    return super.fetchAllItems({ ...options, sort }, subType, embeddedName, ignoreProjection);
+  /**
+   * Updates app config, localStorage, and notifies language selectors.
+   */
+  applyLanguagesToUse(languages: Language[]): Language[] {
+    const enabled = filterEnabledLanguages(sortByLanguageOrder(languages));
+    config.languagesToUse = enabled;
+    config.languagesObjects = {};
+    enabled.forEach((language) => {
+      config.languagesObjects[language.shortname] = language;
+    });
+    localStorage.setItem('languages', JSON.stringify(enabled));
+    this.languagesToUseSubject.next(enabled);
+    return enabled;
   }
 
-  reorder(payload: number[]): Observable<void> {
-    return this.http.post<void>(`${this.url}/reorder`, payload, { headers: ResourceHelper.headers });
-  }
-
-  setDefault(languageId: number): Observable<void> {
-    return this.http.post<void>(`${this.url}/${languageId}/default`, {}, { headers: ResourceHelper.headers });
+  /**
+   * Reloads enabled languages into app config / localStorage (used by toolbar and translation dialogs).
+   */
+  refreshLanguagesToUse(): Observable<Language[]> {
+    return this.fetchAllItems().pipe(
+      map((languages) => this.applyLanguagesToUse(languages))
+    );
   }
 
   /**

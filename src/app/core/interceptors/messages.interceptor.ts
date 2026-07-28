@@ -13,6 +13,8 @@ import {getProblemTranslationKey, isProblemDetail, getErrorMessage, formatValida
 
 export const SUPPRESS_HTTP_NOTIFICATION = new HttpContextToken<boolean>(() => false);
 
+export const SKIP_MESSAGES_INTERCEPTOR = new HttpContextToken<boolean>(() => false);
+
 @Injectable({
   providedIn: 'root'
 })
@@ -31,8 +33,6 @@ export class MessagesInterceptorStateService {
     return this.enabled;
   }
 }
-
-export const SKIP_MESSAGES_INTERCEPTOR = new HttpContextToken<boolean>(() => false);
 
 @Injectable()
 export class MessagesInterceptor implements HttpInterceptor {
@@ -81,6 +81,9 @@ export class MessagesInterceptor implements HttpInterceptor {
                     this.utilsService.disableLoading();
                 }),
                 catchError((error) => {
+                    if (error.status === 401) {
+                      return throwError(() => error);
+                    }
                     if(error.status!=404){
                       let title: string;
                       let message: string;

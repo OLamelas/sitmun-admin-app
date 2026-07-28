@@ -15,7 +15,7 @@ import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
 import { UtilsService } from '@app/services/utils.service';
-import { config } from '@config';
+import { magic } from '@environments/constants';
 
 @Component({
   selector: 'app-tasks-template',
@@ -32,14 +32,14 @@ export class TasksTemplateComponent extends BaseListComponent<Task> {
     dataFetchFn: () => of([]),
     rowModelMode: 'infinite',
     pageSize: INFINITE_PAGE_SIZE_DEFAULT,
+    infiniteGridHeight: '80vh',
     infiniteBlockFetcher: createPagedInfiniteFetcher(this.taskService, {
-      params: [{key: 'typeId', value: config.tasksTypes.template}]
+      params: [{ key: 'typeId', value: magic.taskTemplateTypeId }],
     }),
     progressiveLocalFilter: false,
     backendSearch: true,
     defaultColumnSorting: ['name'],
     gridOptions: {
-      globalSearch: true,
       discardChangesButton: false,
       redoButton: false,
       undoButton: false,
@@ -81,16 +81,21 @@ export class TasksTemplateComponent extends BaseListComponent<Task> {
   override async postFetchData(): Promise<void> {
     this.entityListConfig.columnDefs = [
       this.utils.getSelCheckboxColumnDef(),
-      this.utils.getRouterLinkColumnDef('common.form.name', 'name', `taskTemplate/:id/${config.tasksTypes.template}`, { id: 'id' }),
+      this.utils.getRouterLinkColumnDef(
+        'common.form.name',
+        'name',
+        `taskTemplate/:id/${magic.taskTemplateTypeId}`,
+        { id: 'id' },
+      ),
     ];
   }
 
   override async newData() {
-    await this.router.navigate(['taskTemplate', -1, config.tasksTypes.template]);
+    await this.router.navigate(['taskTemplate', -1, magic.taskTemplateTypeId]);
   }
 
   override async duplicateItem(id: number) {
-    await this.router.navigate(['taskTemplate', -1, config.tasksTypes.template, id]);
+    await this.router.navigate(['taskTemplate', -1, magic.taskTemplateTypeId, id]);
   }
 
   override dataUpdateFn = (data: Task) => firstValueFrom(this.taskService.update(data));

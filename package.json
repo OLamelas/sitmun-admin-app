@@ -1,12 +1,13 @@
 {
   "name": "admin-app",
-  "version": "1.2.8-SNAPSHOT",
+  "version": "1.2.8",
   "engines": {
     "node": ">=20.19.0"
   },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:e2e": "ng serve --configuration=e2e",
     "build": "ng build",
     "test": "jest",
     "test:watch": "jest --watch",

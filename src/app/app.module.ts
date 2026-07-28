@@ -30,30 +30,32 @@ import {ErrorPageComponent} from "@app/components/error-page/error-page.componen
 import {DefaultLanguageChangeDialogComponent} from '@app/components/language/default-language-change-dialog/default-language-change-dialog.component';
 import {LanguageFormComponent} from '@app/components/language/language-form/language-form.component';
 import {LanguageComponent} from '@app/components/language/language.component';
-import {LiteralTranslationsComponent} from '@app/components/literal-translations/literal-translations/literal-translations.component';
 import {LayersFormComponent} from '@app/components/layers/layers-form/layers-form.component';
 import {LayersComponent} from '@app/components/layers/layers.component';
 import {
   LayersPermitsFormComponent
 } from '@app/components/layers-permits/layers-permits-form/layers-permits-form.component';
 import {LayersPermitsComponent} from '@app/components/layers-permits/layers-permits.component';
+import {LiteralTranslationCreateDialogComponent} from '@app/components/literal-translations/literal-translation-create-dialog/literal-translation-create-dialog.component';
+import {LiteralTranslationCsvDialogComponent} from '@app/components/literal-translations/literal-translation-csv-dialog/literal-translation-csv-dialog.component';
+import {LiteralTranslationsComponent} from '@app/components/literal-translations/literal-translations/literal-translations.component';
 import {LoginComponent} from '@app/components/login/login.component';
 import {RoleFormComponent} from '@app/components/role/role-form/role-form.component';
 import {RoleComponent} from '@app/components/role/role.component';
 import {ServiceFormComponent} from '@app/components/service/service-form/service-form.component';
-import {UrlInputDirective} from '@app/components/service/service-form/url-input.directive';
 import {ServiceComponent} from '@app/components/service/service.component';
 import {AuthenticatedLayoutComponent} from '@app/components/shared/authenticated-layout/authenticated-layout.component';
 import {CardLeadComponent} from '@app/components/shared/card-lead/card-lead.component';
 import {EntityFormAlertsComponent} from '@app/components/shared/entity-form-alerts/entity-form-alerts.component';
 import {EntityListComponent} from '@app/components/shared/entity-list';
+import {ExternalUrlLinkComponent} from '@app/components/shared/external-url-link/external-url-link.component';
 import {FormToolbarComponent} from '@app/components/shared/form-toolbar/form-toolbar.component';
 import {NotificationComponent} from '@app/components/shared/notification/notification.component';
 import {RelationGridComponent} from '@app/components/shared/relation-grid/relation-grid.component';
 import {SideMenuComponent} from '@app/components/shared/side-menu/side-menu.component';
 import {ToolbarComponent} from '@app/components/shared/toolbar/toolbar.component';
 import {WarningsPanelComponent} from '@app/components/shared/warnings-panel/warnings-panel.component';
-import { SafeHtmlPreviewComponent } from '@app/components/shared/safe-html-preview/safe-html-preview.component';
+import {SafeHtmlPreviewComponent} from '@app/components/shared/safe-html-preview/safe-html-preview.component';
 import {TaskGroupFormComponent} from '@app/components/task-group/task-group-form/task-group-form.component';
 import {TaskGroupComponent} from '@app/components/task-group/task-group.component';
 import {TaskTypeFormComponent} from '@app/components/task-type/task-type-form/task-type-form.component';
@@ -66,20 +68,20 @@ import {TaskDocumentExportFormComponent} from '@app/components/tasks-document-ex
 import {TasksDocumentExportComponent} from '@app/components/tasks-document-export/tasks-document-export.component';
 import {TaskEditFormComponent} from '@app/components/tasks-edit/task-form/task-edit-form.component';
 import {TasksEditComponent} from '@app/components/tasks-edit/tasks-edit.component';
-import { TaskMapImageFormComponent } from '@app/components/tasks-map-image/task-form/task-map-image-form.component';
-import { TasksMapImageComponent } from '@app/components/tasks-map-image/tasks-map-image.component';
+import {TaskMapImageFormComponent} from '@app/components/tasks-map-image/task-form/task-map-image-form.component';
+import {TasksMapImageComponent} from '@app/components/tasks-map-image/tasks-map-image.component';
 import {TaskLocatorFormComponent} from '@app/components/tasks-locator/task-form/task-locator-form.component';
 import {TasksLocatorComponent} from '@app/components/tasks-locator/tasks-locator.component';
 import {TaskMoreInfoFormComponent} from "@app/components/tasks-more-info/task-form/task-more-info-form.component";
-import {TaskMoreInfoAdvancedFormComponent} from '@app/components/tasks-more-info-advanced/task-form/task-more-info-advanced-form.component';
 import {TasksMoreInfoComponent} from "@app/components/tasks-more-info/tasks-more-info.component";
-import { TaskTemplateFormComponent } from '@app/components/tasks-template/task-form/task-template-form.component';
-import { TasksTemplateComponent } from '@app/components/tasks-template/tasks-template.component';
-import { QueryExecutionCardComponent } from '@app/components/tasks-template/query-execution-card/query-execution-card.component';
-import { TemplateEditorComponent } from '@app/components/tasks-template/template-editor/template-editor.component';
+import {TaskMoreInfoAdvancedFormComponent} from '@app/components/tasks-more-info-advanced/task-form/task-more-info-advanced-form.component';
 import {TasksMoreInfoAdvancedComponent} from '@app/components/tasks-more-info-advanced/tasks-more-info-advanced.component';
 import {TaskQueryFormComponent} from "@app/components/tasks-query/task-form/task-query-form.component";
 import {TasksQueryComponent} from "@app/components/tasks-query/tasks-query.component";
+import { QueryExecutionCardComponent } from '@app/components/tasks-template/query-execution-card/query-execution-card.component';
+import { TaskTemplateFormComponent } from '@app/components/tasks-template/task-form/task-template-form.component';
+import { TasksTemplateComponent } from '@app/components/tasks-template/tasks-template.component';
+import { TemplateEditorComponent } from '@app/components/tasks-template/template-editor/template-editor.component';
 import {TerritoryFormComponent} from '@app/components/territory/territory-form/territory-form.component';
 import {TerritoryComponent} from '@app/components/territory/territory.component';
 import {TerritoryTypeFormComponent} from '@app/components/territory-type/territory-type-form/territory-type-form.component';
@@ -98,6 +100,7 @@ import {
   ApplicationBackgroundService,
   ApplicationParameterService,
   ApplicationService,
+  ApplicationTreeService,
   BackgroundService,
   CapabilitiesService,
   CartographyAvailabilityService,
@@ -150,11 +153,13 @@ import {AppStateService} from './services/app-state.service';
 import {IconsService, initializeIcons} from './services/icons.service';
 import {LoggerService} from './services/logger.service';
 import {ServicesModule} from './services/services.module';
+import {resolveUiLanguage} from './services/ui-language.resolver';
 
 
 // APP_INITIALIZER factory functions
 export function initializeLanguages(
   languageService: LanguageService,
+  configurationService: ConfigurationParametersService,
   translateService: TranslateService,
   loggerService: LoggerService,
   appStateService: AppStateService,
@@ -162,32 +167,37 @@ export function initializeLanguages(
   appConfigService: AppConfigService
 ) {
   return async () => {
-    // Initialize static logger services
-
     messagesInterceptorState.disable();
     DataTablesRegistry.setLoggerService(loggerService);
     Resource.setLoggerService(loggerService);
 
     try {
-      const languages = await firstValueFrom(languageService.fetchAllItems());
+      if (!config.defaultLang) {
+        try {
+          const configParams = await firstValueFrom(configurationService.fetchAllItems());
+          const defaultLangParam = configParams.find(element => element.name === 'language.default');
+          if (defaultLangParam?.value) {
+            config.defaultLang = defaultLangParam.value;
+          }
+        } catch {
+          // configuration may load in a parallel initializer; fall back below
+        }
+      }
 
-      // Store in config
-      config.languagesToUse = languages;
-      config.languagesObjects = {};
-      languages.forEach(language => {
-        config.languagesObjects[language.shortname] = language;
+      const languages = languageService.applyLanguagesToUse(
+        await firstValueFrom(languageService.fetchAllItems())
+      );
+
+      const chosen = resolveUiLanguage({
+        stored: localStorage.getItem('lang'),
+        backendDefault: config.defaultLang,
+        availableShortnames: languages.map(l => l.shortname),
+        staticFallback: appConfigService.getDefaultLanguageFallback() || 'en',
       });
-
-      // Keep local cache aligned with backend-defined language order
-      localStorage.setItem('languages', JSON.stringify(languages));
-
-      // Set the default language (with appConfigService for fallback)
-      const defaultLang = getDefaultLanguage(languages, appConfigService);
-      translateService.setDefaultLang(defaultLang);
+      translateService.setDefaultLang(chosen);
       messagesInterceptorState.enable();
-      return await firstValueFrom(translateService.use(defaultLang));
+      return await firstValueFrom(translateService.use(chosen));
     } catch (error) {
-      // Create a proper error object for initialization errors
       const initError = {
         message: 'Failed to initialize languages',
         originalError: error,
@@ -197,9 +207,12 @@ export function initializeLanguages(
       appStateService.setInitializationError(initError, 'languages');
       messagesInterceptorState.enable();
 
-      const browserLang = translateService.getBrowserLang();
-      translateService.setDefaultLang(browserLang);
-      return await firstValueFrom(translateService.use(browserLang));
+      const fallback =
+        config.defaultLang ||
+        appConfigService.getDefaultLanguageFallback() ||
+        'en';
+      translateService.setDefaultLang(fallback);
+      return await firstValueFrom(translateService.use(fallback));
     }
   };
 }
@@ -215,6 +228,11 @@ export function initializeConfiguration(
     messagesInterceptorState.disable();
     try {
       const configParams = await firstValueFrom(configurationService.fetchAllItems());
+      const defaultLang = configParams.find(element => element.name === 'language.default');
+
+      if (defaultLang) {
+        config.defaultLang = defaultLang.value;
+      }
 
       loggerService.debug(`Configuration initialized: ${configParams.length} parameters loaded`);
       messagesInterceptorState.enable();
@@ -230,48 +248,6 @@ export function initializeConfiguration(
       messagesInterceptorState.enable();
     }
   };
-}
-
-// Helper function to get default language
-function getDefaultLanguage(languages: any[], appConfigService?: AppConfigService): string {
-  const configuredDefault = languages.find(lang => lang.defaultLanguage === true)?.shortname;
-  if (configuredDefault) {
-    config.defaultLang = configuredDefault;
-  }
-
-  // Check localStorage first
-  const storedLang = localStorage.getItem('lang');
-  if (storedLang && languages.find(lang => lang.shortname === storedLang)) {
-    return storedLang;
-  }
-
-  // Check browser language
-  const navigatorLang = window.navigator.language.toLowerCase();
-  const baseLang = navigatorLang.replace(/-[A-Z]+$/, '');
-  const browserLang = languages.find(lang =>
-    lang.shortname.toLowerCase() === baseLang
-  );
-
-  if (browserLang) {
-    return browserLang.shortname;
-  }
-
-  if (configuredDefault) {
-    return configuredDefault;
-  }
-
-  // Fallback to backend config default
-  if (config.defaultLang) {
-    return config.defaultLang;
-  }
-
-  // Fallback to app-config.json default language (predictable fallback)
-  if (appConfigService) {
-    return appConfigService.getDefaultLanguageFallback();
-  }
-
-  // Final fallback: first language or 'en'
-  return languages.length > 0 ? languages[0].shortname : 'en';
 }
 
 @NgModule({ declarations: [
@@ -298,17 +274,17 @@ function getDefaultLanguage(languages: any[], appConfigService?: AppConfigServic
         TaskMapImageFormComponent,
         TasksDocumentExportComponent,
         TaskDocumentExportFormComponent,
-        TaskMoreInfoFormComponent,
-        TaskMoreInfoAdvancedFormComponent,
-        TasksMoreInfoComponent,
-        TasksTemplateComponent,
-        TaskTemplateFormComponent,
-        QueryExecutionCardComponent,
-        TemplateEditorComponent,
-        SafeHtmlPreviewComponent,
-        TasksMoreInfoAdvancedComponent,
         TaskLocatorFormComponent,
         TasksLocatorComponent,
+        TaskMoreInfoFormComponent,
+	      TasksMoreInfoComponent,
+        TaskMoreInfoAdvancedFormComponent,
+        TasksMoreInfoAdvancedComponent,
+        TemplateEditorComponent,
+        QueryExecutionCardComponent,
+        TaskTemplateFormComponent,
+        TasksTemplateComponent,
+        SafeHtmlPreviewComponent,
         TasksQueryComponent,
         TaskQueryFormComponent,
         ConnectionFormComponent,
@@ -329,12 +305,12 @@ function getDefaultLanguage(languages: any[], appConfigService?: AppConfigServic
         LoginComponent,
         DashboardComponent,
         FormToolbarComponent,
+        ExternalUrlLinkComponent,
         SystemInfoMenuComponent,
         ErrorDetailsSidebarComponent,
         MissingTranslationsSidebarComponent,
         AboutDialogComponent,
         ConfigurationParametersDialogComponent,
-        UrlInputDirective,
         TaskEditFormComponent,
         TasksEditComponent,
         NotificationComponent,
@@ -369,13 +345,14 @@ function getDefaultLanguage(languages: any[], appConfigService?: AppConfigServic
         }),
         APP_ROUTING,
         BrowserAnimationsModule,
-        CoreModule,
-        LiteralTranslationsComponent,
         NgOptimizedImage,
         CardLeadComponent,
         EntityFormAlertsComponent,
         WarningsPanelComponent,
-        ImagePreviewComponent], providers: [
+        ImagePreviewComponent,
+        LiteralTranslationsComponent,
+        LiteralTranslationCreateDialogComponent,
+        LiteralTranslationCsvDialogComponent], providers: [
         { provide: LOCALE_ID, useValue: 'es-ES' },
         { provide: ErrorHandler, useClass: GlobalErrorHandler },
         { provide: 'ExternalConfigurationService', useClass: ExternalConfigurationService },
@@ -385,22 +362,23 @@ function getDefaultLanguage(languages: any[], appConfigService?: AppConfigServic
         provideAppInitializer(() => initializeAppConfig(inject(AppConfigService))()),
         provideAppInitializer(() => initializeIcons(inject(IconsService))()),
         provideAppInitializer(() =>
-            initializeLanguages(
-                inject(LanguageService),
-                inject(TranslateService),
-                inject(LoggerService),
-                inject(AppStateService),
-                inject(MessagesInterceptorStateService),
-                inject(AppConfigService)
-            )()
-        ),
-        provideAppInitializer(() =>
             initializeConfiguration(
                 inject(ConfigurationParametersService),
                 inject(TranslateService),
                 inject(LoggerService),
                 inject(AppStateService),
                 inject(MessagesInterceptorStateService)
+            )()
+        ),
+        provideAppInitializer(() =>
+            initializeLanguages(
+                inject(LanguageService),
+                inject(ConfigurationParametersService),
+                inject(TranslateService),
+                inject(LoggerService),
+                inject(AppStateService),
+                inject(MessagesInterceptorStateService),
+                inject(AppConfigService)
             )()
         ),
         AppConfigService,
@@ -437,6 +415,7 @@ function getDefaultLanguage(languages: any[], appConfigService?: AppConfigServic
         CartographyFilterService,
         TaskUIService,
         ApplicationBackgroundService,
+        ApplicationTreeService,
         TreeNodeService,
         UserPositionService,
         provideHttpClient(withInterceptorsFromDi())

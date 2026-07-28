@@ -106,9 +106,21 @@
 }
 
 .template-result-panel {
-  height: 360px;
+  padding: 0.75rem 1rem;
   border: 1px solid rgba(0, 0, 0, 0.12);
   background: #fff;
+}
+
+.template-result-panel .sitmun-template-placeholder {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-family: monospace;
+}
+
+.template-result-panel .sitmun-template-child-error {
+  color: #b00020;
 }
 
 .response-table {
