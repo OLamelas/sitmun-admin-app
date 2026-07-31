@@ -71,4 +71,16 @@ describe('SideMenuComponent', () => {
 
     expect(taskChildrenIds).toContain('tasksDocumentExport');
   });
+
+  it('includes the template task entry only once', async () => {
+    await fixture.whenStable();
+
+    const taskMenuGroup = component.menus.find((group: any[]) =>
+      group.some((item) => item.id === 'tasks')
+    );
+    const taskMenu = taskMenuGroup.find((item: any) => item.id === 'tasks');
+    const templateEntries = taskMenu.children.filter((item: any) => item.id === 'tasksTemplate');
+
+    expect(templateEntries).toHaveLength(1);
+  });
 });
