@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 
 import { TaskMapImageFormComponent } from './task-map-image-form.component';
 import { CartographyProjection, Service, TaskGroup, TaskType } from '@app/domain';
+import { LanguageService } from '@app/domain/translation/services/language.service';
 import { magic } from '@environments/constants';
 
 describe('TaskMapImageFormComponent', () => {
@@ -32,6 +33,14 @@ describe('TaskMapImageFormComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: ChangeDetectorRef, useValue: createSpyObj(['markForCheck']) },
+        {
+          provide: LanguageService,
+          useValue: {
+            applyLanguagesToUse: (languages: unknown[]) => languages,
+            fetchAllItems: () => of([]),
+            languagesToUse$: of([]),
+          },
+        },
       ],
     });
 
