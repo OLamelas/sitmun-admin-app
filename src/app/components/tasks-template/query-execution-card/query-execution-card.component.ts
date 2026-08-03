@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, QueryList, SimpleChanges, ViewChildren } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
@@ -39,6 +40,8 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   @Input() taskTypeLabelResolver: ((task: TaskProjection) => string) | null = null;
   @Input() nestingLevel = 0;
   @Input() templateRootTaskId: number | null = null;
+  /** Root Plantilla Parameter defaults; prefills nested child forms (parent overrides child saved default). */
+  @Input() inheritedParameterDefaults: Record<string, string> = {};
   @Input() language: string | null = null;
   @Input() ancestorTaskIds: number[] = [];
   @Output() executed = new EventEmitter<TemplateTaskExecutionEvent>();
@@ -50,6 +53,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   status: ExecutionStatus = 'PENDING';
   response: TemplateTaskExecutionResponse | null = null;
   errorMessage: string | null = null;
+  trustedRenderedTemplateHtml: SafeHtml = '';
   renderableChildTasks: TemplateChildTaskLink[] = [];
   childAncestorTaskIds: number[] = [];
   childrenReady = false;
@@ -58,16 +62,20 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
 
   constructor(
     private readonly previewService: TaskTemplatePreviewService,
+    private readonly domSanitizer: DomSanitizer,
     private readonly cdr: ChangeDetectorRef,
     private readonly translateService: TranslateService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['task']?.currentValue) {
+    if (changes['task']?.currentValue || changes['inheritedParameterDefaults']) {
       this.parameterForm = this.createParameterForm();
-      this.status = 'PENDING';
-      this.response = null;
-      this.errorMessage = null;
+      if (changes['task']?.currentValue) {
+        this.status = 'PENDING';
+        this.response = null;
+        this.errorMessage = null;
+        this.trustedRenderedTemplateHtml = '';
+      }
     }
     this.childAncestorTaskIds = this.getChildAncestorTaskIds();
     this.renderableChildTasks = this.getRenderableChildTasks();
@@ -91,9 +99,6 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   }
 
   get parameterDefinitions(): Array<Record<string, unknown>> {
-    if (this.task?.typeId === magic.taskMapImageTypeId) {
-      return [];
-    }
     return TaskPropertiesContract.getParameters(this.task?.properties);
   }
 
@@ -255,6 +260,7 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
       );
 
       this.response = response;
+      this.trustedRenderedTemplateHtml = this.domSanitizer.bypassSecurityTrustHtml(this.renderedTemplateHtml || '');
       this.status = response.status === 'PENDING' ? 'PENDING' : 'COMPLETED';
       this.executed.emit({
         ...response,
@@ -354,6 +360,11 @@ export class QueryExecutionCardComponent implements OnChanges, OnDestroy {
   }
 
   private parameterInitialValue(parameter: Record<string, unknown>): string {
+    const controlName = this.parameterControlName(parameter);
+    const inherited = controlName ? this.inheritedParameterDefaults[controlName] : undefined;
+    if (typeof inherited === 'string' && inherited.trim()) {
+      return inherited;
+    }
     const value = parameter['value'];
     return typeof value === 'string' ? value : '';
   }

@@ -1,8 +1,9 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, QueryList, TemplateRef, ViewChild, ViewChildren } from '@angular/core';
+import { Component, ElementRef, NgZone, QueryList, TemplateRef, ViewChild, ViewChildren } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { TranslateService } from '@ngx-translate/core';
@@ -43,7 +44,9 @@ import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
 import { NotificationService } from '@app/services/notification.service';
+import { filterEnabledLanguages } from '@app/services/ui-language.resolver';
 import { UtilsService } from '@app/services/utils.service';
+import { compareNullableString } from '@app/utils/compare-nullable-string';
 import { config } from '@config';
 import { TEMPLATE_TASK_RELATION_TYPES, constants, magic } from '@environments/constants';
 import { environment } from '@environments/environment';
@@ -99,16 +102,30 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   protected taskTypeNameTranslated: string = null;
   protected linkedTasks: LinkedTemplateTask[] = [];
   protected linkableTasks: LinkableTemplateTask[] = [];
-  protected excludedAuthenticatedApiTasks = 0;
   protected nestingLimitWarning = '';
   protected taskLookup = new Map<number, TaskProjection>();
   protected templateChildTasks = new Map<number, TemplateChildTaskLink[]>();
   protected previewLanguages: Language[] = [];
   protected previewLanguageControl = new FormControl(config.defaultLang, { nonNullable: true });
   protected previewHtml = '';
+  protected trustedPreviewHtml: SafeHtml = '';
   protected previewPlaceholders: string[] = [];
   protected previewError = '';
   protected previewDirty = true;
+  /** Details=0, Template=1, Sources=2 */
+  protected selectedTabIndex = 0;
+  private static readonly SPLIT_WIDTH_STORAGE_KEY = 'templateWorkspaceSplitWidth';
+  private static readonly MIN_SPLIT_WIDTH = 20;
+  private static readonly MAX_SPLIT_WIDTH = 80;
+
+  /** Preview pane open beside the editor (toolbar toggle). Closed by default on narrow viewports. */
+  protected previewOpen = false;
+  /** Editor pane collapsed (drag sash past left min); Preview stays open full-width. */
+  protected editorHidden = false;
+  /** Editor pane width percent in split layout (tree-editor sash parity). */
+  protected splitPanelWidth = TaskTemplateFormComponent.readStoredSplitWidth();
+  protected isSplitResizing = false;
+  private splitResizeCleanup: (() => void) | null = null;
   protected systemVariables = new Map<string, string>();
   protected pendingReferenceAliasChange: PendingReferenceAliasChange | null = null;
   protected templateValidation: TemplateValidationResult = { valid: true, errors: [] };
@@ -126,6 +143,9 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   @ViewChild('newParameterDialog', { static: true })
   private readonly newParameterDialog: TemplateRef<any>;
 
+  @ViewChild('editorPanel')
+  private readonly editorPanel?: ElementRef<HTMLElement>;
+
   @ViewChildren(QueryExecutionCardComponent)
   private readonly queryExecutionCards?: QueryList<QueryExecutionCardComponent>;
 
@@ -142,6 +162,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     router: Router,
     loadingService: LoadingOverlayService,
     messagesInterceptorState: MessagesInterceptorStateService,
+    private readonly ngZone: NgZone,
     protected taskService: TaskService,
     protected taskTypeService: TaskTypeService,
     protected taskGroupService: TaskGroupService,
@@ -153,6 +174,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     protected notificationService: NotificationService,
     protected utils: UtilsService,
     protected http: HttpClient,
+    protected domSanitizer: DomSanitizer,
   ) {
     super(
       dialog,
@@ -178,6 +200,13 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     const typeId = magic.taskTemplateTypeId;
     this.initTranslations('Task', ['name']);
     await this.initCodeLists(['taskEntity.jsonParamType']);
+    try {
+      await firstValueFrom(this.languageService.refreshLanguagesToUse());
+    } catch {
+      // Keep constructor snapshot if reload fails.
+    }
+    this.previewLanguages = this.resolvePreviewLanguages();
+    this.initializePreviewLanguage();
     this.dataTables.register(this.rolesTable).register(this.availabilitiesTable).register(this.parametersTable);
 
     try {
@@ -204,22 +233,15 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     this.initializePreviewLanguage();
 
     const queryTaskOptions = { params: [{ key: 'type.id', value: magic.taskQueryTypeId }] };
-    const mapImageTaskOptions = { params: [{ key: 'type.id', value: magic.taskMapImageTypeId }] };
     const templateTaskOptions = { params: [{ key: 'type.id', value: magic.taskTemplateTypeId }] };
-    const [queryTasks, mapImageTasks, templateTasks] = await Promise.all([
+    const [queryTasks, templateTasks] = await Promise.all([
       firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, queryTaskOptions, undefined, 'tasks')),
-      firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, mapImageTaskOptions, undefined, 'tasks')),
       firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, templateTaskOptions, undefined, 'tasks')),
     ]);
 
-    [...queryTasks, ...mapImageTasks, ...templateTasks].forEach((task) => this.taskLookup.set(task.id, task));
+    [...queryTasks, ...templateTasks].forEach((task) => this.taskLookup.set(task.id, task));
 
     const validQueryTasks = this.filterLinkableQueryTasks(queryTasks);
-    const validMapImageTasks = mapImageTasks.map((task) => this.toLinkableTask(
-      task,
-      constants.taskRelationType.templateTask,
-      this.translateService.instant('entity.task.mapImage.label'),
-    ));
     const nestedTemplates = templateTasks
       .filter((task) => task.id !== this.entityID && task.id !== this.duplicateID)
       .map((task) => this.toLinkableTask(
@@ -230,9 +252,8 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
 
     this.linkableTasks = [
       ...validQueryTasks,
-      ...validMapImageTasks,
       ...nestedTemplates,
-    ].sort((left, right) => left.name.localeCompare(right.name));
+    ].sort((left, right) => compareNullableString(left.name, right.name));
 
     await this.loadTemplateChildTasks(templateTasks);
   }
@@ -250,7 +271,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     return firstValueFrom(
       this.taskService.fetchProjectionById(TaskProjection, this.duplicateID).pipe(
         map((copy: TaskProjection) => {
-          copy.name = this.translateService.instant('copy_') + copy.name;
+          copy.name = this.translateService.instant('common.copyPrefix') + copy.name;
           return copy;
         }),
       ),
@@ -275,10 +296,6 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
       }),
     });
 
-    if (TaskPropertiesContract.hasDeprecatedPdfRegionHeights(this.entityToEdit?.properties)) {
-      this.entityForm.markAsDirty();
-    }
-
     this.filteredLinkableTasks = this.linkTaskSearchControl.valueChanges.pipe(
       startWith(this.linkTaskSearchControl.value),
       map((value) => {
@@ -292,6 +309,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     this.previewError = '';
     this.previewDirty = true;
     this.previewExecutionContext = {};
+    this.selectedTabIndex = 0;
 
     this.entityForm
       .get('templateHtml')
@@ -534,21 +552,233 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     if (task.typeId === magic.taskTemplateTypeId) {
       return this.translateService.instant('entity.task.template.label');
     }
-    if (task.typeId === magic.taskMapImageTypeId) {
-      return this.translateService.instant('entity.task.mapImage.label');
-    }
 
     const scope = String(TaskPropertiesContract.getScope(task.properties) || '');
+    if (!scope) {
+      return this.translateService.instant('entity.task.query.label');
+    }
     return this.getScopeLabel(scope);
+  }
+
+  /** Saved Parameter defaults from this Plantilla; prefills nested Sources forms. */
+  protected get rootParameterDefaults(): Record<string, string> {
+    const defaults: Record<string, string> = {};
+    const parameters = TaskPropertiesContract.getParameters(this.entityToEdit?.properties);
+    for (const parameter of parameters) {
+      const name = String(parameter['variable'] ?? parameter['name'] ?? parameter['label'] ?? '');
+      const value = parameter['value'];
+      if (name && typeof value === 'string' && value.trim()) {
+        defaults[name] = value;
+      }
+    }
+    return defaults;
+  }
+
+  protected get referenceAliases(): string[] {
+    return this.linkedTasks.map((task) => task.referenceAlias).filter((alias) => !!alias);
+  }
+
+  override ngOnDestroy(): void {
+    this.splitResizeCleanup?.();
+    this.splitResizeCleanup = null;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    super.ngOnDestroy();
+  }
+
+  protected setPreviewOpen(open: boolean): void {
+    this.previewOpen = open;
+    if (!open) {
+      this.editorHidden = false;
+    }
+  }
+
+  protected setEditorHidden(hidden: boolean): void {
+    this.editorHidden = hidden;
+    if (!hidden) {
+      const editorPanel = this.editorPanel?.nativeElement;
+      if (editorPanel) {
+        editorPanel.style.width = '';
+      }
+    }
+  }
+
+  protected onSplitSashMouseDown(event: MouseEvent): void {
+    if (!this.previewOpen || this.editorHidden || this.splitResizeCleanup) {
+      return;
+    }
+
+    event.preventDefault();
+    const sash = event.currentTarget as HTMLElement | null;
+    const workspace = sash?.closest('.template-workspace') as HTMLElement | null;
+    const editorPanel = this.editorPanel?.nativeElement ?? null;
+    if (!workspace || !editorPanel) {
+      return;
+    }
+
+    this.isSplitResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    let nextWidth = this.splitPanelWidth;
+
+    // TipTap/preview reflow is expensive; drive width on the DOM outside Angular CD.
+    this.ngZone.runOutsideAngular(() => {
+      let closePreview = false;
+      let hideEditor = false;
+
+      const endResize = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        this.splitResizeCleanup = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        this.ngZone.run(() => {
+          this.isSplitResizing = false;
+          if (closePreview) {
+            editorPanel.style.width = '';
+            this.editorHidden = false;
+            this.previewOpen = false;
+            return;
+          }
+          if (hideEditor) {
+            editorPanel.style.width = '';
+            this.editorHidden = true;
+            return;
+          }
+          this.splitPanelWidth = nextWidth;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(
+              TaskTemplateFormComponent.SPLIT_WIDTH_STORAGE_KEY,
+              String(nextWidth),
+            );
+          }
+        });
+      };
+
+      const onMove = (moveEvent: MouseEvent) => {
+        const bounds = workspace.getBoundingClientRect();
+        if (bounds.width <= 0) {
+          return;
+        }
+        const rawWidth = ((moveEvent.clientX - bounds.left) / bounds.width) * 100;
+        if (rawWidth > TaskTemplateFormComponent.MAX_SPLIT_WIDTH) {
+          // Dragging past the right limit closes Preview (same as the X control).
+          closePreview = true;
+          endResize();
+          return;
+        }
+        if (rawWidth < TaskTemplateFormComponent.MIN_SPLIT_WIDTH) {
+          // Dragging past the left limit hides the editor (Preview full-width).
+          hideEditor = true;
+          endResize();
+          return;
+        }
+        nextWidth = rawWidth;
+        editorPanel.style.width = `${nextWidth}%`;
+      };
+
+      const onUp = () => {
+        endResize();
+      };
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      this.splitResizeCleanup = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+    });
+  }
+
+  /** Left-edge sash when the editor is hidden: drag right to restore the editor. */
+  protected onRestoreEditorSashMouseDown(event: MouseEvent): void {
+    if (!this.previewOpen || !this.editorHidden || this.splitResizeCleanup) {
+      return;
+    }
+
+    event.preventDefault();
+    const sash = event.currentTarget as HTMLElement | null;
+    const workspace = sash?.closest('.template-workspace') as HTMLElement | null;
+    if (!workspace) {
+      return;
+    }
+
+    this.isSplitResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    this.ngZone.runOutsideAngular(() => {
+      const onMove = (moveEvent: MouseEvent) => {
+        const bounds = workspace.getBoundingClientRect();
+        if (bounds.width <= 0) {
+          return;
+        }
+        const rawWidth = ((moveEvent.clientX - bounds.left) / bounds.width) * 100;
+        if (rawWidth < TaskTemplateFormComponent.MIN_SPLIT_WIDTH) {
+          return;
+        }
+        const nextWidth = Math.min(TaskTemplateFormComponent.MAX_SPLIT_WIDTH, rawWidth);
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        this.splitResizeCleanup = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        this.ngZone.run(() => {
+          this.isSplitResizing = false;
+          this.splitPanelWidth = nextWidth;
+          this.editorHidden = false;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(
+              TaskTemplateFormComponent.SPLIT_WIDTH_STORAGE_KEY,
+              String(nextWidth),
+            );
+          }
+        });
+      };
+
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        this.splitResizeCleanup = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        this.ngZone.run(() => {
+          this.isSplitResizing = false;
+        });
+      };
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      this.splitResizeCleanup = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+    });
+  }
+
+  private static readStoredSplitWidth(): number {
+    if (typeof localStorage === 'undefined') {
+      return 55;
+    }
+    const saved = Number.parseFloat(localStorage.getItem(TaskTemplateFormComponent.SPLIT_WIDTH_STORAGE_KEY) ?? '');
+    if (!Number.isFinite(saved)) {
+      return 55;
+    }
+    return Math.max(
+      TaskTemplateFormComponent.MIN_SPLIT_WIDTH,
+      Math.min(TaskTemplateFormComponent.MAX_SPLIT_WIDTH, saved),
+    );
   }
 
   protected onPlaceholderSelected(placeholder: string) {
     this.appendPlaceholderToTemplate(placeholder);
+    this.selectedTabIndex = 1;
   }
 
   protected getSystemVariablesHelp(): string {
     return Array.from(this.systemVariables.keys())
-      .sort((left, right) => left.localeCompare(right))
+      .sort((left, right) => compareNullableString(left, right))
       .map((key) => `{{#${key}}}`)
       .join(', ');
   }
@@ -614,12 +844,14 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     ).subscribe({
       next: (response) => {
         this.previewHtml = response.html;
+        this.trustedPreviewHtml = this.domSanitizer.bypassSecurityTrustHtml(this.previewHtml || '');
         this.previewPlaceholders = response.placeholders;
         this.previewError = '';
         this.previewDirty = false;
       },
       error: (error) => {
         this.previewHtml = '';
+        this.trustedPreviewHtml = this.domSanitizer.bypassSecurityTrustHtml('');
         this.previewPlaceholders = [];
         this.previewError = this.resolvePreviewError(error);
         this.previewDirty = false;
@@ -630,34 +862,30 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   private createObject(id: number | null = null): Task {
     const safeToEdit = TaskProjection.fromObject(this.entityToEdit);
     const formValues = this.entityForm.getRawValue();
-    const properties = TaskPropertiesContract.withoutDeprecatedPdfRegionHeights(
-      TaskPropertiesBuilder.from(this.entityToEdit?.properties)
-        .withTemplateHtml(formValues.templateHtml || null)
-        .build(),
-    );
-    const templateProperties = {
-      ...properties,
+    const properties = {
+      ...TaskPropertiesBuilder.from(this.entityToEdit?.properties)
+      .withTemplateHtml(formValues.templateHtml || null)
+      .build(),
       childTaskOrderIds: this.linkedTasks.map((linkedTask) => linkedTask.taskId),
     } as TemplateTaskProperties;
-    delete (templateProperties as Record<string, unknown>).previewContext;
+    delete (properties as Record<string, unknown>).previewContext;
 
     return Task.fromObject(
       Object.assign(safeToEdit, formValues, {
         id,
-        properties: templateProperties,
+        properties,
       }),
     );
   }
 
   private filterLinkableQueryTasks(tasks: TaskProjection[]): LinkableTemplateTask[] {
-    this.excludedAuthenticatedApiTasks = 0;
     return tasks.flatMap((task) => {
       if (task.typeId !== magic.taskQueryTypeId) {
         return [];
       }
 
       const scope = String(TaskPropertiesContract.getScope(task.properties) || '');
-      if (!['sql-query', 'web-api-query', 'web-api-query-no-proxy', 'URL', 'resource', 'external-link'].includes(scope)) {
+      if (!['sql-query', 'web-api-query', 'web-api-query-no-proxy', 'URL', 'resource', 'external-link', 'cartography-query'].includes(scope)) {
         return [];
       }
 
@@ -666,15 +894,19 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   }
 
   private getScopeLabel(scope: string): string {
+    if (!scope) {
+      return this.translateService.instant('entity.task.query.label');
+    }
     return this.translateService.instant(`entity.task.query.scope.${scope}`);
   }
 
   private resolvePreviewLanguages(): Language[] {
     const configuredLanguages = Array.isArray(config.languagesToUse) ? config.languagesToUse : [];
-    return configuredLanguages
-      .filter((language): language is Language => !!language?.shortname)
+    return filterEnabledLanguages(
+      configuredLanguages.filter((language): language is Language => !!language?.shortname),
+    )
       .slice()
-      .sort((left, right) => left.name.localeCompare(right.name));
+      .sort((left, right) => compareNullableString(left.name, right.name));
   }
 
   private initializePreviewLanguage(): void {
@@ -763,13 +995,10 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
 
     const linkedTasks = await Promise.all(templateRelations.map(async (relation) => {
       const relatedTask = await this.fetchRelatedTask(relation);
-      const relatedTaskTypeId = (relatedTask as TaskProjection | undefined)?.typeId
-        ?? ((relatedTask as Task | undefined)?.type as TaskType | undefined)?.id;
-      const typeLabel = relation.relationType === constants.taskRelationType.templateNested
-        ? this.translateService.instant('entity.task.template.label')
-        : relatedTaskTypeId === magic.taskMapImageTypeId
-          ? this.translateService.instant('entity.task.mapImage.label')
-          : this.getScopeLabel(String(TaskPropertiesContract.getScope(relatedTask.properties) || ''));
+      const relatedProjection =
+        this.taskLookup.get(relatedTask.id)
+        || TaskProjection.fromObject(relatedTask as unknown as TaskProjection);
+      const typeLabel = this.getTaskTypeLabel(relatedProjection);
 
       return {
         relationId: relation.id ?? null,

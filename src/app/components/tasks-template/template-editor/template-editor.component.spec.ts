@@ -1,13 +1,18 @@
 import { Editor } from '@tiptap/core';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import TableRow from '@tiptap/extension-table-row';
-import { TextSelection } from '@tiptap/pm/state';
-import StarterKit from '@tiptap/starter-kit';
 
-import { HtmlAttributesExtension } from './html-attributes.extension';
-import { LayoutPreservingTable } from './layout-preserving-table.extension';
-import { normalizeEditorColorValue, normalizeHandlebarsMarkup, protectStructuralHandlebarsBlocks, protectTableHandlebarsBlocks, resolveSelectedPdfRegionNode, TemplateEditorComponent, updateHtmlClass } from './template-editor.component';
+import { handlebarsSystemVariableHtmlAttribute } from './handlebars-system-variable.extension';
+import { createTemplateEditorExtensions } from './template-editor-extensions';
+import {
+  editorHtmlHasUnprotectedMustaches,
+  normalizeEditorColorValue,
+  normalizeHandlebarsMarkup,
+  protectHandlebarsExpressions,
+  protectStructuralHandlebarsBlocks,
+  protectSystemVariableMustaches,
+  protectTableHandlebarsBlocks,
+  protectTemplateEditorHtml,
+  TemplateEditorComponent,
+} from './template-editor.component';
 import { TemplateHtmlValidatorService } from './template-html-validator.service';
 
 const createSpyObj = (methods: string[]): Record<string, jest.Mock> =>
@@ -43,121 +48,6 @@ describe('TemplateEditorComponent', () => {
     expect(normalizeEditorColorValue('#0f8', '#000000')).toBe('#00ff88');
   });
 
-  it('should update reserved classes without changing custom classes', () => {
-    expect(updateHtmlClass('custom sitmun-pdf-footer', 'sitmun-pdf-header', ['sitmun-pdf-header', 'sitmun-pdf-footer']))
-      .toBe('custom sitmun-pdf-header');
-    expect(updateHtmlClass('custom sitmun-pdf-header', null, ['sitmun-pdf-header'])).toBe('custom');
-    expect(updateHtmlClass(
-      'custom sitmun-pdf-header',
-      'sitmun-pdf-header-full-bleed',
-      ['sitmun-pdf-header', 'sitmun-pdf-header-full-bleed'],
-    )).toBe('custom sitmun-pdf-header-full-bleed');
-  });
-
-  it('should resolve a marked nested block before its table ancestors', () => {
-    const editor = new Editor({
-      extensions: [StarterKit, LayoutPreservingTable, TableRow, TableHeader, TableCell, HtmlAttributesExtension],
-      content: '<table><tbody><tr><td><p class="sitmun-pdf-header custom">Header</p></td></tr></tbody></table>',
-    });
-    let markedPosition = -1;
-    editor.state.doc.descendants((node, position) => {
-      if (String(node.attrs['class'] || '').includes('sitmun-pdf-header')) {
-        markedPosition = position;
-      }
-    });
-
-    const selected = resolveSelectedPdfRegionNode(
-      TextSelection.create(editor.state.doc, markedPosition + 1),
-    );
-
-    expect(selected?.pos).toBe(markedPosition);
-    expect(selected?.node.attrs['class']).toContain('sitmun-pdf-header');
-    editor.destroy();
-  });
-
-  it('should replace an existing header variant through the Tiptap transaction', () => {
-    const editor = new Editor({
-      extensions: [StarterKit, HtmlAttributesExtension],
-      content: '<p class="sitmun-pdf-header custom">First</p><p>Second</p>',
-    });
-    (component as any).editor = editor;
-    component.componentFocusedWithin = true;
-    let secondParagraphPosition = -1;
-    editor.state.doc.descendants((node, position) => {
-      if (node.type.name === 'paragraph' && node.textContent === 'Second') {
-        secondParagraphPosition = position;
-      }
-    });
-    editor.commands.setNodeSelection(secondParagraphPosition);
-
-    component.togglePdfFullBleedHeader();
-
-    const document = new DOMParser().parseFromString(editor.getHTML(), 'text/html');
-    expect(document.querySelectorAll('.sitmun-pdf-header')).toHaveLength(0);
-    expect(document.querySelectorAll('.sitmun-pdf-header-full-bleed')).toHaveLength(1);
-    expect(document.querySelector('.sitmun-pdf-header-full-bleed')?.textContent).toBe('Second');
-    expect(document.querySelector('.custom')?.textContent).toBe('First');
-    editor.destroy();
-    (component as any).editor = null;
-  });
-
-  it('should preserve table IDs and authored colgroup metadata', () => {
-    const editor = new Editor({
-      extensions: [StarterKit, LayoutPreservingTable, TableRow, TableHeader, TableCell, HtmlAttributesExtension],
-      content: '<table id="layout" style="width: 768px"><colgroup id="columns" class="custom-cols">'
-        + '<col id="left-column" style="width: 100px"><col style="width: 668px"></colgroup>'
-        + '<tbody><tr><td>A</td><td>B</td></tr></tbody></table>',
-    });
-
-    const document = new DOMParser().parseFromString(editor.getHTML(), 'text/html');
-    const table = document.querySelector('table');
-    const colgroup = document.querySelector('colgroup');
-
-    expect(table?.id).toBe('layout');
-    expect(table?.getAttribute('style')).toContain('width: 768px');
-    expect(colgroup?.id).toBe('columns');
-    expect(colgroup?.classList.contains('custom-cols')).toBe(true);
-    expect(colgroup?.querySelectorAll('col')).toHaveLength(2);
-    expect(colgroup?.querySelector('col')?.id).toBe('left-column');
-    expect(colgroup?.querySelector('col')?.getAttribute('style')).toContain('width: 100px');
-
-    let firstCellParagraphPosition = -1;
-    editor.state.doc.descendants((node, position) => {
-      if (firstCellParagraphPosition < 0 && node.type.name === 'paragraph') {
-        firstCellParagraphPosition = position;
-      }
-    });
-    editor.commands.setTextSelection(firstCellParagraphPosition + 1);
-    expect(editor.commands.addColumnAfter()).toBe(true);
-    const expandedDocument = new DOMParser().parseFromString(editor.getHTML(), 'text/html');
-    expect(expandedDocument.querySelectorAll('colgroup col')).toHaveLength(3);
-    expect(expandedDocument.querySelector('#left-column')).toBeNull();
-    expect(editor.commands.deleteColumn()).toBe(true);
-    const reducedDocument = new DOMParser().parseFromString(editor.getHTML(), 'text/html');
-    expect(reducedDocument.querySelectorAll('colgroup col')).toHaveLength(2);
-    editor.destroy();
-  });
-
-  it.each([
-    ['bulletList', '<ul><li><p>Item</p></li></ul>'],
-    ['orderedList', '<ol><li><p>Item</p></li></ol>'],
-  ])('should select the %s container from a cursor inside its paragraph', (expectedType, content) => {
-    const editor = new Editor({ extensions: [StarterKit, HtmlAttributesExtension], content });
-    let paragraphPosition = -1;
-    editor.state.doc.descendants((node, position) => {
-      if (node.type.name === 'paragraph') {
-        paragraphPosition = position;
-      }
-    });
-
-    const selected = resolveSelectedPdfRegionNode(
-      TextSelection.create(editor.state.doc, paragraphPosition + 1),
-    );
-
-    expect(selected?.node.type.name).toBe(expectedType);
-    editor.destroy();
-  });
-
   it('should protect structural Handlebars blocks inside tables', () => {
     const protectedHtml = protectTableHandlebarsBlocks('<table><tbody><tr><td>A</td></tr>{{#each AllHits}}<tr><td>{{this.Player}}</td></tr>{{/each}}</tbody></table>');
 
@@ -173,10 +63,89 @@ describe('TemplateEditorComponent', () => {
     expect(protectedHtml).toContain('<p>{{this.Player}}</p>');
   });
 
+  it('detects unprotected mustaches in visual editor HTML', () => {
+    expect(editorHtmlHasUnprotectedMustaches('<p>{{#APP_NAME}}</p>')).toBe(true);
+    expect(
+      editorHtmlHasUnprotectedMustaches(
+        '<p><span data-sitmun-handlebars-sysvar="%7B%7B%23APP_NAME%7D%7D" class="sitmun-handlebars-system-variable-node">{{#APP_NAME}}</span></p>',
+      ),
+    ).toBe(false);
+    expect(
+      editorHtmlHasUnprotectedMustaches(
+        '<p><span data-sitmun-handlebars-expr="%7B%7Bname%7D%7D">{{name}}</span></p>',
+      ),
+    ).toBe(false);
+  });
+
+  it('should chip system variables separately from structural blocks', () => {
+    const protectedHtml = protectTemplateEditorHtml(
+      '<p>{{#APP_NAME}}</p>{{#each AllHits}}<p>{{name}}</p>{{/each}}',
+    );
+
+    expect(protectedHtml).toContain('sitmun-handlebars-system-variable-node');
+    expect(protectedHtml).toContain(`${handlebarsSystemVariableHtmlAttribute}=`);
+    expect(protectedHtml).toContain('data-sitmun-handlebars-block=');
+    expect(protectedHtml).not.toMatch(/data-sitmun-handlebars-block="[^"]*%23APP_NAME/);
+    expect(protectSystemVariableMustaches('{{#USER_ID}}')).toContain(`${handlebarsSystemVariableHtmlAttribute}=`);
+  });
+
   it('should switch to html mode without editor instance', () => {
     component.setEditorMode('html');
 
     expect(component.editorMode).toBe('html');
+  });
+
+  it('should emit preview open state when toggled', () => {
+    const emitted: boolean[] = [];
+    component.previewOpen = false;
+    component.previewOpenChange.subscribe((value) => emitted.push(value));
+
+    component.togglePreview();
+    component.previewOpen = true;
+    component.togglePreview();
+
+    expect(emitted).toEqual([true, false]);
+  });
+
+  it('should delete the table when deleting the last row', () => {
+    const deleteRow = jest.fn();
+    const deleteTable = jest.fn().mockReturnValue(true);
+    (component as any).editor = {
+      chain: () => ({
+        focus: () => ({
+          deleteRow: () => ({ run: deleteRow }),
+        }),
+      }),
+      commands: { deleteTable },
+    };
+    jest.spyOn(component, 'isTableContextVisible').mockReturnValue(true);
+    jest.spyOn(component as any, 'getCurrentTableInfo').mockReturnValue({ rowCount: 1, columnCount: 2 });
+    jest.spyOn(component as any, 'getCurrentTablePosition').mockReturnValue(null);
+    jest.spyOn(component as any, 'syncSelectionState').mockImplementation(() => undefined);
+
+    component.deleteRow();
+
+    expect(deleteTable).toHaveBeenCalled();
+    expect(deleteRow).not.toHaveBeenCalled();
+  });
+
+  it('should delete a column when more than one remains', () => {
+    const deleteColumnRun = jest.fn();
+    (component as any).editor = {
+      chain: () => ({
+        focus: () => ({
+          deleteColumn: () => ({ run: deleteColumnRun }),
+        }),
+      }),
+      commands: { deleteTable: jest.fn() },
+    };
+    jest.spyOn(component, 'isTableContextVisible').mockReturnValue(true);
+    jest.spyOn(component as any, 'getCurrentTableInfo').mockReturnValue({ rowCount: 2, columnCount: 3 });
+    jest.spyOn(component as any, 'syncSelectionState').mockImplementation(() => undefined);
+
+    component.deleteColumn();
+
+    expect(deleteColumnRun).toHaveBeenCalled();
   });
 
   it('should emit valid html changes in source mode', () => {
@@ -209,5 +178,83 @@ describe('TemplateEditorComponent', () => {
 
     expect(component.htmlSource).toContain('\n');
     expect(emitted.at(-1)).toBe(component.htmlSource);
+  });
+
+  it('should wrap inline mustaches as expression chips without touching structural blocks', () => {
+    const protectedHtml = protectTemplateEditorHtml('{{#each AllHits}}<p>{{this.Player}}</p>{{/each}}');
+
+    expect(protectedHtml).toContain('data-sitmun-handlebars-block=');
+    expect(protectedHtml).toContain('data-sitmun-handlebars-expr=');
+    expect(protectHandlebarsExpressions('{{name}}')).toContain('data-sitmun-handlebars-expr=');
+    expect(protectHandlebarsExpressions('{{{html}}}')).toContain('data-sitmun-handlebars-expr=');
+  });
+
+  it('round-trips inline mustache chips to raw mustaches through TipTap', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const editor = new Editor({
+      element: host,
+      extensions: createTemplateEditorExtensions(),
+      content: '',
+    });
+
+    editor.commands.setContent(protectTemplateEditorHtml('<p>{{name}}</p><p>{{{html}}}</p>'), false);
+    expect(editor.getHTML()).toContain('data-sitmun-handlebars-expr');
+
+    const doc = new DOMParser().parseFromString(editor.getHTML(), 'text/html');
+    for (const node of Array.from(doc.body.querySelectorAll('span[data-sitmun-handlebars-expr]'))) {
+      node.replaceWith(document.createTextNode(decodeURIComponent(node.getAttribute('data-sitmun-handlebars-expr') || '')));
+    }
+    const serialized = doc.body.innerHTML;
+    expect(serialized).toContain('{{name}}');
+    expect(serialized).toContain('{{{html}}}');
+    expect(serialized).not.toContain('data-sitmun-handlebars-expr');
+
+    editor.destroy();
+    host.remove();
+  });
+
+  it('round-trips system-variable chips separately from each-blocks through TipTap', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const editor = new Editor({
+      element: host,
+      extensions: createTemplateEditorExtensions(),
+      content: '',
+    });
+
+    editor.commands.setContent(
+      protectTemplateEditorHtml('<p>{{#APP_NAME}}</p>{{#each rows}}<p>{{x}}</p>{{/each}}'),
+      false,
+    );
+    expect(editor.getHTML()).toContain('data-sitmun-handlebars-sysvar');
+    expect(editor.getHTML()).toContain('data-sitmun-handlebars-block');
+    expect(editor.getHTML()).not.toMatch(/data-sitmun-handlebars-block="[^"]*APP_NAME/);
+
+    const doc = new DOMParser().parseFromString(editor.getHTML(), 'text/html');
+    for (const node of Array.from(doc.body.querySelectorAll('span[data-sitmun-handlebars-sysvar]'))) {
+      node.replaceWith(
+        document.createTextNode(decodeURIComponent(node.getAttribute('data-sitmun-handlebars-sysvar') || '')),
+      );
+    }
+    for (const node of Array.from(doc.body.querySelectorAll('div[data-sitmun-handlebars-block]'))) {
+      node.replaceWith(
+        document.createTextNode(decodeURIComponent(node.getAttribute('data-sitmun-handlebars-block') || '')),
+      );
+    }
+    for (const node of Array.from(doc.body.querySelectorAll('span[data-sitmun-handlebars-expr]'))) {
+      node.replaceWith(
+        document.createTextNode(decodeURIComponent(node.getAttribute('data-sitmun-handlebars-expr') || '')),
+      );
+    }
+
+    const serialized = doc.body.innerHTML;
+    expect(serialized).toContain('{{#APP_NAME}}');
+    expect(serialized).toContain('{{#each rows}}');
+    expect(serialized).toContain('{{/each}}');
+    expect(serialized).not.toContain('data-sitmun-handlebars-sysvar');
+
+    editor.destroy();
+    host.remove();
   });
 });
