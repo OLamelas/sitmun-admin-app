@@ -81,6 +81,18 @@ interface TemplateTaskProperties extends Record<string, unknown> {
   childTaskOrderIds?: number[];
 }
 
+/**
+ * Admin Template preview must not navigate the SPA away.
+ * Real hrefs open in a new tab; hash / javascript: URLs are left alone.
+ */
+export function shouldOpenPreviewHrefInNewTab(href: string | null | undefined): boolean {
+  const value = (href || '').trim();
+  if (!value || value.startsWith('#')) {
+    return false;
+  }
+  return !/^javascript:/i.test(value);
+}
+
 @Component({
   selector: 'app-task-template-form',
   templateUrl: './task-template-form.component.html',
@@ -106,6 +118,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   protected taskLookup = new Map<number, TaskProjection>();
   protected templateChildTasks = new Map<number, TemplateChildTaskLink[]>();
   protected previewLanguages: Language[] = [];
+  /** Template preview pane only; Sources Execute inherits this value (no Sources language UI). */
   protected previewLanguageControl = new FormControl(config.defaultLang, { nonNullable: true });
   protected previewHtml = '';
   protected trustedPreviewHtml: SafeHtml = '';
@@ -150,6 +163,8 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   private readonly queryExecutionCards?: QueryList<QueryExecutionCardComponent>;
 
   private previewExecutionContext: Record<string, unknown> = {};
+  /** Stable identity for Sources QEC inherited defaults (new {} each CD resets typed values). */
+  private cachedRootParameterDefaults: Record<string, string> = {};
 
   constructor(
     dialog: MatDialog,
@@ -567,18 +582,18 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     return this.getScopeLabel(scope);
   }
 
-  /** Saved Parameter defaults from this Plantilla; prefills nested Sources forms. */
+  /**
+   * Plantilla Parameter defaults for Sources QEC prefill.
+   * Prefer live Parameters grid rows when mounted; otherwise saved properties.
+   * Memoized by content so Angular CD does not recreate QEC forms every cycle.
+   */
   protected get rootParameterDefaults(): Record<string, string> {
-    const defaults: Record<string, string> = {};
-    const parameters = TaskPropertiesContract.getParameters(this.entityToEdit?.properties);
-    for (const parameter of parameters) {
-      const name = String(parameter['variable'] ?? parameter['name'] ?? parameter['label'] ?? '');
-      const value = parameter['value'];
-      if (name && typeof value === 'string' && value.trim()) {
-        defaults[name] = value;
-      }
+    const next = this.buildRootParameterDefaultsMap();
+    if (this.sameStringRecord(this.cachedRootParameterDefaults, next)) {
+      return this.cachedRootParameterDefaults;
     }
-    return defaults;
+    this.cachedRootParameterDefaults = next;
+    return this.cachedRootParameterDefaults;
   }
 
   protected get referenceAliases(): string[] {
@@ -864,6 +879,28 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
         this.previewDirty = false;
       },
     });
+  }
+
+  /** Keep admin on the form; open preview links in a new tab (authored HTML often omits target). */
+  protected onPreviewPanelClick(event: MouseEvent): void {
+    const eventTarget = event.target;
+    if (!(eventTarget instanceof Element)) {
+      return;
+    }
+    const panel = event.currentTarget;
+    if (!(panel instanceof Element)) {
+      return;
+    }
+    const anchor = eventTarget.closest('a[href]');
+    if (!(anchor instanceof HTMLAnchorElement) || !panel.contains(anchor)) {
+      return;
+    }
+    if (!shouldOpenPreviewHrefInNewTab(anchor.getAttribute('href'))) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    window.open(anchor.href, '_blank', 'noopener,noreferrer');
   }
 
   private createObject(id: number | null = null): Task {
@@ -1164,7 +1201,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   }
 
   private buildTemplateParameterPreviewContext(): Record<string, unknown> {
-    return TaskPropertiesContract.getParameters(this.entityToEdit?.properties).reduce<Record<string, unknown>>((context, parameter) => {
+    return this.collectParameterRecords().reduce<Record<string, unknown>>((context, parameter) => {
       const name = this.parameterName(parameter);
       if (!name) {
         return context;
@@ -1181,6 +1218,47 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
       context[`$${name}`] = value;
       return context;
     }, {});
+  }
+
+  private buildRootParameterDefaultsMap(): Record<string, string> {
+    const defaults: Record<string, string> = {};
+    for (const parameter of this.collectParameterRecords()) {
+      const name = this.parameterName(parameter);
+      const value = parameter['value'];
+      if (name && typeof value === 'string' && value.trim()) {
+        defaults[name] = value;
+      }
+    }
+    return defaults;
+  }
+
+  /** Live Parameters grid when mounted; otherwise persisted entity properties. */
+  private collectParameterRecords(): Record<string, unknown>[] {
+    const live = this.readLiveParameterRows();
+    if (live) {
+      return live;
+    }
+    return TaskPropertiesContract.getParameters(this.entityToEdit?.properties);
+  }
+
+  private readLiveParameterRows(): Record<string, unknown>[] | null {
+    const grid = this.relationGrids
+      ?.toArray()
+      .find((relationGrid) => relationGrid.table === this.parametersTable)
+      ?.dataGrid;
+    if (!grid) {
+      return null;
+    }
+    return (grid.getAllCurrentData() as (Record<string, unknown> & Status)[]).filter(canKeepOrUpdate);
+  }
+
+  private sameStringRecord(left: Record<string, string>, right: Record<string, string>): boolean {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+    return leftKeys.every((key) => left[key] === right[key]);
   }
 
   private parameterName(parameter: Record<string, unknown>): string {
@@ -1209,7 +1287,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
 
   private replaceReferenceAliasInHtml(templateHtml: string, previousReferenceAlias: string, nextReferenceAlias: string): string {
     const referencePattern = new RegExp(`(^|[^A-Za-z0-9_])${this.escapeRegExp(previousReferenceAlias)}(?=[.\\s}\\]])`, 'g');
-    const tableEachPattern = new RegExp(`(\\sdata-sitmun-each=")${this.escapeRegExp(previousReferenceAlias)}(?=[."])`, 'g');
+    const tableEachPattern = new RegExp(`(\\sdata-sitmun-each=["'])${this.escapeRegExp(previousReferenceAlias)}(?=[.'"])`, 'g');
 
     return templateHtml
       .replace(/\{\{\{?[\s\S]*?\}\}\}?/g, (placeholder) => placeholder.replace(referencePattern, `$1${nextReferenceAlias}`))

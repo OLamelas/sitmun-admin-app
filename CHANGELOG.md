@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Templates / TipTap**: Attribute mustaches (`src`/`href`/`alt`/… ) stay literal attributes; chips apply only to HTML text. Source-aware protect is idempotent, chips `else if`, and T-wrap restores chips to raw mustaches before storing `<t>` payloads.
+- **Templates / TipTap**: After intentional visual edits, authored `div` blocks, bare table cells (no injected `colgroup`/`min-width`), and links without `target`/`rel` keep their shape; toolbar-created links still get `target="_blank"` and `rel="noopener noreferrer"`.
+- **Templates / TipTap**: Split editor+preview workspace fills available viewport height (was fixed ~428px; preview-only already did).
+- **Templates / TipTap**: HTML comments survive visual round-trip via marker nodes (TipTap drops real `<!--…-->` on parse).
+- **Templates / Preview**: Navigable links in the preview pane open in a new tab (`noopener`) so the admin SPA is not replaced.
+- **Templates / Sources**: Memoize `rootParameterDefaults` (stable identity across CD) and prefer live Parameters grid rows for Sources prefill + Template preview `$…` context.
+- **Templates / TipTap**: Mustache `img`/`iframe` `src` shows a binding placeholder in visual mode (no relative URL load); selection toolbar inspects/edits `src`/`alt`/`title`; serialize keeps literal attributes.
+- **Templates**: `replaceReferenceAliasInHtml` renames single-quoted `data-sitmun-each` as well as double-quoted.
+- **Tests**: Filter expected Jest `console.error` noise (`Code list … not initialized`, `NG0304`); TipTap-split triple-mustache normalize fixture.
+
+### Changed
+
+- **Templates / Preview**: Preview language selector stays in the Template preview pane only; Sources Execute inherits that language (no Sources language UI).
+
 ## [1.2.8] - 2026-07-30
 
 ### Added

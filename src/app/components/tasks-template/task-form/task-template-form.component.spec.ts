@@ -12,7 +12,52 @@ import { of, throwError } from 'rxjs';
 import { LanguageService } from '@app/domain/translation/services/language.service';
 import { magic } from '@environments/constants';
 
-import { TaskTemplateFormComponent } from './task-template-form.component';
+import { TaskTemplateFormComponent, shouldOpenPreviewHrefInNewTab } from './task-template-form.component';
+
+describe('shouldOpenPreviewHrefInNewTab', () => {
+  it('opens http(s) and relative navigable hrefs in a new tab', () => {
+    expect(shouldOpenPreviewHrefInNewTab('https://example.test/x.png')).toBe(true);
+    expect(shouldOpenPreviewHrefInNewTab('/path')).toBe(true);
+  });
+
+  it('ignores empty, hash, and javascript urls', () => {
+    expect(shouldOpenPreviewHrefInNewTab('')).toBe(false);
+    expect(shouldOpenPreviewHrefInNewTab('#section')).toBe(false);
+    expect(shouldOpenPreviewHrefInNewTab('javascript:alert(1)')).toBe(false);
+  });
+});
+
+describe('TaskTemplateFormComponent preview link clicks', () => {
+  it('opens navigable preview links in a new tab', () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const panel = document.createElement('div');
+    const anchor = document.createElement('a');
+    anchor.href = 'https://example.test/photo.jpg';
+    anchor.textContent = 'open photo';
+    panel.appendChild(anchor);
+    document.body.appendChild(panel);
+
+    const component = Object.create(TaskTemplateFormComponent.prototype) as TaskTemplateFormComponent;
+    const event = {
+      target: anchor,
+      currentTarget: panel,
+      preventDefault: jest.fn(),
+      stopPropagation: jest.fn(),
+    } as unknown as MouseEvent;
+
+    (component as any).onPreviewPanelClick(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining('https://example.test/photo.jpg'),
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    openSpy.mockRestore();
+    panel.remove();
+  });
+});
 
 describe('TaskTemplateFormComponent', () => {
   let component: TaskTemplateFormComponent;
@@ -454,6 +499,26 @@ describe('TaskTemplateFormComponent', () => {
     expect((component as any).linkedTasks[0].draftReferenceAlias).toBe('consulta_padron');
   });
 
+  it('should replace single-quoted data-sitmun-each when renaming a reference alias', async () => {
+    component.entityToEdit = { properties: {} } as any;
+    (component as any).previewExecutionContext = { pepe: { value: 1 } };
+    component.entityForm = new FormGroup({
+      name: new FormControl('Template 1'),
+      taskGroupId: new FormControl(2),
+      templateHtml: new FormControl("<table data-sitmun-each='pepe.rows'><tbody><tr><td>{{name}}</td></tr></tbody></table>"),
+    });
+    (component as any).linkedTasks = [
+      { relationType: 'template-task', taskId: 13, referenceAlias: 'pepe', draftReferenceAlias: 'pepe', name: 'Consulta', typeLabel: 'Consulta SQL', relationId: 1 },
+    ];
+
+    (component as any).onReferenceAliasDraftChanged((component as any).linkedTasks[0], 'consulta_padron');
+    await (component as any).applyReferenceAliasChange((component as any).linkedTasks[0]);
+    (component as any).confirmPendingReferenceAliasChange(true);
+
+    expect(component.entityForm.get('templateHtml')?.value)
+      .toBe("<table data-sitmun-each='consulta_padron.rows'><tbody><tr><td>{{name}}</td></tr></tbody></table>");
+  });
+
   it('should replace placeholders on successive alias changes', async () => {
     component.entityToEdit = { properties: {} } as any;
     (component as any).previewExecutionContext = { pepe: { value: 1 } };
@@ -705,6 +770,57 @@ describe('TaskTemplateFormComponent', () => {
     }, null, [], (component as any).previewLanguageControl.value);
   });
 
+  it('should reuse the same rootParameterDefaults object when values are unchanged', () => {
+    component.entityToEdit = {
+      properties: {
+        parameters: [{ name: 'featureId', type: 'string', value: '42' }],
+      },
+    } as any;
+
+    const first = (component as any).rootParameterDefaults;
+    const second = (component as any).rootParameterDefaults;
+
+    expect(first).toEqual({ featureId: '42' });
+    expect(second).toBe(first);
+  });
+
+  it('should include unsaved Parameters relation-grid values in preview context', async () => {
+    component.entityToEdit = {
+      properties: {
+        parameters: [{ name: 'featureId', type: 'string', value: 'saved' }],
+      },
+    } as any;
+    component.entityForm = new FormGroup({
+      name: new FormControl('Template 1'),
+      taskGroupId: new FormControl(2),
+      templateHtml: new FormControl('{{$featureId}}'),
+    });
+    (component as any).previewExecutionContext = {};
+    Object.defineProperty(component, 'relationGrids', {
+      configurable: true,
+      get: () => ({
+        toArray: () => [
+          {
+            table: (component as any).parametersTable,
+            dataGrid: {
+              getAllCurrentData: () => [{ name: 'featureId', type: 'string', value: 'unsaved-live' }],
+            },
+          },
+        ],
+      }),
+    });
+
+    await (component as any).renderPreview();
+
+    expect(previewService.previewTemplate).toHaveBeenCalledWith(
+      '{{$featureId}}',
+      { $featureId: 'unsaved-live' },
+      null,
+      [],
+      (component as any).previewLanguageControl.value,
+    );
+  });
+
   it('should keep preview errors local to the preview panel', async () => {
     component.entityToEdit = {
       properties: {},
@@ -764,13 +880,27 @@ describe('TaskTemplateFormComponent', () => {
     expect((component as any).previewDirty).toBe(true);
   });
 
-  it('uses the sandboxed preview component instead of an innerHTML sink', () => {
-    const template = readFileSync(join(__dirname, 'task-template-form.component.html'), 'utf8');
-    const source = readFileSync(join(__dirname, 'task-template-form.component.ts'), 'utf8');
+  it('should expose trusted preview html so iframe content can be previewed', () => {
+    (component as any).previewHtml = '<iframe src="https://example.com"></iframe>';
+    (component as any).trustedPreviewHtml = TestBed.inject(DomSanitizer).bypassSecurityTrustHtml(
+      (component as any).previewHtml,
+    );
 
-    expect(template).toContain('<app-safe-html-preview');
-    expect(template).toContain('[html]="previewHtml"');
-    expect(template).not.toContain('[innerHTML]');
-    expect(source).not.toContain('bypassSecurityTrustHtml');
+    expect((component as any).trustedPreviewHtml).toBeTruthy();
+  });
+
+  it('keeps preview language control only in the Template preview pane', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('fs') as typeof import('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require('path') as typeof import('path');
+    const html = fs.readFileSync(path.join(__dirname, 'task-template-form.component.html'), 'utf8');
+
+    expect([...html.matchAll(/preview-language-field/g)]).toHaveLength(1);
+    const sourcesStart = html.indexOf("entity.task.template.sources.header");
+    expect(sourcesStart).toBeGreaterThan(-1);
+    expect(html.slice(0, sourcesStart)).toContain('preview-language-field');
+    expect(html.slice(sourcesStart)).not.toContain('preview-language-field');
+    expect(html.slice(sourcesStart)).toContain('[language]="previewLanguageControl.value"');
   });
 });
