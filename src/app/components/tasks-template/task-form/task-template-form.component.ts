@@ -128,7 +128,7 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   private splitResizeCleanup: (() => void) | null = null;
   protected systemVariables = new Map<string, string>();
   protected pendingReferenceAliasChange: PendingReferenceAliasChange | null = null;
-  protected templateValidation: TemplateValidationResult = { valid: true, errors: [] };
+  protected templateValidation: TemplateValidationResult = { valid: true, errors: [], warnings: [] };
   protected linkTaskSearchControl = new FormControl<string | LinkableTemplateTask>('', { nonNullable: true });
   protected filteredLinkableTasks = of<LinkableTemplateTask[]>([]);
   protected readonly displayLinkableTaskWith = (task: LinkableTemplateTask | string): string => this.displayLinkableTask(task);
@@ -233,13 +233,15 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
     this.initializePreviewLanguage();
 
     const queryTaskOptions = { params: [{ key: 'type.id', value: magic.taskQueryTypeId }] };
+    const mapImageTaskOptions = { params: [{ key: 'type.id', value: magic.taskMapImageTypeId }] };
     const templateTaskOptions = { params: [{ key: 'type.id', value: magic.taskTemplateTypeId }] };
-    const [queryTasks, templateTasks] = await Promise.all([
+    const [queryTasks, mapImageTasks, templateTasks] = await Promise.all([
       firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, queryTaskOptions, undefined, 'tasks')),
+      firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, mapImageTaskOptions, undefined, 'tasks')),
       firstValueFrom(this.taskService.fetchAllProjectionItems(TaskProjection, templateTaskOptions, undefined, 'tasks')),
     ]);
 
-    [...queryTasks, ...templateTasks].forEach((task) => this.taskLookup.set(task.id, task));
+    [...queryTasks, ...mapImageTasks, ...templateTasks].forEach((task) => this.taskLookup.set(task.id, task));
 
     const validQueryTasks = this.filterLinkableQueryTasks(queryTasks);
     const nestedTemplates = templateTasks
@@ -249,9 +251,11 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
         constants.taskRelationType.templateNested,
         this.translateService.instant('entity.task.template.label'),
       ));
+    const linkableMapImageTasks = this.filterLinkableMapImageTasks(mapImageTasks);
 
     this.linkableTasks = [
       ...validQueryTasks,
+      ...linkableMapImageTasks,
       ...nestedTemplates,
     ].sort((left, right) => compareNullableString(left.name, right.name));
 
@@ -551,6 +555,9 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
   protected getTaskTypeLabel(task: TaskProjection): string {
     if (task.typeId === magic.taskTemplateTypeId) {
       return this.translateService.instant('entity.task.template.label');
+    }
+    if (task.typeId === magic.taskMapImageTypeId) {
+      return this.translateService.instant('entity.task.mapImage.label');
     }
 
     const scope = String(TaskPropertiesContract.getScope(task.properties) || '');
@@ -891,6 +898,14 @@ export class TaskTemplateFormComponent extends BaseFormComponent<TaskProjection>
 
       return [this.toLinkableTask(task, constants.taskRelationType.templateTask, this.getScopeLabel(scope))];
     });
+  }
+
+  private filterLinkableMapImageTasks(tasks: TaskProjection[]): LinkableTemplateTask[] {
+    return tasks.map((task) => this.toLinkableTask(
+      task,
+      constants.taskRelationType.templateTask,
+      this.translateService.instant('entity.task.mapImage.label'),
+    ));
   }
 
   private getScopeLabel(scope: string): string {

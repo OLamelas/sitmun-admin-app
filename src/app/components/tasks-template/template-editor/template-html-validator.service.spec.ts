@@ -19,6 +19,45 @@ describe('TemplateHtmlValidatorService', () => {
     expect(service.validate('<p>Hola {{user.name}}</p><t><strong>Bon dia</strong></t>').valid).toBe(true);
   });
 
+  it('warns when inline CSS is not guaranteed in PDF export', () => {
+    translateService.instant.mockImplementation((key: string, params?: any) =>
+      key === 'entity.task.template.editor.validation.unsupportedCss'
+        ? `${params.property}: ${params.value}`
+        : key,
+    );
+
+    const result = service.validate(
+      '<div style="display: flex; gap: 12px; color: red">Content</div>',
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([
+      'display: flex',
+      'gap: 12px',
+    ]);
+  });
+
+  it('deduplicates repeated unsupported CSS declarations', () => {
+    translateService.instant.mockImplementation((key: string, params?: any) =>
+      key === 'entity.task.template.editor.validation.unsupportedCss'
+        ? `${params.property}: ${params.value}`
+        : key,
+    );
+
+    const result = service.validate(
+      '<div style="display:grid"><span style="display: grid">One</span></div>',
+    );
+
+    expect(result.warnings).toEqual(['display: grid']);
+  });
+
+  it('does not warn for regular PDF-safe inline CSS', () => {
+    const result = service.validate('<p style="color: #123456; margin: 10px">Content</p>');
+
+    expect(result.warnings).toEqual([]);
+  });
+
   it('rejects script tags', () => {
     translateService.instant.mockReturnValue('No se permite la etiqueta <script>.');
     expect(service.validate('<script>alert(1)</script>').errors).toContain('No se permite la etiqueta <script>.');

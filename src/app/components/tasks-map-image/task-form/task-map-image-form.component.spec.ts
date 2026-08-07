@@ -1,12 +1,14 @@
 import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
+
 import { of } from 'rxjs';
 
-import { TaskMapImageFormComponent } from './task-map-image-form.component';
-import { CartographyProjection, Service, TaskGroup, TaskType } from '@app/domain';
+import { Service, TaskGroup, TaskType } from '@app/domain';
 import { LanguageService } from '@app/domain/translation/services/language.service';
 import { magic } from '@environments/constants';
+
+import { TaskMapImageFormComponent } from './task-map-image-form.component';
 
 describe('TaskMapImageFormComponent', () => {
   let component: TaskMapImageFormComponent;
@@ -65,7 +67,7 @@ describe('TaskMapImageFormComponent', () => {
     utilsService.getSelCheckboxColumnDef.mockReturnValue({});
     utilsService.getRouterLinkColumnDef.mockReturnValue({});
     utilsService.getNonEditableColumnDef.mockReturnValue({});
-    utilsService.getStatusColumnDef.mockReturnValue({});
+    utilsService.getStatusColumnDef.mockReturnValue({ field: 'status' });
     utilsService.getNonEditableDateColumnDef.mockReturnValue({});
     utilsService.getEditableColumnDef.mockReturnValue({});
     utilsService.getNonEditableColumnWithCodeListDef.mockReturnValue({});
@@ -141,6 +143,64 @@ describe('TaskMapImageFormComponent', () => {
 
     expect(component.entityForm.get('srs')?.value).toBe('');
     expect(component.entityForm.get('bboxMarginPercent')?.value).toBe(0);
+  });
+
+  it('generates feature bbox parameters when creating a new task', () => {
+    component.entityToEdit = component.empty();
+
+    component.postFetchData();
+
+    expect(component.entityToEdit.properties?.['parameters']).toEqual([
+      {
+        name: 'featureBboxMinX',
+        label: 'featureBboxMinX',
+        type: 'template',
+        value: 'featureBboxMinX',
+      },
+      {
+        name: 'featureBboxMinY',
+        label: 'featureBboxMinY',
+        type: 'template',
+        value: 'featureBboxMinY',
+      },
+      {
+        name: 'featureBboxMaxX',
+        label: 'featureBboxMaxX',
+        type: 'template',
+        value: 'featureBboxMaxX',
+      },
+      {
+        name: 'featureBboxMaxY',
+        label: 'featureBboxMaxY',
+        type: 'template',
+        value: 'featureBboxMaxY',
+      },
+      {
+        name: '__featureBboxSize',
+        label: '__featureBboxSize',
+        type: 'template',
+        value: '__featureBboxSize',
+      },
+    ]);
+  });
+
+  it('does not generate feature bbox parameters while editing an existing task', () => {
+    component.entityID = 123;
+    component.entityToEdit = component.empty();
+
+    component.postFetchData();
+
+    expect(component.entityToEdit.properties?.['parameters']).toBeUndefined();
+  });
+
+  it('exposes an editable parameters table', () => {
+    const table = component['parametersTable'];
+
+    expect(table.hasTemplateDialogs()).toBe(true);
+    expect(table.hasRelationsUpdater()).toBe(true);
+    expect(table.hasStatusColumn()).toBe(true);
+    expect(table.supportsDuplicate()).toBe(true);
+    expect(table.hasPickerAdd()).toBe(false);
   });
 
   it('filters available layers by service and text', () => {

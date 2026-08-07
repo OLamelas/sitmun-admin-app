@@ -144,6 +144,20 @@
     </form>
   </mat-tab>
 
+  <mat-tab label="{{ 'entity.task.parameters.header' | translate }}">
+    <mat-card class="sitmun-mat-card-margin" appearance="outlined">
+      <mat-card-content>
+        <app-relation-grid
+          #parametersGrid
+          *ngIf="dataLoaded"
+          [table]="parametersTable"
+          [allNewElements]="isNewOrDuplicated()"
+          templateDialogName="newParameterDialog"
+        ></app-relation-grid>
+      </mat-card-content>
+    </mat-card>
+  </mat-tab>
+
   <mat-tab label="{{ 'entity.task.roles.header' | translate }}">
     <mat-card class="sitmun-mat-card-margin" appearance="outlined">
       <mat-card-content>
@@ -199,3 +213,33 @@
     </mat-card>
   </mat-tab>
 </mat-tab-group>
+
+<ng-template #newParameterDialog>
+  <form [formGroup]="parametersTable.templateDialog('newParameterDialog').form">
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>{{ 'common.form.name' | translate }}</mat-label>
+          <input matInput type="text" formControlName="name" required>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>{{ 'common.form.label' | translate }}</mat-label>
+          <input matInput type="text" formControlName="label" required>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>{{ 'common.form.value' | translate }}</mat-label>
+          <input matInput type="text" formControlName="value">
+        </mat-form-field>
+        <mat-radio-group formControlName="type" class="full">
+          <mat-label class="requiredInput">{{ 'common.form.type' | translate }}</mat-label>
+          <mat-radio-button [value]="paramType.value" *ngFor="let paramType of codeList('queryTask.parameterType')">
+            {{ paramType.description }}
+          </mat-radio-button>
+        </mat-radio-group>
+        <br/>
+        <mat-label>{{ 'common.form.required' | translate }}</mat-label>
+        <mat-checkbox formControlName="required"></mat-checkbox>
+      </mat-card-content>
+    </mat-card>
+  </form>
+</ng-template>

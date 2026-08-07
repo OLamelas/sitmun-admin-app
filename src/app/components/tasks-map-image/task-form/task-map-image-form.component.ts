@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, TemplateRef, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -9,7 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { catchError, combineLatest, firstValueFrom, map, Observable, of, startWith, Subject } from 'rxjs';
 
 import { BaseFormComponent } from '@app/components/base-form.component';
-import { DataTableDefinition } from '@app/components/data-tables.util';
+import { DataTableDefinition, TemplateDialog } from '@app/components/data-tables.util';
 import { Configuration } from '@app/core/config/configuration';
 import { MessagesInterceptorStateService } from '@app/core/interceptors/messages.interceptor';
 import {
@@ -35,7 +35,8 @@ import {
   TerritoryService,
   TranslationService,
 } from '@app/domain';
-import { onCreate, onDelete, onUpdatedRelation, Status } from '@app/frontend-gui/src/lib/data-grid/data-grid.component';
+import { TaskParameterType, TaskQueryParameter } from '@app/domain/task/models/task-query-parameter.model';
+import { canKeepOrUpdate, onCreate, onDelete, onUpdatedRelation, Status } from '@app/frontend-gui/src/lib/data-grid/data-grid.component';
 import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
@@ -86,6 +87,13 @@ interface MapImageSelectedLayerGridRow extends MapImageSelectedLayerRow, Status 
 })
 export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection> {
   readonly config = Configuration.TASK_MAP_IMAGE;
+  private static readonly FEATURE_BBOX_PARAMETER_NAMES = [
+    'featureBboxMinX',
+    'featureBboxMinY',
+    'featureBboxMaxX',
+    'featureBboxMaxY',
+    '__featureBboxSize',
+  ];
   private static readonly DEFAULT_FORMAT = 'png';
   private static readonly DEFAULT_SRS = '';
   private static readonly DEFAULT_WIDTH = 1024;
@@ -98,6 +106,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
   protected readonly rolesTable: DataTableDefinition<Role, Role>;
   protected readonly availabilitiesTable: DataTableDefinition<TaskAvailabilityProjection, TerritoryProjection>;
   protected readonly selectedLayersColumnDefs: any[];
+  protected readonly parametersTable: DataTableDefinition<TaskQueryParameter, TaskQueryParameter>;
   protected readonly layerSearchControl = new FormControl<string | MapImageLayerOption>('', { nonNullable: true });
   protected filteredLayerOptions$: Observable<MapImageLayerOption[]> = of([]);
 
@@ -112,6 +121,9 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
   private readonly loadingLayerServiceIds = new Set<number>();
   protected readonly selectedLayersRefresh$ = new Subject<boolean>();
   private readonly layerOptionsRefresh$ = new Subject<void>();
+
+  @ViewChild('newParameterDialog', { static: true })
+  private readonly newParameterDialog: TemplateRef<unknown>;
 
   protected validationFieldLabels: Record<string, string> = {
     name: 'common.form.name',
@@ -162,10 +174,12 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
     this.rolesTable = this.defineRolesTable();
     this.availabilitiesTable = this.defineAvailabilitiesTable();
     this.selectedLayersColumnDefs = this.defineSelectedLayersColumnDefs();
+    this.parametersTable = this.defineParametersTable();
   }
 
   override async preFetchData(): Promise<void> {
-    this.dataTables.register(this.rolesTable).register(this.availabilitiesTable);
+    this.dataTables.register(this.rolesTable).register(this.availabilitiesTable).register(this.parametersTable);
+    await this.initCodeLists(['queryTask.parameterType']);
     this.initTranslations('Task', ['name']);
 
     const [taskTypes, taskGroups, services] = await Promise.all([
@@ -207,6 +221,17 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
   }
 
   override postFetchData(): void {
+    if (this.isNew()) {
+      this.entityToEdit.properties = TaskPropertiesContract.withParameters(
+        this.entityToEdit.properties,
+        TaskMapImageFormComponent.FEATURE_BBOX_PARAMETER_NAMES.map((name) => ({
+          name,
+          label: name,
+          type: TaskParameterType.TEMPLATE,
+          value: name,
+        })),
+      );
+    }
     const properties = TaskPropertiesContract.fromRaw(this.entityToEdit?.properties);
     this.entityForm = new FormGroup({
       name: new FormControl(this.entityToEdit?.name ?? '', {
@@ -679,6 +704,61 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
 
   private deduplicateLayerNames(layerNames: readonly string[]): string[] {
     return Array.from(new Set(layerNames));
+  }
+
+  private defineParametersTable(): DataTableDefinition<TaskQueryParameter, TaskQueryParameter> {
+    return DataTableDefinition.builder<TaskQueryParameter, TaskQueryParameter>(this.dialog, this.errorHandler, this.loadingService)
+      .withRelationsColumns([
+        this.utils.getSelCheckboxColumnDef(),
+        this.utils.getEditableColumnDef('common.form.name', 'name'),
+        this.utils.getEditableColumnDef('common.form.label', 'label'),
+        this.utils.getEditableColumnDef('common.form.value', 'value'),
+        this.utils.getNonEditableColumnWithCodeListDef('common.form.type', 'type', () => this.codeList('queryTask.parameterType')),
+        this.utils.addConditionToColumnDef(
+          this.utils.getBooleanColumnDef('common.form.required', 'required', true),
+          (params) => params.data.type === TaskParameterType.QUERY,
+        ),
+        this.utils.addConditionToColumnDef(
+          this.utils.getBooleanColumnDef('entity.task.parameters.provided', 'provided', false),
+          (params) => params.data.type === TaskParameterType.QUERY,
+        ),
+        this.utils.getStatusColumnDef(),
+      ])
+      .withRelationsOrder('name')
+      .withRelationsFetcher(() => {
+        const originalParameters = TaskPropertiesContract.getParameters(this.entityToEdit?.properties);
+        return of(originalParameters.map((parameter) => TaskQueryParameter.fromObject(parameter)));
+      })
+      .withRelationsUpdater(async (parameters: (TaskQueryParameter & Status)[]) => {
+        const parametersToSave = parameters
+          .filter(canKeepOrUpdate)
+          .map((parameter) => TaskQueryParameter.fromObject(parameter));
+        this.entityToEdit.properties = TaskPropertiesContract.withParameters(
+          this.entityToEdit.properties,
+          parametersToSave,
+        );
+        await firstValueFrom(this.taskService.update(this.entityToEdit));
+      })
+      .withFieldRestriction('name')
+      .withTemplateDialog('newParameterDialog', () => TemplateDialog.builder()
+        .withReference(this.newParameterDialog)
+        .withTitle('entity.task.parameters.title')
+        .withForm(new FormGroup({
+          name: new FormControl('', { validators: [Validators.required], nonNullable: true }),
+          label: new FormControl('', { validators: [Validators.required], nonNullable: true }),
+          value: new FormControl('', { nonNullable: false }),
+          type: new FormControl(null, { validators: [Validators.required], nonNullable: true }),
+          required: new FormControl(false, { validators: [Validators.required], nonNullable: true }),
+          provided: new FormControl(false, { nonNullable: true }),
+        }))
+        .withPreOpenFunction((form: FormGroup) => {
+          const defaultType = this.defaultValueOrNull('queryTask.parameterType');
+          form.reset({ type: defaultType?.value || TaskParameterType.TEMPLATE, provided: false });
+        })
+        .build())
+      .withTargetToRelation((items: TaskQueryParameter[]) => items.map((item) => TaskQueryParameter.fromObject(item)))
+      .withRelationsDuplicate((item) => TaskQueryParameter.fromObject(item))
+      .build();
   }
 
   private normalizeSearchValue(value: string | null | undefined): string {

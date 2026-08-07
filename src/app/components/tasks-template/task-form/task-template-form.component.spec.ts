@@ -2,6 +2,7 @@ import { ChangeDetectorRef, NgZone } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
+import { DomSanitizer } from '@angular/platform-browser';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -51,6 +52,12 @@ describe('TaskTemplateFormComponent', () => {
             applyLanguagesToUse: (languages: unknown[]) => languages,
             fetchAllItems: () => of([]),
             languagesToUse$: of([]),
+          },
+        },
+        {
+          provide: DomSanitizer,
+          useValue: {
+            bypassSecurityTrustHtml: jest.fn((html: string) => html),
           },
         },
       ],
@@ -108,6 +115,7 @@ describe('TaskTemplateFormComponent', () => {
       notificationService as any,
       utils as any,
       http as any,
+      TestBed.inject(DomSanitizer),
     ));
 
     (component as any).linkableTasks = [
@@ -118,6 +126,27 @@ describe('TaskTemplateFormComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should expose map image tasks as template children', () => {
+    const mapImageTasks = (component as any).filterLinkableMapImageTasks([
+      { id: 32315, name: 'Tasca imatge mapa prova', typeId: magic.taskMapImageTypeId },
+    ]);
+
+    expect(mapImageTasks).toEqual([
+      {
+        relationType: 'template-task',
+        taskId: 32315,
+        name: 'Tasca imatge mapa prova',
+        typeLabel: 'entity.task.mapImage.label',
+      },
+    ]);
+  });
+
+  it('should label map image linked tasks as map images', () => {
+    expect((component as any).getTaskTypeLabel({ typeId: magic.taskMapImageTypeId })).toBe(
+      'entity.task.mapImage.label',
+    );
   });
 
   it('should define roles and territories data tables', () => {
