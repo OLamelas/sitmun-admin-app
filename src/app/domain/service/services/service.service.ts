@@ -1,4 +1,5 @@
 import { Injectable, Injector } from '@angular/core';
+
 import { map, Observable } from 'rxjs';
 
 import { RestService } from '@app/core/hal/rest/rest.service';

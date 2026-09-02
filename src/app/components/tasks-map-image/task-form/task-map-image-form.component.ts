@@ -13,7 +13,6 @@ import { DataTableDefinition, TemplateDialog } from '@app/components/data-tables
 import { Configuration } from '@app/core/config/configuration';
 import { MessagesInterceptorStateService } from '@app/core/interceptors/messages.interceptor';
 import {
-  CartographyProjection,
   CartographyService,
   CodeListService,
   Role,
@@ -21,7 +20,6 @@ import {
   Service,
   ServiceService,
   Task,
-  TaskAvailability,
   TaskAvailabilityProjection,
   TaskAvailabilityService,
   TaskGroup,
@@ -36,25 +34,18 @@ import {
   TranslationService,
 } from '@app/domain';
 import { TaskParameterType, TaskQueryParameter } from '@app/domain/task/models/task-query-parameter.model';
-import { canKeepOrUpdate, onCreate, onDelete, onUpdatedRelation, Status } from '@app/frontend-gui/src/lib/data-grid/data-grid.component';
+import { canKeepOrUpdate, Status } from '@app/frontend-gui/src/lib/data-grid/data-grid.component';
 import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
 import { UtilsService } from '@app/services/utils.service';
 import { magic } from '@environments/constants';
 
-interface MapImageSourceProperties extends Record<string, unknown> {
-  serviceId: number;
-  layerNames: string[];
-}
+import { MapImageLayerCatalogService, MapImageLayerOption } from './map-image-layer-catalog.service';
+import { MapImageSourcesAdapter, MapImageSource } from './map-image-sources.adapter';
+import { createTaskAvailabilitiesTable, createTaskRolesTable, updateTaskGroupRelation } from '../../tasks-shared/task-relation-tables';
 
-interface MapImageLayerOption {
-  serviceId: number;
-  serviceName: string;
-  layerIds: string[];
-  layerIdLabel: string;
-  layerName: string;
-}
+type MapImageSourceProperties = MapImageSource;
 
 interface MapImageSelectedLayerRow {
   serviceId: number | null;
@@ -86,6 +77,7 @@ interface MapImageSelectedLayerGridRow extends MapImageSelectedLayerRow, Status 
   standalone: false,
 })
 export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection> {
+  private readonly mapSourcesAdapter = new MapImageSourcesAdapter();
   readonly config = Configuration.TASK_MAP_IMAGE;
   private static readonly FEATURE_BBOX_PARAMETER_NAMES = [
     'featureBboxMinX',
@@ -156,6 +148,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
     protected taskAvailabilityService: TaskAvailabilityService,
     protected cartographyService: CartographyService,
     protected serviceService: ServiceService,
+    private readonly layerCatalog: MapImageLayerCatalogService,
     protected utils: UtilsService,
   ) {
     super(
@@ -307,7 +300,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
 
     this.readMapSourcesFromForm().forEach((source) => {
       source.layerNames.forEach((layerId) => {
-          const option = this.findLayerOptionForSelectedLayer(source.serviceId, layerId);
+          const option = this.layerCatalog.find(this.availableLayerOptions, source.serviceId, layerId);
           rows.push({
             serviceId: source.serviceId,
             serviceName: option?.serviceName ?? this.getServiceName(source.serviceId),
@@ -359,27 +352,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
   }
 
   protected addLayer(option: MapImageLayerOption): void {
-    const nextSources = this.readMapSourcesFromForm();
-    const selectedLayerIds = new Set(
-      nextSources
-        .filter((source) => source.serviceId === option.serviceId)
-        .flatMap((source) => source.layerNames),
-    );
-    const layerIdsToAdd = option.layerIds.filter((layerId) => !selectedLayerIds.has(layerId));
-    if (layerIdsToAdd.length === 0) {
-      return;
-    }
-
-    const lastSource = nextSources[nextSources.length - 1];
-    if (lastSource?.serviceId === option.serviceId) {
-      lastSource.layerNames = this.deduplicateLayerNames([...lastSource.layerNames, ...layerIdsToAdd]);
-    } else {
-      nextSources.push({
-        serviceId: option.serviceId,
-        layerNames: this.deduplicateLayerNames(layerIdsToAdd),
-      });
-    }
-    this.replaceMapSources(nextSources);
+    this.replaceMapSources(this.mapSourcesAdapter.add(this.readMapSourcesFromForm(), option));
   }
 
   protected removeLayer(index: number): void {
@@ -394,20 +367,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
       return;
     }
 
-    const nextSources = this.readMapSourcesFromForm()
-      .map((source) => {
-        if (source.serviceId !== serviceId) {
-          return source;
-        }
-        const nextLayerNames = source.layerNames.filter((layerName) => layerName !== layerId);
-        return {
-          serviceId: source.serviceId,
-          layerNames: nextLayerNames,
-        };
-      })
-      .filter((source) => source.layerNames.length > 0);
-
-    this.replaceMapSources(nextSources);
+    this.replaceMapSources(this.mapSourcesAdapter.remove(this.readMapSourcesFromForm(), { serviceId, layerId }));
   }
 
   protected removeSelectedLayerRows(rows: MapImageSelectedLayerGridRow[]): void {
@@ -415,24 +375,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
       return;
     }
 
-    const layersByServiceId = rows.reduce((acc, row) => {
-      if (row.serviceId == null) {
-        return acc;
-      }
-      const current = acc.get(row.serviceId) ?? new Set<string>();
-      current.add(row.layerId);
-      acc.set(row.serviceId, current);
-      return acc;
-    }, new Map<number, Set<string>>());
-
-    const nextSources = this.readMapSourcesFromForm()
-      .map((source) => ({
-        serviceId: source.serviceId,
-        layerNames: source.layerNames.filter((layerName) => !layersByServiceId.get(source.serviceId)?.has(layerName)),
-      }))
-      .filter((source) => source.layerNames.length > 0);
-
-    this.replaceMapSources(nextSources);
+    this.replaceMapSources(this.mapSourcesAdapter.removeRows(this.readMapSourcesFromForm(), rows));
   }
 
   protected onSelectedLayerOrderChanged(rows: MapImageSelectedLayerGridRow[]): void {
@@ -440,7 +383,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
       return;
     }
 
-    this.replaceMapSources(this.mapRowsToConsecutiveSources(rows));
+    this.replaceMapSources(this.mapSourcesAdapter.reorder(rows));
   }
 
   protected isLayerOptionSelected(option: MapImageLayerOption): boolean {
@@ -462,7 +405,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
 
     const groupId = this.entityForm.get('taskGroupId')?.value;
     if (typeof groupId === 'number') {
-      await firstValueFrom(entityCreated.updateRelationEx('group', this.taskGroupService.createProxy(groupId)));
+      await updateTaskGroupRelation(entityCreated, groupId, this.taskGroupService);
     }
 
     return entityCreated.id;
@@ -474,7 +417,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
 
     const groupId = this.entityForm.get('taskGroupId')?.value;
     if (typeof groupId === 'number') {
-      await firstValueFrom(this.entityToEdit.updateRelationEx('group', this.taskGroupService.createProxy(groupId)));
+      await updateTaskGroupRelation(this.entityToEdit, groupId, this.taskGroupService);
     }
   }
 
@@ -517,27 +460,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
   }
 
   private buildMapSourcesPayload(): MapImageSourceProperties[] {
-    return this.readMapSourcesFromForm();
-  }
-
-  private mapRowsToConsecutiveSources(rows: MapImageSelectedLayerRow[]): MapImageSourceProperties[] {
-    return rows.reduce((sources, row) => {
-      if (row.serviceId == null || !row.layerId) {
-        return sources;
-      }
-
-      const lastSource = sources[sources.length - 1];
-      if (lastSource?.serviceId === row.serviceId) {
-        lastSource.layerNames = this.deduplicateLayerNames([...lastSource.layerNames, row.layerId]);
-        return sources;
-      }
-
-      sources.push({
-        serviceId: row.serviceId,
-        layerNames: [row.layerId],
-      });
-      return sources;
-    }, [] as MapImageSourceProperties[]);
+    return this.mapSourcesAdapter.payload(this.readMapSourcesFromForm());
   }
 
   private async ensureLayerOptionsForSelectedRows(): Promise<void> {
@@ -579,16 +502,9 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
         this.cartographyService.fetchProjectionItemsByService(service.id).pipe(catchError(() => of([]))),
       );
       const options = cartographies
-        .map((cartography) => this.toLayerOption(cartography, service))
-        .filter((option): option is MapImageLayerOption => option !== null)
-        .sort((left, right) => {
-          const nameComparison = left.layerName.localeCompare(right.layerName);
-          if (nameComparison !== 0) {
-            return nameComparison;
-          }
-          return left.layerIdLabel.localeCompare(right.layerIdLabel);
-        });
-      this.layerOptionsByServiceId.set(serviceId, options);
+        .map((cartography) => this.layerCatalog.toOption(cartography, service))
+        .filter((option): option is MapImageLayerOption => option !== null);
+      this.layerOptionsByServiceId.set(serviceId, this.layerCatalog.sort(options));
       this.refreshAvailableLayerOptions();
       this.syncSelectedLayerRows();
     } finally {
@@ -600,19 +516,7 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
   }
 
   private refreshAvailableLayerOptions(): void {
-    this.availableLayerOptions = Array.from(this.layerOptionsByServiceId.values())
-      .flat()
-      .sort((left, right) => {
-        const serviceComparison = left.serviceName.localeCompare(right.serviceName);
-        if (serviceComparison !== 0) {
-          return serviceComparison;
-        }
-        const nameComparison = left.layerName.localeCompare(right.layerName);
-        if (nameComparison !== 0) {
-          return nameComparison;
-        }
-        return left.layerIdLabel.localeCompare(right.layerIdLabel);
-      });
+    this.availableLayerOptions = this.layerCatalog.sortByService(Array.from(this.layerOptionsByServiceId.values()).flat());
     this.layerOptionsRefresh$.next();
   }
 
@@ -638,32 +542,11 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
     });
   }
 
-  private toLayerOption(cartography: CartographyProjection, service: Service): MapImageLayerOption | null {
-    const layerIds = this.normalizeLayerNames(cartography.layers);
-    if (layerIds.length === 0) {
-      return null;
-    }
-
-    return {
-      serviceId: typeof cartography.serviceId === 'number' ? cartography.serviceId : service.id,
-      serviceName: String(cartography.serviceName || service.name || ''),
-      layerIds,
-      layerIdLabel: layerIds.join(', '),
-      layerName: String(cartography.name || layerIds.join(', ')),
-    };
-  }
-
   private readMapSourcesFromForm(): MapImageSourceProperties[] {
     return this.mapSourcesArray.controls
-      .map((control) => ({
-        serviceId: control.get('serviceId')?.value,
-        layerNames: this.normalizeLayerNames(control.get('layerNames')?.value),
-      }))
-      .filter((source) => typeof source.serviceId === 'number' && source.layerNames.length > 0)
-      .map((source) => ({
-        serviceId: source.serviceId as number,
-        layerNames: source.layerNames,
-      }));
+      .map((control) => ({ serviceId: control.get('serviceId')?.value, layerNames: control.get('layerNames')?.value }))
+      .map((source) => this.mapSourcesAdapter.normalize([source])[0])
+      .filter((source): source is MapImageSourceProperties => source !== undefined);
   }
 
   private replaceMapSources(sources: MapImageSourceProperties[]): void {
@@ -682,28 +565,8 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
     this.selectedLayerRows = this.buildSelectedLayerRows();
   }
 
-  private findLayerOptionForSelectedLayer(serviceId: number, layerId: string): MapImageLayerOption | null {
-    const exactOption = this.availableLayerOptions.find((option) => {
-      return option.serviceId === serviceId && option.layerIds.length === 1 && option.layerIds.includes(layerId);
-    });
-    if (exactOption) {
-      return exactOption;
-    }
-
-    return this.availableLayerOptions.find((option) => {
-      return option.serviceId === serviceId && option.layerIds.includes(layerId);
-    }) ?? null;
-  }
-
   private normalizeLayerNames(rawLayerNames: unknown): string[] {
-    const layerNames = Array.isArray(rawLayerNames)
-      ? rawLayerNames.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter((item) => item.length > 0)
-      : [];
-    return this.deduplicateLayerNames(layerNames);
-  }
-
-  private deduplicateLayerNames(layerNames: readonly string[]): string[] {
-    return Array.from(new Set(layerNames));
+    return this.layerCatalog.normalizeLayerNames(rawLayerNames);
   }
 
   private defineParametersTable(): DataTableDefinition<TaskQueryParameter, TaskQueryParameter> {
@@ -819,73 +682,28 @@ export class TaskMapImageFormComponent extends BaseFormComponent<TaskProjection>
   };
 
   private defineRolesTable(): DataTableDefinition<Role, Role> {
-    return DataTableDefinition.builder<Role, Role>(this.dialog, this.errorHandler, this.loadingService)
-      .withRelationsColumns([
-        this.utils.getSelCheckboxColumnDef(),
-        this.utils.getRouterLinkColumnDef('common.form.name', 'name', '/role/:id/roleForm', { id: 'id' }),
-        this.utils.getNonEditableColumnDef('common.form.description', 'description'),
-        this.utils.getStatusColumnDef(),
-      ])
-      .withRelationsOrder('name')
-      .withRelationsFetcher(() => {
-        if (this.isNew()) {
-          return of([]);
-        }
-        return this.entityToEdit.getRelationArrayEx(Role, 'roles', { projection: 'view' });
-      })
-      .withRelationsUpdater(async (roles: (Role & Status)[]) => {
-        await onUpdatedRelation(roles).forAll((item) => this.entityToEdit.substituteAllRelation('roles', item));
-      })
-      .withTargetsColumns([
-        this.utils.getSelCheckboxColumnDef(),
-        this.utils.getNonEditableColumnDef('common.form.name', 'name'),
-        this.utils.getNonEditableColumnDef('common.form.description', 'description'),
-      ])
-      .withTargetsOrder('name')
-      .withTargetsFetcher(() => this.roleService.fetchAllItems())
-      .withTargetsTitle(this.translateService.instant('entity.task.roles.title'))
-      .build();
+    return createTaskRolesTable(this.relationTableContext());
   }
 
   private defineAvailabilitiesTable(): DataTableDefinition<TaskAvailabilityProjection, TerritoryProjection> {
-    return DataTableDefinition.builder<TaskAvailabilityProjection, TerritoryProjection>(this.dialog, this.errorHandler, this.loadingService)
-      .withRelationsColumns([
-        this.utils.getSelCheckboxColumnDef(),
-        this.utils.getRouterLinkColumnDef('common.form.name', 'territoryName', '/territory/:id/territoryForm', { id: 'territoryId' }),
-        this.utils.getNonEditableColumnDef('common.form.code', 'territoryCode'),
-        this.utils.getNonEditableColumnDef('common.form.type', 'territoryTypeName'),
-        this.utils.getNonEditableDateColumnDef('common.form.created', 'createdDate'),
-        this.utils.getStatusColumnDef(),
-      ])
-      .withRelationsOrder('territoryName')
-      .withRelationsFetcher(() => {
-        if (!this.isNew()) {
-          return this.entityToEdit.getRelationArrayEx(TaskAvailabilityProjection, 'availabilities', { projection: 'view' });
-        }
-        return of([]);
-      })
-      .withRelationsUpdater(async (availabilities: (TaskAvailabilityProjection & Status)[]) => {
-        await onDelete(availabilities).forEach((item) => this.taskAvailabilityService.delete(this.taskAvailabilityService.createProxy(item.id)));
-        await onCreate(availabilities)
-          .map((item) => TaskAvailability.of(this.taskService.createProxy(this.entityID), this.territoryService.createProxy(item.territoryId)))
-          .forEach((item) => this.taskAvailabilityService.create(item));
-        availabilities.forEach((item) => {
-          item.newItem = false;
-        });
-      })
-      .withTargetsColumns([
-        this.utils.getSelCheckboxColumnDef(),
-        this.utils.getNonEditableColumnDef('common.form.name', 'name'),
-        this.utils.getNonEditableColumnDef('common.form.code', 'code'),
-        this.utils.getNonEditableColumnDef('common.form.type', 'typeName'),
-      ])
-      .withTargetsOrder('name')
-      .withTargetsFetcher(() => this.territoryService.fetchAllProjectionItems(TerritoryProjection))
-      .withTargetInclude((availabilities: TaskAvailabilityProjection[]) => (item: TerritoryProjection) => {
-        return !availabilities.some((availability) => availability.territoryId === item.id);
-      })
-      .withTargetToRelation((items: TerritoryProjection[]) => items.map((item) => TaskAvailabilityProjection.of(this.entityToEdit, item)))
-      .withTargetsTitle(this.translateService.instant('entity.task.territories.title'))
-      .build();
+    return createTaskAvailabilitiesTable(this.relationTableContext());
   }
+
+  private relationTableContext() {
+    return {
+      dialog: this.dialog,
+      errorHandler: this.errorHandler,
+      loadingService: this.loadingService,
+      translateService: this.translateService,
+      utils: this.utils,
+      roleService: this.roleService,
+      territoryService: this.territoryService,
+      taskAvailabilityService: this.taskAvailabilityService,
+      taskService: this.taskService,
+      isNew: () => this.isNew(),
+      entity: this.entityToEdit,
+      entityId: this.entityID,
+    };
+  }
+
 }

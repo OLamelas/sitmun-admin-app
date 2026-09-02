@@ -1,10 +1,12 @@
 import { Injector } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+
 import { of } from 'rxjs';
 
-import { ServiceService } from './service.service';
 import { ResourceArray } from '@app/core/hal/resource/resource-array.model';
 import { ResourceService } from '@app/core/hal/resource/resource.service';
+
+import { ServiceService } from './service.service';
 import { Service } from '../models/service.model';
 
 describe('ServiceService', () => {

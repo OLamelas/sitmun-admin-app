@@ -8,6 +8,7 @@ import { Service, TaskGroup, TaskType } from '@app/domain';
 import { LanguageService } from '@app/domain/translation/services/language.service';
 import { magic } from '@environments/constants';
 
+import { MapImageLayerCatalogService } from './map-image-layer-catalog.service';
 import { TaskMapImageFormComponent } from './task-map-image-form.component';
 
 describe('TaskMapImageFormComponent', () => {
@@ -104,6 +105,7 @@ describe('TaskMapImageFormComponent', () => {
       taskAvailabilityService as any,
       cartographyService as any,
       serviceService as any,
+      new MapImageLayerCatalogService(),
       utilsService as any,
     ));
   });
