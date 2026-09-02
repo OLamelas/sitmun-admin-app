@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { TranslateService } from '@ngx-translate/core';
-import { firstValueFrom, map, of } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 
 import { BaseFormComponent } from '@app/components/base-form.component';
 import { DataTableDefinition } from '@app/components/data-tables.util';
@@ -15,7 +15,6 @@ import {
   Role,
   RoleService,
   Task,
-  TaskAvailability,
   TaskAvailabilityProjection,
   TaskAvailabilityService,
   TaskGroup,
@@ -28,12 +27,13 @@ import {
   TerritoryService,
   TranslationService,
 } from '@app/domain';
-import { onCreate, onDelete, onUpdatedRelation, Status } from '@app/frontend-gui/src/lib/data-grid/data-grid.component';
 import { ErrorHandlerService } from '@app/services/error-handler.service';
 import { LoadingOverlayService } from '@app/services/loading-overlay.service';
 import { LoggerService } from '@app/services/logger.service';
 import { UtilsService } from '@app/services/utils.service';
 import { magic } from '@environments/constants';
+
+import { createTaskAvailabilitiesTable, createTaskRolesTable, updateTaskGroupRelation } from '../../tasks-shared/task-relation-tables';
 
 interface DocumentExportTaskProperties {
   [key: string]: unknown;
@@ -193,7 +193,7 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
 
     const groupId = this.entityForm.get('taskGroupId')?.value;
     if (typeof groupId === 'number') {
-      await firstValueFrom(entityCreated.updateRelationEx('group', this.taskGroupService.createProxy(groupId)));
+      await updateTaskGroupRelation(entityCreated, groupId, this.taskGroupService);
     }
 
     return entityCreated.id;
@@ -205,7 +205,7 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
 
     const groupId = this.entityForm.get('taskGroupId')?.value;
     if (typeof groupId === 'number') {
-      await firstValueFrom(this.entityToEdit.updateRelationEx('group', this.taskGroupService.createProxy(groupId)));
+      await updateTaskGroupRelation(this.entityToEdit, groupId, this.taskGroupService);
     }
   }
 
@@ -244,73 +244,26 @@ export class TaskDocumentExportFormComponent extends BaseFormComponent<TaskProje
   }
 
   private defineRolesTable(): DataTableDefinition<Role, Role> {
-    return DataTableDefinition.builder<Role, Role>(this.dialog, this.errorHandler, this.loadingService)
-      .withRelationsColumns([
-        this.utils.getSelCheckboxColumnDef(),
-        this.utils.getRouterLinkColumnDef('common.form.name', 'name', '/role/:id/roleForm', { id: 'id' }),
-        this.utils.getNonEditableColumnDef('common.form.description', 'description'),
-        this.utils.getStatusColumnDef(),
-      ])
-      .withRelationsOrder('name')
-      .withRelationsFetcher(() => {
-        if (this.isNew()) {
-          return of([]);
-        }
-        return this.entityToEdit.getRelationArrayEx(Role, 'roles', { projection: 'view' });
-      })
-      .withRelationsUpdater(async (roles: (Role & Status)[]) => {
-        await onUpdatedRelation(roles).forAll((item) => this.entityToEdit.substituteAllRelation('roles', item));
-      })
-      .withTargetsColumns([
-        this.utils.getSelCheckboxColumnDef(),
-        this.utils.getNonEditableColumnDef('common.form.name', 'name'),
-        this.utils.getNonEditableColumnDef('common.form.description', 'description'),
-      ])
-      .withTargetsOrder('name')
-      .withTargetsFetcher(() => this.roleService.fetchAllItems())
-      .withTargetsTitle(this.translateService.instant('entity.task.roles.title'))
-      .build();
+    return createTaskRolesTable(this.relationTableContext());
   }
 
   private defineAvailabilitiesTable(): DataTableDefinition<TaskAvailabilityProjection, TerritoryProjection> {
-    return DataTableDefinition.builder<TaskAvailabilityProjection, TerritoryProjection>(this.dialog, this.errorHandler, this.loadingService)
-      .withRelationsColumns([
-        this.utils.getSelCheckboxColumnDef(),
-        this.utils.getRouterLinkColumnDef('common.form.name', 'territoryName', '/territory/:id/territoryForm', { id: 'territoryId' }),
-        this.utils.getNonEditableColumnDef('common.form.code', 'territoryCode'),
-        this.utils.getNonEditableColumnDef('common.form.type', 'territoryTypeName'),
-        this.utils.getNonEditableDateColumnDef('common.form.created', 'createdDate'),
-        this.utils.getStatusColumnDef(),
-      ])
-      .withRelationsOrder('territoryName')
-      .withRelationsFetcher(() => {
-        if (!this.isNew()) {
-          return this.entityToEdit.getRelationArrayEx(TaskAvailabilityProjection, 'availabilities', { projection: 'view' });
-        }
-        return of([]);
-      })
-      .withRelationsUpdater(async (availabilities: (TaskAvailabilityProjection & Status)[]) => {
-        await onDelete(availabilities).forEach((item) => this.taskAvailabilityService.delete(this.taskAvailabilityService.createProxy(item.id)));
-        await onCreate(availabilities)
-          .map((item) => TaskAvailability.of(this.taskService.createProxy(this.entityID), this.territoryService.createProxy(item.territoryId)))
-          .forEach((item) => this.taskAvailabilityService.create(item));
-        availabilities.forEach((item) => {
-          item.newItem = false;
-        });
-      })
-      .withTargetsColumns([
-        this.utils.getSelCheckboxColumnDef(),
-        this.utils.getNonEditableColumnDef('common.form.name', 'name'),
-        this.utils.getNonEditableColumnDef('common.form.code', 'code'),
-        this.utils.getNonEditableColumnDef('common.form.type', 'typeName'),
-      ])
-      .withTargetsOrder('name')
-      .withTargetsFetcher(() => this.territoryService.fetchAllProjectionItems(TerritoryProjection))
-      .withTargetInclude((availabilities: TaskAvailabilityProjection[]) => (item: TerritoryProjection) => {
-        return !availabilities.some((availability) => availability.territoryId === item.id);
-      })
-      .withTargetToRelation((items: TerritoryProjection[]) => items.map((item) => TaskAvailabilityProjection.of(this.entityToEdit, item)))
-      .withTargetsTitle(this.translateService.instant('entity.task.territories.title'))
-      .build();
+    return createTaskAvailabilitiesTable(this.relationTableContext());
+  }
+
+  private relationTableContext() {
+    return {
+      dialog: this.dialog,
+      errorHandler: this.errorHandler,
+      loadingService: this.loadingService,
+      utils: this.utils,
+      roleService: this.roleService,
+      territoryService: this.territoryService,
+      taskAvailabilityService: this.taskAvailabilityService,
+      taskService: this.taskService,
+      isNew: () => this.isNew(),
+      entity: this.entityToEdit,
+      entityId: this.entityID,
+    };
   }
 }

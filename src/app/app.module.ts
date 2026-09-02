@@ -52,10 +52,10 @@ import {ExternalUrlLinkComponent} from '@app/components/shared/external-url-link
 import {FormToolbarComponent} from '@app/components/shared/form-toolbar/form-toolbar.component';
 import {NotificationComponent} from '@app/components/shared/notification/notification.component';
 import {RelationGridComponent} from '@app/components/shared/relation-grid/relation-grid.component';
+import {SafeHtmlPreviewComponent} from '@app/components/shared/safe-html-preview/safe-html-preview.component';
 import {SideMenuComponent} from '@app/components/shared/side-menu/side-menu.component';
 import {ToolbarComponent} from '@app/components/shared/toolbar/toolbar.component';
 import {WarningsPanelComponent} from '@app/components/shared/warnings-panel/warnings-panel.component';
-import {SafeHtmlPreviewComponent} from '@app/components/shared/safe-html-preview/safe-html-preview.component';
 import {TaskGroupFormComponent} from '@app/components/task-group/task-group-form/task-group-form.component';
 import {TaskGroupComponent} from '@app/components/task-group/task-group.component';
 import {TaskTypeFormComponent} from '@app/components/task-type/task-type-form/task-type-form.component';
@@ -68,10 +68,10 @@ import {TaskDocumentExportFormComponent} from '@app/components/tasks-document-ex
 import {TasksDocumentExportComponent} from '@app/components/tasks-document-export/tasks-document-export.component';
 import {TaskEditFormComponent} from '@app/components/tasks-edit/task-form/task-edit-form.component';
 import {TasksEditComponent} from '@app/components/tasks-edit/tasks-edit.component';
-import {TaskMapImageFormComponent} from '@app/components/tasks-map-image/task-form/task-map-image-form.component';
-import {TasksMapImageComponent} from '@app/components/tasks-map-image/tasks-map-image.component';
 import {TaskLocatorFormComponent} from '@app/components/tasks-locator/task-form/task-locator-form.component';
 import {TasksLocatorComponent} from '@app/components/tasks-locator/tasks-locator.component';
+import {TaskMapImageFormComponent} from '@app/components/tasks-map-image/task-form/task-map-image-form.component';
+import {TasksMapImageComponent} from '@app/components/tasks-map-image/tasks-map-image.component';
 import {TaskMoreInfoFormComponent} from "@app/components/tasks-more-info/task-form/task-more-info-form.component";
 import {TasksMoreInfoComponent} from "@app/components/tasks-more-info/tasks-more-info.component";
 import {TaskMoreInfoAdvancedFormComponent} from '@app/components/tasks-more-info-advanced/task-form/task-more-info-advanced-form.component';

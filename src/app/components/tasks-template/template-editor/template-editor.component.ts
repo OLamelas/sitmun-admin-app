@@ -13,6 +13,7 @@ import {
   handlebarsSystemVariableHtmlAttribute,
   isSystemVariableMustache,
 } from './handlebars-system-variable.extension';
+import { htmlCommentHtmlAttribute } from './html-comment.extension';
 import {
   PDF_FOOTER_CLASS,
   PDF_FOOTER_CLASSES,
@@ -23,108 +24,11 @@ import {
   PDF_REGION_CLASSES,
   PDF_REGION_NODE_TYPES,
 } from './pdf-region.constants';
-import { htmlCommentHtmlAttribute } from './html-comment.extension';
 import { scrubTipTapTableSerializeArtifacts } from './sitmun-table.extension';
 import { createTemplateEditorExtensions } from './template-editor-extensions';
+import * as templateTransformations from './template-editor-transformations';
 import { TemplateHtmlValidatorService, TemplateValidationResult } from './template-html-validator.service';
 import { translationLiteralHtmlAttribute, translationLiteralSelector } from './translation-literal.extension';
-
-const CHIP_SKIP_OPENERS: Array<{ attr: string; openTag: string; closeTag: string }> = [
-  { attr: handlebarsExpressionHtmlAttribute, openTag: 'span', closeTag: '</span>' },
-  { attr: handlebarsSystemVariableHtmlAttribute, openTag: 'span', closeTag: '</span>' },
-  { attr: handlebarsBlockHtmlAttribute, openTag: 'div', closeTag: '</div>' },
-  { attr: htmlCommentHtmlAttribute, openTag: 'div', closeTag: '</div>' },
-  { attr: handlebarsBlockHtmlAttribute, openTag: 'tr', closeTag: '</tr>' },
-];
-
-export function updateHtmlClass(
-  value: string | null | undefined,
-  add: string | null,
-  remove: string[],
-): string | null {
-  const classes = new Set((value || '').split(/\s+/).filter(Boolean));
-  remove.forEach((className) => classes.delete(className));
-  if (add) {
-    classes.add(add);
-  }
-  return classes.size > 0 ? Array.from(classes).join(' ') : null;
-}
-
-export function resolveSelectedPdfRegionNode(
-  selection: Selection,
-): { node: ProseMirrorNode; pos: number } | null {
-  if (selection instanceof NodeSelection && PDF_REGION_NODE_TYPES.has(selection.node.type.name)) {
-    return { node: selection.node, pos: selection.from };
-  }
-
-  if (selection.$from.depth < 1) {
-    return null;
-  }
-
-  for (let depth = selection.$from.depth; depth >= 1; depth--) {
-    const node = selection.$from.node(depth);
-    const classes = String(node.attrs['class'] || '').split(/\s+/);
-    if (
-      PDF_REGION_NODE_TYPES.has(node.type.name) &&
-      classes.some((className) => PDF_REGION_CLASSES.has(className))
-    ) {
-      return { node, pos: selection.$from.before(depth) };
-    }
-  }
-
-  for (let depth = selection.$from.depth; depth >= 1; depth--) {
-    const node = selection.$from.node(depth);
-    if (node.type.name === 'bulletList' || node.type.name === 'orderedList') {
-      return { node, pos: selection.$from.before(depth) };
-    }
-  }
-
-  for (let depth = selection.$from.depth; depth >= 1; depth--) {
-    const node = selection.$from.node(depth);
-    if (PDF_REGION_NODE_TYPES.has(node.type.name)) {
-      return { node, pos: selection.$from.before(depth) };
-    }
-  }
-
-  return null;
-}
-
-export function normalizeHandlebarsMarkup(html: string): string {
-  // Triple-first so TipTap-split `{{{` fragments are not truncated at the first `}}`.
-  return (html || '').replace(/\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?}}/g, (placeholder) => {
-    if (/<\/?(?:p|div|section|article|table|thead|tbody|tfoot|tr|td|th|ul|ol|li|h[1-6]|blockquote|pre|br)\b/i.test(placeholder)) {
-      return placeholder;
-    }
-
-    return placeholder.replace(/<[^>]+>/g, '');
-  });
-}
-
-export function normalizeEditorColorValue(value: string | null | undefined, fallback: string): string {
-  if (!value) {
-    return fallback;
-  }
-
-  const normalizedValue = value.trim();
-  if (/^#[0-9a-f]{6}$/i.test(normalizedValue)) {
-    return normalizedValue;
-  }
-
-  const shortHexMatch = normalizedValue.match(/^#([0-9a-f]{3})$/i);
-  if (shortHexMatch) {
-    return `#${shortHexMatch[1].split('').map((part) => `${part}${part}`).join('')}`;
-  }
-
-  const rgbMatch = normalizedValue.match(/^rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*[\d.]+)?\)$/i);
-  if (rgbMatch) {
-    return `#${rgbMatch
-      .slice(1, 4)
-      .map((part) => Number(part).toString(16).padStart(2, '0'))
-      .join('')}`;
-  }
-
-  return fallback;
-}
 
 /**
  * Pre-pass: turn `#each`/`#if` between table rows into synthetic chip rows TipTap can keep in tbody.
@@ -410,7 +314,7 @@ export function transformHtmlTextSegments(html: string, transformText: (text: st
 
 /** If {@code index} opens a known chip, return index after its closing tag; else null. */
 function matchChipSkip(source: string, index: number): number | null {
-  for (const chip of CHIP_SKIP_OPENERS) {
+  for (const chip of templateTransformations.CHIP_SKIP_OPENERS) {
     const openPattern = new RegExp(`^<${chip.openTag}\\b[^>]*\\b${chip.attr}\\b[^>]*>`, 'i');
     const openMatch = openPattern.exec(source.slice(index));
     if (!openMatch) {
@@ -574,7 +478,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
       return;
     }
 
-    const nextHtml = normalizeHandlebarsMarkup(changes['html'].currentValue || '');
+    const nextHtml = templateTransformations.normalizeHandlebarsMarkup(changes['html'].currentValue || '');
     if (this.syncingFromInput) {
       return;
     }
@@ -630,7 +534,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
   }
 
   onHtmlSourceChanged(html: string): void {
-    const normalizedHtml = normalizeHandlebarsMarkup(html);
+    const normalizedHtml = templateTransformations.normalizeHandlebarsMarkup(html);
     this.htmlSource = normalizedHtml;
 
     const validation = this.validator.validate(normalizedHtml);
@@ -1049,8 +953,8 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
 
     const container = document.createElement('div');
     container.appendChild(range.cloneContents());
-    const selectedHtml = normalizeHandlebarsMarkup(
-      restoreHandlebarsChipsFromHtml(container.innerHTML || domSelection.toString()),
+    const selectedHtml = templateTransformations.normalizeHandlebarsMarkup(
+      templateTransformations.restoreHandlebarsChipsFromHtml(container.innerHTML || domSelection.toString()),
     );
     if (!selectedHtml.trim()) {
       this.showInteractionError('entity.task.template.editor.invalidSelection');
@@ -1122,7 +1026,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
   }
 
   private applyIncomingHtml(nextHtml: string, initialLoad: boolean): void {
-    this.htmlSource = normalizeHandlebarsMarkup(nextHtml || '');
+    this.htmlSource = templateTransformations.normalizeHandlebarsMarkup(nextHtml || '');
     const validation = this.validator.validate(this.htmlSource);
     this.publishValidation(validation);
 
@@ -1169,7 +1073,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
     }
 
     this.syncingFromInput = true;
-    this.editor.commands.setContent(protectTemplateEditorHtml(html || ''), false);
+    this.editor.commands.setContent(templateTransformations.protectTemplateEditorHtml(html || ''), false);
     this.syncingFromInput = false;
     this.syncSelectionState();
   }
@@ -1180,7 +1084,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
       return;
     }
 
-    if (!editorHtmlHasUnprotectedMustaches(this.editor.getHTML())) {
+    if (!templateTransformations.editorHtmlHasUnprotectedMustaches(this.editor.getHTML())) {
       return;
     }
 
@@ -1196,7 +1100,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
    */
   private serializeEditorHtml(): string {
     if (!this.editor) {
-      return normalizeHandlebarsMarkup(this.htmlSource || '');
+      return templateTransformations.normalizeHandlebarsMarkup(this.htmlSource || '');
     }
 
     const doc = new DOMParser().parseFromString(this.editor.getHTML(), 'text/html');
@@ -1204,7 +1108,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
       table.removeAttribute('data-sitmun-each-alias');
     }
 
-    restoreHandlebarsChipsInDocument(doc);
+    templateTransformations.restoreHandlebarsChipsInDocument(doc);
     scrubTipTapTableSerializeArtifacts(doc.body);
 
     const translationNodes = Array.from(doc.body.querySelectorAll<HTMLElement>(translationLiteralSelector));
@@ -1214,7 +1118,9 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
       node.replaceWith(literal);
     }
 
-    return normalizeHandlebarsMarkup(restoreHtmlCommentMarkers(doc.body.innerHTML));
+    return templateTransformations.normalizeHandlebarsMarkup(
+      templateTransformations.restoreHtmlCommentMarkers(doc.body.innerHTML),
+    );
   }
 
   private publishValidation(validation: TemplateValidationResult): void {
@@ -1341,8 +1247,8 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
       }
 
       const nextClass = isSelectedNode
-        ? updateHtmlClass(currentClass, removeSelectedMarker ? null : targetClass, [...PDF_REGION_CLASSES])
-        : updateHtmlClass(currentClass, null, [...categoryClasses]);
+         ? templateTransformations.updateHtmlClass(currentClass, removeSelectedMarker ? null : targetClass, [...PDF_REGION_CLASSES])
+         : templateTransformations.updateHtmlClass(currentClass, null, [...categoryClasses]);
       if ((nextClass || '') !== currentClass) {
         transaction = transaction.setNodeMarkup(pos, undefined, { ...node.attrs, class: nextClass });
       }
@@ -1360,7 +1266,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
       return null;
     }
 
-    return resolveSelectedPdfRegionNode(this.editor.state.selection);
+    return templateTransformations.resolveSelectedPdfRegionNode(this.editor.state.selection);
   }
 
   private syncTableEachAliasState(): void {
@@ -1407,7 +1313,7 @@ export class TemplateEditorComponent implements AfterViewInit, OnChanges, OnDest
   }
 
   private normalizeColorValue(value: string | null | undefined, fallback: string): string {
-    return normalizeEditorColorValue(value, fallback);
+    return templateTransformations.normalizeEditorColorValue(value, fallback);
   }
 
   private normalizeFontSize(value: string | null | undefined): string {

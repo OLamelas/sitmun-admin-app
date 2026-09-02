@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+
 import { of } from 'rxjs';
 
 import { magic } from '@environments/constants';

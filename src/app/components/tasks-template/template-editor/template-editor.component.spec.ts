@@ -15,9 +15,9 @@ import {
   readMustache,
   restoreHandlebarsChipsFromHtml,
   resolveSelectedPdfRegionNode,
-  TemplateEditorComponent,
   updateHtmlClass,
-} from './template-editor.component';
+} from './template-editor-transformations';
+import { TemplateEditorComponent } from './template-editor.component';
 import { TemplateHtmlValidatorService } from './template-html-validator.service';
 
 const createSpyObj = (methods: string[]): Record<string, jest.Mock> =>

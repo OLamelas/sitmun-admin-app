@@ -42,10 +42,10 @@ import {TaskDocumentExportFormComponent} from '@app/components/tasks-document-ex
 import {TasksDocumentExportComponent} from '@app/components/tasks-document-export/tasks-document-export.component';
 import {TaskEditFormComponent} from '@app/components/tasks-edit/task-form/task-edit-form.component';
 import {TasksEditComponent} from '@app/components/tasks-edit/tasks-edit.component';
-import {TaskMapImageFormComponent} from '@app/components/tasks-map-image/task-form/task-map-image-form.component';
-import {TasksMapImageComponent} from '@app/components/tasks-map-image/tasks-map-image.component';
 import {TaskLocatorFormComponent} from '@app/components/tasks-locator/task-form/task-locator-form.component';
 import {TasksLocatorComponent} from '@app/components/tasks-locator/tasks-locator.component';
+import {TaskMapImageFormComponent} from '@app/components/tasks-map-image/task-form/task-map-image-form.component';
+import {TasksMapImageComponent} from '@app/components/tasks-map-image/tasks-map-image.component';
 import {TaskMoreInfoFormComponent} from '@app/components/tasks-more-info/task-form/task-more-info-form.component';
 import {TasksMoreInfoComponent} from '@app/components/tasks-more-info/tasks-more-info.component';
 import {TaskMoreInfoAdvancedFormComponent} from '@app/components/tasks-more-info-advanced/task-form/task-more-info-advanced-form.component';

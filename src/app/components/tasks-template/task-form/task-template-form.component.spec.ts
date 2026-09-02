@@ -3,8 +3,6 @@ import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { DomSanitizer } from '@angular/platform-browser';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
@@ -46,6 +44,35 @@ describe('TaskTemplateFormComponent preview link clicks', () => {
     } as unknown as MouseEvent;
 
     (component as any).onPreviewPanelClick(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining('https://example.test/photo.jpg'),
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    openSpy.mockRestore();
+    panel.remove();
+  });
+
+  it('opens navigable preview links on keyboard activation', () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const panel = document.createElement('div');
+    const anchor = document.createElement('a');
+    anchor.href = 'https://example.test/photo.jpg';
+    anchor.textContent = 'open photo';
+    panel.appendChild(anchor);
+    document.body.appendChild(panel);
+
+    const component = Object.create(TaskTemplateFormComponent.prototype) as TaskTemplateFormComponent;
+    const event = {
+      target: anchor,
+      preventDefault: jest.fn(),
+      stopPropagation: jest.fn(),
+    } as unknown as Event;
+
+    (component as any).onPreviewPanelKeydown(event);
 
     expect(event.preventDefault).toHaveBeenCalled();
     expect(openSpy).toHaveBeenCalledWith(
