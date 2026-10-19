@@ -1,3 +1,5 @@
+import { normalizeSrs } from './srs';
+
 export interface WfsCartographyRow {
   name: string;
   description: string;
@@ -130,9 +132,9 @@ function srsValues(featureType: Record<string, unknown>): string[] {
   const values: string[] = [];
   SRS_LOCAL_NAMES.forEach((localName) => {
     asList(child(featureType, localName)).forEach((item) => {
-      const text = textOf(item);
-      if (text && !values.includes(text)) {
-        values.push(text);
+      const normalized = normalizeSrs(textOf(item));
+      if (normalized && !values.includes(normalized)) {
+        values.push(normalized);
       }
     });
   });

@@ -24,8 +24,8 @@ describe('mapWfsCapabilities', () => {
       title: 'Parcel service',
       abstract: 'Parcels and roads',
       supportedSRS: [
-        'urn:ogc:def:crs:EPSG::25831',
-        'urn:ogc:def:crs:EPSG::4326',
+        'EPSG:25831',
+        'EPSG:4326',
         'EPSG:3857',
       ],
       layers: [
@@ -49,6 +49,37 @@ describe('mapWfsCapabilities', () => {
     })).toEqual([
       { Name: 'app:roads', Title: 'Roads', Abstract: 'Road centerlines' },
     ]);
+  });
+
+  it('normalizes WFS 1.1 EPSG URNs to SITMUN SRS identifiers', () => {
+    const mapped = mapWfsCapabilities({
+      WFS_Capabilities: {
+        FeatureTypeList: {
+          FeatureType: {
+            Name: 'menorca:roads',
+            DefaultSRS: 'urn:x-ogc:def:crs:EPSG:25831',
+            OtherSRS: ['urn:x-ogc:def:crs:EPSG:6.6:4326'],
+          },
+        },
+      },
+    });
+
+    expect(mapped?.supportedSRS).toEqual(['EPSG:25831', 'EPSG:4326']);
+  });
+
+  it('keeps unrecognized CRS identifiers unchanged', () => {
+    const mapped = mapWfsCapabilities({
+      WFS_Capabilities: {
+        FeatureTypeList: {
+          FeatureType: {
+            Name: 'menorca:roads',
+            DefaultSRS: 'urn:ogc:def:crs:OTHER::local-grid',
+          },
+        },
+      },
+    });
+
+    expect(mapped?.supportedSRS).toEqual(['urn:ogc:def:crs:OTHER::local-grid']);
   });
 
   it('reads unprefixed WFS 1.0 Service metadata and a FeatureType list', () => {
