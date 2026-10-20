@@ -1,4 +1,3 @@
-import {CommonModule} from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -11,7 +10,8 @@ import {
   SimpleChanges,
   ViewChild,
   DestroyRef,
-  inject
+  inject,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {FormsModule} from '@angular/forms';
@@ -27,7 +27,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {AgGridModule} from '@ag-grid-community/angular';
 import {ClientSideRowModelModule} from '@ag-grid-community/client-side-row-model';
-import {GridOptions, ModuleRegistry} from '@ag-grid-community/core';
+import {CommunityFeaturesModule, GridOptions, ModuleRegistry} from '@ag-grid-community/core';
 import {CsvExportModule} from '@ag-grid-community/csv-export';
 import {InfiniteRowModelModule} from '@ag-grid-community/infinite-row-model';
 import {TranslateModule, TranslateService} from '@ngx-translate/core';
@@ -61,9 +61,11 @@ import {DialogMessageComponent} from '../dialog-message/dialog-message.component
 import {EditableLinkRendererComponent} from '../editable-link-renderer/editable-link-renderer.component';
 import {RouterLinkRendererComponent} from '../router-link-renderer/router-link-renderer.component';
 
-// Removed jQuery dependency
-
+// AG Grid 32 moved editors/filters into CommunityFeaturesModule; without it,
+// inline editors never mount. Date columns still use the grid's datePicker
+// component (Instant-safe); CommunityFeaturesModule covers text/select editors.
 ModuleRegistry.registerModules([
+  CommunityFeaturesModule,
   ClientSideRowModelModule,
   InfiniteRowModelModule,
   CsvExportModule
@@ -239,21 +241,21 @@ export class Executor<T> {
 
     `],
   standalone: true,
+    changeDetection: ChangeDetectionStrategy.Eager,
     imports: [
-        CommonModule,
-        MatButtonModule,
-        MatTooltipModule,
-        MatDialogModule,
-        MatToolbarModule,
-        MatMenuModule,
-        MatIconModule,
-        MatInputModule,
-        TranslateModule,
-        AgGridModule,
-        MatButtonToggleModule,
-        MatCardModule,
-        FormsModule,
-    ]
+    MatButtonModule,
+    MatTooltipModule,
+    MatDialogModule,
+    MatToolbarModule,
+    MatMenuModule,
+    MatIconModule,
+    MatInputModule,
+    TranslateModule,
+    AgGridModule,
+    MatButtonToggleModule,
+    MatCardModule,
+    FormsModule
+]
 })
 export class DataGridComponent implements OnInit, OnDestroy, OnChanges {
   /** Tracks if this is the first time loading data */

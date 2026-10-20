@@ -1,5 +1,5 @@
 import {Location} from '@angular/common';
-import {Component, Injectable, Injector, NgZone} from '@angular/core';
+import {Component, Injectable, Injector, NgZone, ChangeDetectionStrategy} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 
 import {ICellRendererAngularComp} from '@ag-grid-community/angular';
@@ -434,6 +434,10 @@ export class UtilsService {
       filter: 'agDateColumnFilter',
       filterParams: this.getDateFilterParams(options),
       editable: editable ?? false,
+      // HAL Instant ISO strings are not AG Grid dateString (YYYY-MM-DD). Leaving
+      // cellDataType on lets DataTypeModule infer "text", then
+      // agDateStringCellEditor crashes: getDateParserFunction is not a function.
+      cellDataType: false,
       emptyValueKey: options?.emptyValueKey,
       headerTooltip: options?.headerTooltipKey
         ? this.getTranslate(options.headerTooltipKey)
@@ -444,7 +448,8 @@ export class UtilsService {
         }
         return this.getDateFormated(data);
       },
-      cellEditor: 'agDateStringCellEditor',
+      // Native datePicker parses Instant via Date(); agDateStringCellEditor does not.
+      cellEditor: 'datePicker',
       cellClass: (editable ?? false) ? null : 'read-only-cell'
     };
   }
@@ -1070,6 +1075,7 @@ export class UtilsService {
 @Component({
   selector: 'app-empty-renderer',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '<div></div>'
 })
 export class EmptyRendererComponent implements ICellRendererAngularComp {
