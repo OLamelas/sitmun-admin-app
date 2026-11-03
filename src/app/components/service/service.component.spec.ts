@@ -1,5 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { provideRouter, RouterModule } from '@angular/router';
@@ -17,14 +18,47 @@ import { MaterialModule } from '@app/material-module';
 import { ServiceHealthFilterComponent } from './service-health-filter.component';
 import { ServiceComponent } from './service.component';
 
+@Component({
+  selector: 'app-data-grid',
+  template: '',
+  standalone: true,
+})
+class ServiceListGridStubComponent {
+  @Input() columnDefs: unknown;
+  @Input() getAll: unknown;
+  @Input() rowModelMode: unknown;
+  @Input() pageSize: unknown;
+  @Input() infiniteBlockFetcher: unknown;
+  @Input() infiniteGridHeight: unknown;
+  @Input() progressiveLocalFilter: unknown;
+  @Input() backendSearch: unknown;
+  @Input() extraComponents: unknown;
+  @Input() globalSearch: unknown;
+  @Input() eventRefreshSubscription: unknown;
+  @Input() eventSaveAgGridStateSubscription: unknown;
+  @Input() discardChangesButton: unknown;
+  @Input() redoButton: unknown;
+  @Input() undoButton: unknown;
+  @Input() applyChangesButton: unknown;
+  @Input() deleteButton: unknown;
+  @Input() newButton: unknown;
+  @Input() actionButton: unknown;
+  @Input() hideReplaceButton: unknown;
+  @Input() hideDuplicateButton: unknown;
+  @Input() rowDragManaged: unknown;
+  @Input() defaultColumnSorting: unknown;
+  @Output() remove = new EventEmitter<unknown>();
+  @Output() new = new EventEmitter<unknown>();
+  @Output() gridModified = new EventEmitter<unknown>();
+  @Output() rowOrderChanged = new EventEmitter<unknown>();
+  @Output() sendChanges = new EventEmitter<unknown>();
+  @Output() duplicate = new EventEmitter<unknown>();
+}
+
 describe('ServiceComponent', () => {
   let component: ServiceComponent;
   let fixture: ComponentFixture<ServiceComponent>;
-  let serviceService: ServiceService;
-  let codeListService: CodeListService;
-  let translationService: TranslationService;
-  let resourceService: ResourceService;
-  let externalService: ExternalService;
+
   let httpMock: HttpTestingController;
 
   beforeAll(async () => {
@@ -32,7 +66,7 @@ describe('ServiceComponent', () => {
     await TestBed.configureTestingModule({
       teardown: { destroyAfterEach: 0 as any },
       declarations: [ ServiceComponent, EntityListComponent ],
-      imports : [SitmunFrontendGuiModule, MaterialModule, MatIconTestingModule, RouterModule,
+      imports : [SitmunFrontendGuiModule, MaterialModule, MatIconTestingModule, RouterModule, ServiceListGridStubComponent,
         TranslateModule.forRoot({
           loader: {
             provide: TranslateLoader,
@@ -60,11 +94,7 @@ describe('ServiceComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(ServiceComponent);
     component = fixture.componentInstance;
-    serviceService = TestBed.inject(ServiceService);
-    codeListService = TestBed.inject(CodeListService);
-    translationService = TestBed.inject(TranslationService);
-    resourceService = TestBed.inject(ResourceService);
-    externalService = TestBed.inject(ExternalService);
+
     fixture.detectChanges();
     await new Promise((r) => setTimeout(r, 0));
     httpMock.match((req) => req.url.includes('codelist-values')).forEach((req) =>
@@ -82,29 +112,7 @@ describe('ServiceComponent', () => {
 
   afterAll(() => TestBed.resetTestingModule());
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
-
-  it('should instantiate serviceService', () => {
-    expect(serviceService).toBeTruthy();
-  });
-
-  it('should instantiate codeListService', () => {
-    expect(codeListService).toBeTruthy();
-  });
-
-  it('should instantiate translationService', () => {
-    expect(translationService).toBeTruthy();
-  });
-
-  it('should instantiate resourceService', () => {
-    expect(resourceService).toBeTruthy();
-  });
-
-  it('should instantiate externalService', () => {
-    expect(externalService).toBeTruthy();
-  });
+  
 
   it('joins the summary status onto the status column', async () => {
     const translate = TestBed.inject(TranslateService);

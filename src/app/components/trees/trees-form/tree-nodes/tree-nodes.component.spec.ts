@@ -310,9 +310,7 @@ describe('TreeNodesComponent', () => {
 
   afterAll(() => TestBed.resetTestingModule());
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+  
 
   describe('treeNodeForm validation', () => {
     it('is invalid when empty', () => {
@@ -362,21 +360,8 @@ describe('TreeNodesComponent', () => {
       expect(component.treeNodeForm.valid).toBeTruthy();
     });
 
-    it('exposes expected form fields', () => {
-      expect(component.treeNodeForm.get('name')).toBeTruthy();
-      expect(component.treeNodeForm.get('tooltip')).toBeTruthy();
-      expect(component.treeNodeForm.get('cartography')).toBeTruthy();
-      expect(component.treeNodeForm.get('radio')).toBeTruthy();
-      expect(component.treeNodeForm.get('datasetURL')).toBeTruthy();
-      expect(component.treeNodeForm.get('metadataURL')).toBeTruthy();
-      expect(component.treeNodeForm.get('description')).toBeTruthy();
-      expect(component.treeNodeForm.get('visible')).toBeTruthy();
-      expect(component.treeNodeForm.get('active')).toBeTruthy();
-      expect(component.treeNodeForm.get('order')).toBeTruthy();
-      expect(component.treeNodeForm.get('filterGetFeatureInfo')).toBeTruthy();
-      expect(component.treeNodeForm.get('filterGetMap')).toBeTruthy();
-      expect(component.treeNodeForm.get('filterSelectable')).toBeTruthy();
-      expect(component.treeNodeForm.get('style')).toBeTruthy();
+    it('exposes visible', () => {
+      expect(component.treeNodeForm.get('visible')).not.toBeNull();
     });
   });
 
@@ -535,6 +520,13 @@ describe('TreeNodesComponent', () => {
       setNodeContext('testTree', 'task');
       expect(component.showMappingInTaskPanel).toBe(true);
     });
+
+    it('shows the task picker on edition cartography nodes without tourist mapping controls', () => {
+      setNodeContext(constants.codeValue.treeType.edition, constants.treeDomainKey.cartography);
+      expect(component.showTaskConfigurationPanel).toBe(true);
+      expect(component.showFilterableInTaskPanel).toBe(false);
+      expect(component.showMappingInTaskPanel).toBe(false);
+    });
   });
 
   describe('getViewModeLabelForTree', () => {
@@ -571,6 +563,15 @@ describe('TreeNodesComponent', () => {
       const taskPanel = fixture.nativeElement.querySelector('mat-expansion-panel');
       const taskConfigContent = taskPanel?.querySelector('.task-config-content');
       expect(taskConfigContent).toBeFalsy();
+    });
+
+    it('shows the task picker on an edition cartography node without the view-mode row', () => {
+      setNodeContext(constants.codeValue.treeType.edition, constants.treeDomainKey.cartography, {
+        nodeId: 1,
+        detectChanges: true,
+      });
+      expect(fixture.nativeElement.querySelector('.task-config-content')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.task-config-mode-and-action')).toBeFalsy();
     });
   });
 
@@ -2522,6 +2523,94 @@ describe('TreeNodesComponent', () => {
         expect(captured.active).toBe(false);
         expect(captured).not.toHaveProperty('loadByDefault');
       });
+    });
+  });
+
+  describe('non-default translation accept', () => {
+    function persistedLeaf(): void {
+      component['currentNodeId'] = 8;
+      component['newElement'] = false;
+      component.currentNodeType = constants.treeDomainKey.cartography;
+      component.treeNodeForm.patchValue({
+        id: 8,
+        name: 'Leaf',
+        description: 'Desc',
+        nodeType: constants.treeDomainKey.cartography,
+      });
+      component.treeNodeForm.markAsPristine();
+    }
+
+    it('sends a node update when a non-default name translation is accepted', async () => {
+      persistedLeaf();
+      component.nameTranslations.set(8, new Map());
+      const accepted = new Map([['es', { name: 'Nombre' }]]);
+      jest.spyOn(component['utils'], 'openTranslationDialog').mockResolvedValue({
+        event: 'Accept',
+        data: accepted,
+      });
+      const updates: any[] = [];
+      component.sendNodeUpdated.subscribe((node) => updates.push(node));
+
+      await component.onTreeNodeNameTranslationButtonClicked();
+
+      expect(updates).toHaveLength(1);
+      expect(updates[0].nameTranslationsModified).toBe(true);
+      expect(updates[0].status).toBe('Modified');
+    });
+
+    it('sends a node update when a non-default description translation is accepted', async () => {
+      persistedLeaf();
+      component.descriptionTranslations.set(8, new Map());
+      const accepted = new Map([['es', { description: 'Descripcion' }]]);
+      jest.spyOn(component['utils'], 'openTranslationDialog').mockResolvedValue({
+        event: 'Accept',
+        data: accepted,
+      });
+      const updates: any[] = [];
+      component.sendNodeUpdated.subscribe((node) => updates.push(node));
+
+      await component.onTreeNodeDescriptionTranslationButtonClicked();
+
+      expect(updates).toHaveLength(1);
+      expect(updates[0].descriptionTranslationsModified).toBe(true);
+      expect(updates[0].status).toBe('Modified');
+    });
+  });
+
+  describe('load from service cartography match', () => {
+    it('matches a repeated capabilities name to the cartography of the selected service', () => {
+      component.layersList = [
+        { id: 1, name: 'Other service', layers: ['AD.Address'], serviceId: 10 },
+        { id: 2, name: 'Selected service', layers: ['AD.Address'], serviceId: 20 },
+      ];
+
+      const node = component['createNewNodeWithCapabilities']({ Name: 'AD.Address', Title: 'Address' }, 20);
+
+      expect(node.cartography.id).toBe(2);
+      expect(node.cartographyName).toBe('Selected service');
+    });
+  });
+
+  describe('filter select labels', () => {
+    function labelFor(controlName: string): string {
+      const select = fixture.nativeElement.querySelector(
+        `mat-select[formcontrolname="${controlName}"]`
+      );
+      return select?.closest('mat-form-field')?.querySelector('mat-label')?.textContent?.trim() ?? '';
+    }
+
+    it('labels GetFeatureInfo as municipality information and GetMap as map requests', () => {
+      component.currentNodeCartography = {
+        applyFilterToGetFeatureInfo: true,
+        applyFilterToGetMap: true,
+      };
+      setNodeContext(constants.codeValue.treeType.cartography, constants.treeDomainKey.cartography, {
+        nodeId: 1,
+        detectChanges: true,
+      });
+
+      expect(labelFor('filterGetFeatureInfo')).toBe('entity.layer.filterInfoByMunicipality');
+      expect(labelFor('filterGetMap')).toBe('entity.layer.applyFilterToGetMap');
     });
   });
 

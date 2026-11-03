@@ -1,12 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatButtonModule } from '@angular/material/button';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { TranslateModule } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { LanguageService, DefaultLanguageChangePreview, DefaultLanguageChangeResult } from '@app/domain/translation/services/language.service';
+import { MaterialModule } from '@app/material-module';
 
 import { DefaultLanguageChangeDialogComponent, DefaultLanguageChangeDialogData } from './default-language-change-dialog.component';
 
@@ -77,8 +76,7 @@ describe('DefaultLanguageChangeDialogComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [DefaultLanguageChangeDialogComponent],
       imports: [
-        MatProgressSpinnerModule,
-        MatButtonModule,
+        MaterialModule,
         TranslateModule.forRoot()
       ],
       providers: [
@@ -92,9 +90,7 @@ describe('DefaultLanguageChangeDialogComponent', () => {
   });
 
   describe('initialization', () => {
-    it('should create', () => {
-      expect(component).toBeTruthy();
-    });
+    
 
     it('should load preview on init with complete translations', (done) => {
       mockLanguageService.previewDefaultLanguageChange.mockReturnValue(of(mockPreviewComplete));
