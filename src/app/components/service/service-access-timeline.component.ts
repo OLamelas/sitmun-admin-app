@@ -1,4 +1,4 @@
-import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy, OnChanges, SimpleChanges} from '@angular/core';
 
 import {TranslateService} from '@ngx-translate/core';
 
@@ -15,10 +15,18 @@ const TICK_INDEXES = [0, 36, 72, 108, 143];
   changeDetection: ChangeDetectionStrategy.Eager,
   standalone: false,
 })
-export class ServiceAccessTimelineComponent {
+export class ServiceAccessTimelineComponent implements OnChanges {
   @Input() hours: Array<ServiceAccessHour | null> | null = null;
 
+  private now = new Date();
+
   constructor(private translate: TranslateService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['hours']) {
+      this.now = new Date();
+    }
+  }
 
   get slots(): Array<ServiceAccessHour | null> {
     return accessTrendSlots(this.hours, 'tenMinute');
@@ -33,7 +41,7 @@ export class ServiceAccessTimelineComponent {
       this.slots[index],
       index,
       (key) => this.translate.instant(key),
-      new Date(),
+      this.now,
       undefined,
       'tenMinute',
     );
@@ -44,7 +52,7 @@ export class ServiceAccessTimelineComponent {
   }
 
   get tickLabels(): string[] {
-    const now = new Date();
+    const now = this.now;
     return TICK_INDEXES.map((index, position) => this.tickLabel(index, now, position === TICK_INDEXES.length - 1));
   }
 
